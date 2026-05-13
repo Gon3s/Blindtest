@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 15
+  postgres:
+    image: postgres:15-alpine
+    container_name: blindtest-postgres
+    environment:
+      POSTGRES_USER: blindtest
+      POSTGRES_PASSWORD: blindtest-dev
+      POSTGRES_DB: blindtest
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blindtest"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - blindtest-network
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: blindtest-backend
+    environment:
+      DATABASE_URL: postgresql://blindtest:blindtest-dev@postgres:5432/blindtest
+      DEBUG: "true"
+      LOG_LEVEL: DEBUG
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/tests:/app/tests
+    command: uv run fastapi dev src/main.py --host 0.0.0.0 --port 8000
+    networks:
+      - blindtest-network
+
+  # Angular Frontend (dev server)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+      target: dev
+    container_name: blindtest-frontend
+    ports:
+      - "4200:4200"
+    environment:
+      API_URL: http://backend:8000
+    volumes:
+      - ./frontend/src:/app/src
+    command: ng serve --host 0.0.0.0 --poll 2000
+    depends_on:
+      - backend
+    networks:
+      - blindtest-network
+
+  # Optional: Adminer for DB management
+  adminer:
+    image: adminer:latest
+    container_name: blindtest-adminer
+    ports:
+      - "8081:8080"
+    depends_on:
+      - postgres
+    networks:
+      - blindtest-network
+
+volumes:
+  postgres_data:
+
+networks:
+  blindtest-network:
+    driver: bridge
