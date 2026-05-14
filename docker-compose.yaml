@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: blindtest-dev
       POSTGRES_DB: blindtest
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -56,7 +56,6 @@ services:
       API_URL: http://backend:8000
     volumes:
       - ./frontend/src:/app/src
-    command: ng serve --host 0.0.0.0 --poll 2000
     depends_on:
       - backend
     networks:
