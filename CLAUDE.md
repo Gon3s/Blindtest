@@ -81,26 +81,36 @@ Un ticket est **Done** ssi :
 
 ### Principes Core
 
-- **MVP First** : Si c'est pas dans les T-001 à T-007, c'est non.
+- **MVP First** : Si c'est pas dans le backlog MVP validé, c'est non.
 - **TDD Strict** : Jamais de code sans test d'abord.
 - **Notion = Source de vérité** : Chaque décision → Notion update.
 - **WebSocket Ready** : Dès Sprint 0, penser broadcast temps réel.
 - **Docker First** : Dev en Docker Compose, zéro "works on my machine".
 - **Typage strict** : Mypy `--strict`, TypeScript `strict: true`.
 
-## 📋 Sprint 0 — Tickets
+## 📋 Tickets
 
-| Ticket | Titre | Status | Labels |
-|--------|-------|--------|--------|
-| T-001 | Initialiser le monorepo | À faire | setup, infra, tdd |
-| T-002 | Configurer Claude Code et agents | À faire | setup, tdd, product |
-| T-003 | Initialiser FastAPI avec uv | À faire | backend, setup, tdd |
-| T-004 | Initialiser Angular 21 | À faire | frontend, setup, tdd |
-| T-005 | Configurer Docker Compose local | À faire | infra, backend, frontend, database |
-| T-006 | Configurer PostgreSQL + migrations | À faire | database, backend, tdd |
-| T-007 | Créer les scripts qualité | À faire | setup, tdd, infra |
+### Sprint 0 — Infra ✅ Done
 
-**Ordre strict** : T-001 → T-002 → T-003/T-004 (parallèle) → T-005 → T-006 → T-007
+| Ticket | Titre | Status |
+|--------|-------|--------|
+| T-001 | Initialiser le monorepo | ✅ Done |
+| T-002 | Configurer Claude Code et agents | ✅ Done |
+| T-003 | Initialiser FastAPI avec uv | ✅ Done |
+| T-004 | Initialiser Angular 21 | ✅ Done |
+| T-005 | Configurer Docker Compose local | ✅ Done |
+| T-006 | Configurer PostgreSQL + migrations | ✅ Done |
+| T-007 | Créer les scripts qualité | ✅ Done |
+
+### Sprint 1 — Domaine métier ✅ Done
+
+| Ticket | Titre | Status |
+|--------|-------|--------|
+| T-008 | Entités domaine (Room, Participant, Song) | ✅ Done |
+| T-009 | State machine Room | ✅ Done |
+| T-010 | State machine Song | ✅ Done |
+
+**Prochains tickets** : voir Notion → https://www.notion.so/35db64600100815ca0a8d8ed1174d4ac
 
 ## 🛠️ Commandes Essentielles
 
@@ -117,34 +127,31 @@ Un ticket est **Done** ssi :
 # Lint + format
 ./scripts/lint.sh
 ./scripts/format.sh
+```
 
-# Entrer dans Claude Code
-claude
-
+```
 # Dans Claude Code
-/init                    # Générer CLAUDE.md amélioré (si besoin)
-/ticket T-XXX           # Implémenter un ticket
+/ticket T-XXX           # Implémenter un ticket (TDD-first)
 /review                 # Vérifier ready-to-merge
+/tdd-cycle [feature]    # Plan test-first pour feature complexe
+/release                # Créer une release semver
 ```
 
 ## 🤖 Agents Spécialisés
 
-Les agents suivants sont configurés et seront créés en T-002 :
+Configurés dans `.claude/agents/` :
 
 - **TDD Mentor** : Veille à écrire les tests en premier
 - **Backend Reviewer** : Valide FastAPI, models, domain, queries
 - **Frontend Reviewer** : Valide Angular, components, services
 - **Product Guardian** : Refuse toute dérive hors MVP
-- **Security Checker** : Alerte sur secrets, valeurs hardcodées
-- **Infra Lead** : Docker, migrations, scripts, deployments
 
-## 📝 Slash Commands (à créer en T-002)
+## 📝 Slash Commands
 
-- `/ticket T-XXX` — Implémenter un ticket Notion
-- `/review` — Vérifier prêt à merge
+- `/ticket T-XXX` — Implémenter un ticket Notion (TDD-first)
+- `/review` — Vérifier prêt à merger
 - `/tdd-cycle` — Plan test-first pour feature complexe
-- `/new-ticket` — Créer un nouveau ticket Notion
-- `/check-scope` — Vérifier qu'on reste en MVP
+- `/release` — Créer une release semver (bump + tag + GitHub Release)
 
 ## 🚨 Contraintes Non-Négociables
 
@@ -156,23 +163,16 @@ Les agents suivants sont configurés et seront créés en T-002 :
 6. **WebSocket from day 1** : Realtime broadcast game state.
 7. **PostgreSQL only** : Pas de NoSQL, schéma défini et migré.
 
-## 💰 Cost Optimization (Option B)
+## 💰 Cost Optimization
 
-**Using Haiku model for subagents** :
-
-- All agents use `claude-haiku-4-5` (TDD-Mentor, Backend/Frontend Reviewers, Product Guardian)
-- Disable auto-review in `/ticket` (run `/review` manually after 2-3 tickets)
-- Batch tickets : `/ticket T-008`, `/ticket T-009`, `/ticket T-010`, then `/review` once
-
-**Expected savings** : 50% API budget for T-008+
-
-See `.claude/OPTIMIZATION-GUIDE.md` for details.
+- Agents utilisent `claude-haiku-4-5` (TDD-Mentor, Reviewers, Product Guardian)
+- Pas d'auto-review dans `/ticket` — lancer `/review` manuellement après 2-3 tickets
+- Batcher les tickets, puis un seul `/review`
 
 ## 🔄 Notion Integration
 
-- **Page source** : https://www.notion.so/35db64600100815ca0a8d8ed1174d4ac
-- **Tickets Sprint 0** : https://www.notion.so/35db6460-0100-8108-b0b9-ec19b6238ac5
-- **Mise à jour** : À chaque ticket, update status, assignee si applicable
+- **Backlog** : https://www.notion.so/35db64600100815ca0a8d8ed1174d4ac
+- **Mise à jour** : À chaque ticket, update status dans Notion
 
 ## 📚 Context Saved
 
@@ -180,11 +180,13 @@ Ce fichier charge à chaque session Claude Code.
 **À jour** : mise à jour dès décision prise (état, tickets, stack).  
 **Taille** : < 250 lignes, garder concis.
 
-## 🚀 Prochaines étapes
+## 🔗 GitHub
 
-1. ✅ Structure créée
-2. → **T-002 : Créer agents + commands Claude Code**
-3. → T-003/004 : Backend + Frontend setup
-4. → T-005/006/007 : Infra + Docker + scripts qualité
+- **Repo** : https://github.com/Gon3s/Blindtest
+- **main** protégé : pas de force-push, pas de suppression
 
-**Status** : Prêt pour `/ticket T-001` après T-002.
+## 🚀 Status
+
+- ✅ Sprint 0 — Infra complète
+- ✅ Sprint 1 — Domaine métier (T-008/009/010)
+- → Prochains tickets dans Notion
