@@ -1,117 +1,190 @@
-# CLAUDE.md
+# Blindtest App — Claude Code Configuration
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## 🎮 Produit
 
-## Project
+**Blindtest App** : Application de blindtest multijoueur pour soirées privées entre amis.
 
-Multiplayer music blindtest app for private friend sessions. Core game loop that must never regress:
+**Promesse** : Lancer un blindtest en moins d'une minute, jouer des manches courtes (10 chansons en ~5 min), révéler les réponses et garder un classement clair.
+
+**Boucle à protéger** (tout le reste doit être challengé) :
+```
+Créer → Rejoindre → Jouer → Répondre → Valider → Révéler → Classer → Relancer
+```
+
+## 🏗️ Stack Technique
+
+| Couche | Tech | Version |
+|--------|------|---------|
+| Frontend | Angular | 21+ (latest) |
+| Backend | FastAPI | latest |
+| Python | Python | 3.11+ |
+| Package Manager | uv | latest |
+| Database | PostgreSQL | 15+ |
+| Temps réel | WebSocket FastAPI | - |
+| Déploiement | Docker Compose | - |
+| Auth | Aucune (MVP) | - |
+| Musique | Deezer via `MusicProvider` + fixtures | - |
+
+## 📁 Structure Monorepo
 
 ```
-Create room → Join by code + pseudo → Play round (10 songs × 30s) → Answer (free text) → Validate → Reveal → Score → Relaunch
+blindtest-app/
+├── frontend/              # Angular 21 app
+│   ├── src/
+│   ├── angular.json
+│   ├── package.json
+│   └── tsconfig.json
+├── backend/               # FastAPI app
+│   ├── src/
+│   │   ├── domain/       # Logique métier pure (pas de dépendances)
+│   │   ├── application/  # Services applicatifs
+│   │   ├── infrastructure/  # FastAPI, DB, WebSocket
+│   │   └── api/          # Routes FastAPI
+│   ├── tests/
+│   ├── pyproject.toml
+│   └── uv.lock
+├── packages/
+│   ├── contracts/        # Types partagés (JSON schemas, DTOs)
+│   └── test-fixtures/    # Données de test partagées
+├── infra/
+│   └── compose.yaml      # Docker Compose local
+├── scripts/
+│   ├── check.sh          # Lint + test + type check global
+│   ├── test.sh           # Tests uniquement
+│   ├── dev.sh            # Dev mode (docker compose + watch)
+│   ├── lint.sh           # Lint + format check
+│   └── format.sh         # Auto-format code
+├── docs/                 # Documentation
+├── .claude/              # Config Claude Code
+│   ├── agents/
+│   ├── commands/
+│   └── rules.md
+├── README.md
+├── .gitignore
+└── docker-compose.yaml   # Ou dans infra/
+
 ```
 
-No user accounts, no payments, no voice input. Pseudos only. Music via Deezer 30s previews + fixture fallback.
+## 🎯 Règles Développement
 
-## Commands
+### Definition of Done (Avant tout commit)
+
+Un ticket est **Done** ssi :
+
+1. ✅ Tests écrits **avant** implémentation (TDD strict)
+2. ✅ Tous les tests passent (`pytest`, `ng test`)
+3. ✅ Lint passe (`ruff check`, `eslint`)
+4. ✅ Typage passe (`mypy --strict`, `tsc --noEmit`)
+5. ✅ `./scripts/check.sh` retourne 0
+6. ✅ Doc utile mise à jour
+7. ✅ Zéro dérive hors MVP
+
+### Principes Core
+
+- **MVP First** : Si c'est pas dans les T-001 à T-007, c'est non.
+- **TDD Strict** : Jamais de code sans test d'abord.
+- **Notion = Source de vérité** : Chaque décision → Notion update.
+- **WebSocket Ready** : Dès Sprint 0, penser broadcast temps réel.
+- **Docker First** : Dev en Docker Compose, zéro "works on my machine".
+- **Typage strict** : Mypy `--strict`, TypeScript `strict: true`.
+
+## 📋 Sprint 0 — Tickets
+
+| Ticket | Titre | Status | Labels |
+|--------|-------|--------|--------|
+| T-001 | Initialiser le monorepo | À faire | setup, infra, tdd |
+| T-002 | Configurer Claude Code et agents | À faire | setup, tdd, product |
+| T-003 | Initialiser FastAPI avec uv | À faire | backend, setup, tdd |
+| T-004 | Initialiser Angular 21 | À faire | frontend, setup, tdd |
+| T-005 | Configurer Docker Compose local | À faire | infra, backend, frontend, database |
+| T-006 | Configurer PostgreSQL + migrations | À faire | database, backend, tdd |
+| T-007 | Créer les scripts qualité | À faire | setup, tdd, infra |
+
+**Ordre strict** : T-001 → T-002 → T-003/T-004 (parallèle) → T-005 → T-006 → T-007
+
+## 🛠️ Commandes Essentielles
 
 ```bash
-# Full quality gate — run before every commit
-./scripts/check.sh        # ruff, mypy, pytest, eslint, tsc, ng test
+# Check suite AVANT tout commit (obligation absolue)
+./scripts/check.sh
 
-# Start all services (Docker Compose)
-./scripts/dev.sh           # Equivalent to docker-compose up -d
+# Dev mode (watch + docker compose up)
+./scripts/dev.sh
 
-# Backend (from backend/)
-uv run pytest              # All tests
-uv run pytest tests/path/test_file.py::test_name  # Single test
-uv run ruff check .        # Lint
-uv run ruff format .       # Format
-uv run mypy --strict src/  # Type check
+# Tests uniquement
+./scripts/test.sh
 
-# Frontend (from frontend/)
-ng test --watch=false      # Unit tests (CI mode)
-ng lint                    # ESLint
-tsc --noEmit               # Type check
-ng serve                   # Dev server (also runs in Docker on :4200)
+# Lint + format
+./scripts/lint.sh
+./scripts/format.sh
+
+# Entrer dans Claude Code
+claude
+
+# Dans Claude Code
+/init                    # Générer CLAUDE.md amélioré (si besoin)
+/ticket T-XXX           # Implémenter un ticket
+/review                 # Vérifier ready-to-merge
 ```
 
-**Service URLs (after `./scripts/dev.sh`)**:
-- Frontend: http://localhost:4200
-- API + Swagger: http://localhost:8000 / http://localhost:8000/docs
-- DB Admin (Adminer): http://localhost:8081
+## 🤖 Agents Spécialisés
 
-## Architecture
+Les agents suivants sont configurés et seront créés en T-002 :
 
-### Monorepo Layout
+- **TDD Mentor** : Veille à écrire les tests en premier
+- **Backend Reviewer** : Valide FastAPI, models, domain, queries
+- **Frontend Reviewer** : Valide Angular, components, services
+- **Product Guardian** : Refuse toute dérive hors MVP
+- **Security Checker** : Alerte sur secrets, valeurs hardcodées
+- **Infra Lead** : Docker, migrations, scripts, deployments
 
-```
-backend/src/
-├── domain/          # Pure business logic — zero infrastructure imports
-│   ├── models.py    # Entities, value objects
-│   ├── errors.py    # Domain exceptions (mapped to HTTP in routes)
-│   └── rules/       # State machines (Room states, etc.)
-├── application/     # Use cases — orchestrates domain + infrastructure
-│   ├── services/
-│   └── dto.py
-├── infrastructure/  # SQLAlchemy, connections, Deezer adapter
-│   ├── db.py
-│   ├── repositories/
-│   └── adapters/
-└── api/             # FastAPI routes — thin, validation + serialization only
+## 📝 Slash Commands (à créer en T-002)
 
-frontend/src/app/
-├── core/            # Singleton services, guards (API client, WebSocket service)
-├── shared/          # Reusable dumb components, pipes, directives
-└── pages/           # Smart components, one per route (home, room, game, leaderboard)
-```
+- `/ticket T-XXX` — Implémenter un ticket Notion
+- `/review` — Vérifier prêt à merge
+- `/tdd-cycle` — Plan test-first pour feature complexe
+- `/new-ticket` — Créer un nouveau ticket Notion
+- `/check-scope` — Vérifier qu'on reste en MVP
 
-### Key Architectural Rules
+## 🚨 Contraintes Non-Négociables
 
-**Backend — domain purity**: `domain/` must have zero imports from `fastapi`, `sqlalchemy`, `requests`, or any other infrastructure library. Business logic tested without a running DB or server.
+1. **Aucune complexité prématurée** : Si c'est pas demandé dans MVP, c'est non.
+2. **Pas de comptes utilisateur** : Pseudos sans auth.
+3. **Pas de paiement** : Musique via Deezer + fallback fixtures.
+4. **Pas de voix** : Réponses texte libre uniquement.
+5. **Pas de licences avancées** : Utiliser preview Deezer si dispo, sinon fixture.
+6. **WebSocket from day 1** : Realtime broadcast game state.
+7. **PostgreSQL only** : Pas de NoSQL, schéma défini et migré.
 
-**Backend — routes are thin**: No business logic in route handlers. Routes call service methods, map domain errors to HTTP status codes.
+## 💰 Cost Optimization (Option B)
 
-**Backend — WebSocket**: Manager pattern for connection lifecycle. Broadcast typed messages. Graceful cleanup on disconnect.
+**Using Haiku model for subagents** :
 
-**Frontend — standalone components**: All Angular components use `standalone: true`. No NgModule declarations for new code.
+- All agents use `claude-haiku-4-5` (TDD-Mentor, Backend/Frontend Reviewers, Product Guardian)
+- Disable auto-review in `/ticket` (run `/review` manually after 2-3 tickets)
+- Batch tickets : `/ticket T-008`, `/ticket T-009`, `/ticket T-010`, then `/review` once
 
-**Frontend — change detection**: Default to `OnPush`. Dumb components only receive `@Input`/emit `@Output`. Smart components (pages) wire services.
+**Expected savings** : 50% API budget for T-008+
 
-**Frontend — reactivity**: Services expose `BehaviorSubject`/`ReplaySubject`. Templates use `async` pipe. No unsubscribed observables.
+See `.claude/OPTIMIZATION-GUIDE.md` for details.
 
-**Frontend — WebSocket**: Single WS service with reconnection logic (exponential backoff, not infinite retry). Cleanup subscriptions in `ngOnDestroy`.
+## 🔄 Notion Integration
 
-## Definition of Done
+- **Page source** : https://www.notion.so/35db64600100815ca0a8d8ed1174d4ac
+- **Tickets Sprint 0** : https://www.notion.so/35db6460-0100-8108-b0b9-ec19b6238ac5
+- **Mise à jour** : À chaque ticket, update status, assignee si applicable
 
-A ticket is complete only when:
+## 📚 Context Saved
 
-1. Tests written before implementation (TDD — no exceptions)
-2. `pytest` passes (backend) + `ng test:ci` passes (frontend)
-3. `ruff check` + `mypy --strict` pass (backend)
-4. `eslint` + `tsc --noEmit` pass (frontend)
-5. `./scripts/check.sh` returns 0
-6. DB migrations included if schema changed (Alembic)
+Ce fichier charge à chaque session Claude Code.  
+**À jour** : mise à jour dès décision prise (état, tickets, stack).  
+**Taille** : < 250 lignes, garder concis.
 
-## Typing
+## 🚀 Prochaines étapes
 
-- Python: `mypy --strict` must pass. Use `Optional[T]`, explicit return types on all functions.
-- TypeScript: `strict: true` in tsconfig. No `any` without a comment explaining why.
+1. ✅ Structure créée
+2. → **T-002 : Créer agents + commands Claude Code**
+3. → T-003/004 : Backend + Frontend setup
+4. → T-005/006/007 : Infra + Docker + scripts qualité
 
-## Slash Commands
-
-- `/ticket T-XXX` — implement a ticket (TDD-first, verify with check.sh)
-- `/review` — pre-merge readiness check (runs backend + frontend + product guardian agents)
-- `/tdd-cycle [description]` — plan a Red-Green-Refactor cycle for complex features
-
-## Agents
-
-Specialized agents in `.claude/agents/`:
-- `tdd-mentor` — enforces test-first; invoke when starting any business logic
-- `backend-reviewer` — validates hexagonal architecture, mypy, domain purity
-- `frontend-reviewer` — validates Angular standalone, TypeScript strict, RxJS patterns
-- `product-guardian` — blocks scope creep; anything not in T-001 to T-041 is out of MVP
-
-## Notion (Source of Truth)
-
-- Tickets: https://www.notion.so/35db6460-0100-8108-b0b9-ec19b6238ac5
-- Update ticket status after each completed ticket.
+**Status** : Prêt pour `/ticket T-001` après T-002.
