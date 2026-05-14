@@ -111,7 +111,7 @@ Un ticket est **Done** ssi :
 | T-010 | State machine Song | ✅ Done |
 | T-011 | Normalisation de réponse | ✅ Done |
 | T-012 | Validation laxiste V0 | ✅ Done |
-| T-013 | Scoring chanson | 🔲 Todo |
+| T-013 | Scoring chanson | ✅ Done |
 | T-014 | Classements | 🔲 Todo |
 
 **Prochains tickets** : voir Notion → https://www.notion.so/35db64600100815ca0a8d8ed1174d4ac
