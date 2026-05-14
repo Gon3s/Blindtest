@@ -4,7 +4,16 @@ from typing import Optional
 from uuid import UUID, uuid4
 
 from .enums import RoomStatus, RoundStatus, SongStatus, ValidationStatus
-from .exceptions import RoomTransitionError
+from .exceptions import RoomTransitionError, SongTransitionError
+
+_SONG_TRANSITIONS: dict[SongStatus, set[SongStatus]] = {
+    SongStatus.UPCOMING: {SongStatus.PLAYING},
+    SongStatus.PLAYING: {SongStatus.LOCKED},
+    SongStatus.LOCKED: {SongStatus.VALIDATION, SongStatus.REVEALED},
+    SongStatus.VALIDATION: {SongStatus.REVEALED},
+    SongStatus.REVEALED: {SongStatus.SCORED},
+    SongStatus.SCORED: set(),
+}
 
 _ROOM_TRANSITIONS: dict[RoomStatus, set[RoomStatus]] = {
     RoomStatus.CREATED: {RoomStatus.WAITING},
@@ -99,6 +108,28 @@ class Song:
     status: SongStatus = SongStatus.UPCOMING
     started_at: Optional[datetime] = None
     ends_at: Optional[datetime] = None
+
+    def _transition(self, target: SongStatus) -> None:
+        if target not in _SONG_TRANSITIONS[self.status]:
+            raise SongTransitionError(
+                f"Cannot transition from {self.status.value!r} to {target.value!r}"
+            )
+        self.status = target
+
+    def play(self) -> None:
+        self._transition(SongStatus.PLAYING)
+
+    def lock(self) -> None:
+        self._transition(SongStatus.LOCKED)
+
+    def validate(self) -> None:
+        self._transition(SongStatus.VALIDATION)
+
+    def reveal(self) -> None:
+        self._transition(SongStatus.REVEALED)
+
+    def score(self) -> None:
+        self._transition(SongStatus.SCORED)
 
 
 @dataclass
