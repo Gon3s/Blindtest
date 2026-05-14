@@ -1,0 +1,33 @@
+[project]
+name = "blindtest-backend"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi[standard]>=0.115.0",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "psycopg2-binary>=2.9",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.8.0",
+    "pytest>=8.0.0",
+    "ruff>=0.5.0",
+    "sqlalchemy[mypy]>=2.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]

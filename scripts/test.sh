@@ -1,12 +1,19 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-echo "✅ Blindtest App — Test Suite (T-007 to be implemented)"
-echo "──────────────────────────────────────────────────────"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(dirname "$SCRIPT_DIR")"
 
-echo "⚠️  T-007 non implémenté — ce script sera complété"
-echo "Ce script exécutera :"
-echo "  - Backend: pytest"
-echo "  - Frontend: ng test:ci"
+echo "Blindtest — Tests"
+echo "================="
 
-exit 0
+echo ""
+echo "[Backend]"
+(cd "$ROOT/backend" && uv run pytest)
+
+echo ""
+echo "[Frontend]"
+(cd "$ROOT/frontend" && npx ng test --watch=false)
+
+echo ""
+echo "All tests passed."

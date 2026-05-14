@@ -28,11 +28,21 @@ cd blindtest-app
 docker-compose up -d
 ```
 
+> **Note** : Les ports 5432 (PostgreSQL) et 8000 (API) doivent être libres.  
+> Si une autre instance PostgreSQL tourne sur 5432, l'arrêter avant de lancer la stack.
+
 **Accès** :
 - 🌐 Frontend : http://localhost:4200
 - 🔌 API : http://localhost:8000
 - 📊 Docs API : http://localhost:8000/docs
 - 🗄️ DB Admin (optionnel) : http://localhost:8081
+
+### Tests Docker (smoke)
+
+```bash
+# Vérifier que les images buildent et la stack démarre (ports 5432 et 8000 libres requis)
+bash tests/integration/test_docker_smoke.sh
+```
 
 ---
 
@@ -76,13 +86,13 @@ claude
 
 | Ticket | Titre | Status |
 |--------|-------|--------|
-| T-001 | Initialiser le monorepo | ✅ En cours |
-| T-002 | Configurer Claude Code + agents | → Suivant |
-| T-003 | FastAPI + uv | |
-| T-004 | Angular 21 | |
-| T-005 | Docker Compose | |
+| T-001 | Initialiser le monorepo | ✅ Done |
+| T-002 | Configurer Claude Code + agents | ✅ Done |
+| T-003 | FastAPI + uv | ✅ Done |
+| T-004 | Angular 21 | ✅ Done |
+| T-005 | Docker Compose | ✅ Done |
 | T-006 | PostgreSQL + migrations | |
-| T-007 | Scripts qualité | |
+| T-007 | Scripts qualité | ✅ Done |
 
 Voir [Notion](https://www.notion.so/35db6460-0100-8108-b0b9-ec19b6238ac5) pour les détails complets.
 
