@@ -1,0 +1,2 @@
+class RoomTransitionError(ValueError):
+    pass
