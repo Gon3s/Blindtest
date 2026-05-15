@@ -7,6 +7,11 @@ from sqlalchemy.orm import Session
 
 from src.domain.entities import Participant, Room, RoomConfig
 from src.domain.enums import RoomStatus
+from src.domain.exceptions import (
+    NicknameAlreadyTakenError,
+    RoomNotFoundError,
+    RoomNotJoinableError,
+)
 from src.infrastructure.models import ParticipantModel, RoomModel
 
 CODE_CHARS: str = string.ascii_uppercase + string.digits
@@ -18,6 +23,16 @@ class CreateRoomResult(TypedDict):
     room_id: UUID
     code: str
     host_id: UUID
+
+
+class JoinRoomResult(TypedDict):
+    room_id: UUID
+    participant_id: UUID
+
+
+_JOINABLE_STATUSES: frozenset[str] = frozenset(
+    {RoomStatus.CREATED.value, RoomStatus.WAITING.value}
+)
 
 
 class RoomService:
@@ -76,3 +91,34 @@ class RoomService:
             code=room.code,
             host_id=participant.id,
         )
+
+    def join_room(self, code: str, nickname: str) -> JoinRoomResult:
+        room = self._session.query(RoomModel).filter_by(code=code).first()
+        if room is None:
+            raise RoomNotFoundError(f"Room with code {code!r} not found")
+        if room.status not in _JOINABLE_STATUSES:
+            raise RoomNotJoinableError(
+                f"Room is not joinable (status: {room.status!r})"
+            )
+        existing = (
+            self._session.query(ParticipantModel)
+            .filter_by(room_id=room.id, nickname=nickname)
+            .first()
+        )
+        if existing is not None:
+            raise NicknameAlreadyTakenError(
+                f"Nickname {nickname!r} is already taken in this room"
+            )
+
+        participant = Participant(nickname=nickname, room_id=room.id)
+        self._session.add(
+            ParticipantModel(
+                id=participant.id,
+                nickname=participant.nickname,
+                room_id=participant.room_id,
+                is_host=False,
+            )
+        )
+        self._session.flush()
+
+        return JoinRoomResult(room_id=room.id, participant_id=participant.id)

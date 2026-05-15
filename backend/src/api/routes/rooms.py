@@ -1,8 +1,18 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from src.api.schemas.rooms import CreateRoomRequest, CreateRoomResponse
+from src.api.schemas.rooms import (
+    CreateRoomRequest,
+    CreateRoomResponse,
+    JoinRoomRequest,
+    JoinRoomResponse,
+)
 from src.application.room_service import RoomService
+from src.domain.exceptions import (
+    NicknameAlreadyTakenError,
+    RoomNotFoundError,
+    RoomNotJoinableError,
+)
 from src.infrastructure.db import get_db
 
 router = APIRouter()
@@ -22,4 +32,22 @@ def create_room(
         room_id=result["room_id"],
         code=result["code"],
         host_id=result["host_id"],
+    )
+
+
+@router.post("/rooms/{code}/join", response_model=JoinRoomResponse, status_code=201)
+def join_room(
+    code: str,
+    payload: JoinRoomRequest,
+    service: RoomService = Depends(get_room_service),
+) -> JoinRoomResponse:
+    try:
+        result = service.join_room(code, payload.nickname)
+    except RoomNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except (RoomNotJoinableError, NicknameAlreadyTakenError) as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    return JoinRoomResponse(
+        room_id=result["room_id"],
+        participant_id=result["participant_id"],
     )

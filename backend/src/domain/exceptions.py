@@ -4,3 +4,15 @@ class RoomTransitionError(ValueError):
 
 class SongTransitionError(ValueError):
     pass
+
+
+class RoomNotFoundError(ValueError):
+    pass
+
+
+class RoomNotJoinableError(ValueError):
+    pass
+
+
+class NicknameAlreadyTakenError(ValueError):
+    pass
