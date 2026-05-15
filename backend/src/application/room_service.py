@@ -76,6 +76,9 @@ class RoomService:
                 },
             )
         )
+        # Flush the room before the participant so the FK constraint is satisfied.
+        # The models have no ORM relationship(), so SQLAlchemy cannot infer the order.
+        self._session.flush()
         self._session.add(
             ParticipantModel(
                 id=participant.id,
