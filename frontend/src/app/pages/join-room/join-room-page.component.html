@@ -1,0 +1,32 @@
+<main class="join-room">
+  <h1>Rejoindre une salle</h1>
+  <form (ngSubmit)="submit()">
+    <label for="code">Code de la salle</label>
+    <input
+      id="code"
+      type="text"
+      name="code"
+      [(ngModel)]="code"
+      placeholder="Ex: ABC123"
+      required
+      autocomplete="off"
+    />
+    <label for="nickname">Ton pseudo</label>
+    <input
+      id="nickname"
+      type="text"
+      name="nickname"
+      [(ngModel)]="nickname"
+      placeholder="Ex: Bob"
+      required
+      autocomplete="off"
+    />
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+    <button type="submit" [disabled]="loading() || !code.trim() || !nickname.trim()">
+      {{ loading() ? 'Connexion...' : 'Rejoindre' }}
+    </button>
+  </form>
+  <a routerLink="/">← Retour</a>
+</main>

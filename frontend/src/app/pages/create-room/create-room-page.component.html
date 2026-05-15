@@ -1,0 +1,22 @@
+<main class="create-room">
+  <h1>Créer une salle</h1>
+  <form (ngSubmit)="submit()">
+    <label for="nickname">Ton pseudo</label>
+    <input
+      id="nickname"
+      type="text"
+      name="nickname"
+      [(ngModel)]="nickname"
+      placeholder="Ex: Alice"
+      required
+      autocomplete="off"
+    />
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+    <button type="submit" [disabled]="loading() || !nickname.trim()">
+      {{ loading() ? 'Création...' : 'Créer la salle' }}
+    </button>
+  </form>
+  <a routerLink="/">← Retour</a>
+</main>
