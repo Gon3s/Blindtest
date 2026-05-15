@@ -4,8 +4,177 @@
   align-items: center;
   padding: 2rem 1rem;
   text-align: center;
+  min-height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+  gap: 1.5rem;
 
-  a {
-    margin-top: 2rem;
+  // ── Code block ────────────────────────────────────
+  &__code-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 1rem;
+    width: 100%;
+  }
+
+  &__code-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.5;
+    margin: 0;
+  }
+
+  &__code {
+    font-size: 3rem;
+    letter-spacing: 0.3em;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  &__code-hint {
+    font-size: 0.8rem;
+    opacity: 0.4;
+    margin: 0;
+  }
+
+  // ── Participants ───────────────────────────────────
+  &__participants {
+    width: 100%;
+  }
+
+  &__participants-title {
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.5;
+    margin: 0 0 0.75rem;
+    font-weight: 600;
+  }
+
+  &__participants-count {
+    font-weight: 400;
+  }
+
+  &__waiting {
+    opacity: 0.4;
+    font-style: italic;
+    font-size: 0.9rem;
+  }
+
+  &__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    &--compact {
+      margin-top: 0.5rem;
+    }
+  }
+
+  &__item {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0.625rem;
+  }
+
+  &__item-name {
+    font-weight: 500;
+  }
+
+  &__host-badge {
+    font-size: 0.7rem;
+    opacity: 0.55;
+    padding: 0.1rem 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 2rem;
+  }
+
+  // ── Start button ───────────────────────────────────
+  &__start-btn {
+    width: 100%;
+    max-width: 320px;
+    margin-top: auto;
+  }
+
+  // ── Player hero ────────────────────────────────────
+  &__player-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding-top: 2rem;
+  }
+
+  &__player-label {
+    font-size: 0.8rem;
+    opacity: 0.5;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0;
+  }
+
+  &__player-name {
+    font-size: 2.25rem;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  // ── Waiting block ──────────────────────────────────
+  &__waiting-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  &__spinner {
+    width: 2rem;
+    height: 2rem;
+    border: 3px solid rgba(255, 255, 255, 0.15);
+    border-top-color: rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  &__waiting-msg {
+    opacity: 0.6;
+    font-size: 0.95rem;
+    max-width: 280px;
+    margin: 0;
+  }
+
+  &__room-info {
+    font-size: 0.8rem;
+    opacity: 0.35;
+    margin: 0;
+  }
+
+  // ── Quit link ──────────────────────────────────────
+  &__quit {
+    margin-top: auto;
+    padding-top: 1rem;
+    opacity: 0.45;
+    font-size: 0.85rem;
+    text-decoration: none;
+
+    &:hover {
+      opacity: 0.8;
+    }
   }
 }

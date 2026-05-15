@@ -29,7 +29,7 @@ export class JoinRoomPageComponent {
     this.roomService.joinRoom(code, nickname).subscribe({
       next: res => {
         this.router.navigate(['/lobby', code], {
-          state: { room_id: res.room_id, participant_id: res.participant_id, role: 'player' },
+          state: { room_id: res.room_id, participant_id: res.participant_id, role: 'player', nickname },
         });
       },
       error: (err: { error?: { detail?: string } }) => {

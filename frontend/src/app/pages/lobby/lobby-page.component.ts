@@ -30,17 +30,22 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
     { initialValue: '' },
   );
   readonly participants = signal<Participant[]>([]);
+  readonly isHost = signal(false);
+  readonly nickname = signal('');
 
   private subscription?: Subscription;
 
   ngOnInit(): void {
-    const state = history.state as { room_id?: string };
+    const state = history.state as { room_id?: string; role?: string; nickname?: string };
     const roomId = state.room_id ?? '';
 
     if (!roomId) {
       void this.router.navigate(['/']);
       return;
     }
+
+    this.isHost.set(state.role === 'host');
+    this.nickname.set(state.nickname ?? '');
 
     this.wsService.connect(roomId);
     this.subscription = this.wsService.messages$.subscribe((event: WsEvent) => {
@@ -57,5 +62,10 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.subscription?.unsubscribe();
     this.wsService.disconnect();
+  }
+
+  // TODO T-024: wire to start-round API
+  startRound(): void {
+    void 0;
   }
 }

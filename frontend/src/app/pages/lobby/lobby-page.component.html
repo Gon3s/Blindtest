@@ -1,12 +1,73 @@
-<main class="lobby">
-  <h1>Salle {{ code() }}</h1>
-  <p>En attente des joueurs...</p>
+@if (isHost()) {
+  <main class="lobby lobby--host">
+    <div class="lobby__code-block">
+      <p class="lobby__code-label">Code de la salle</p>
+      <strong class="lobby__code" aria-label="Code salle {{ code() }}">{{ code() }}</strong>
+      <p class="lobby__code-hint">Partage ce code avec tes amis</p>
+    </div>
 
-  <ul class="participants">
-    @for (p of participants(); track p.participant_id) {
-      <li>{{ p.nickname }}@if (p.is_host) { (hôte)}</li>
+    <div class="lobby__participants">
+      <h2 class="lobby__participants-title">
+        Joueurs
+        @if (participants().length > 0) {
+          <span class="lobby__participants-count">({{ participants().length }})</span>
+        }
+      </h2>
+
+      @if (participants().length === 0) {
+        <p class="lobby__waiting">En attente des joueurs...</p>
+      } @else {
+        <ul class="lobby__list">
+          @for (p of participants(); track p.participant_id) {
+            <li class="lobby__item">
+              <span class="lobby__item-name">{{ p.nickname }}</span>
+              @if (p.is_host) {
+                <span class="lobby__host-badge">hôte</span>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </div>
+
+    <button
+      data-testid="start-round"
+      class="btn btn-primary lobby__start-btn"
+      (click)="startRound()"
+      [disabled]="participants().length < 2"
+    >
+      Lancer la manche
+    </button>
+
+    <a routerLink="/" class="lobby__quit">← Quitter</a>
+  </main>
+} @else {
+  <main class="lobby lobby--player">
+    <div class="lobby__player-hero">
+      <p class="lobby__player-label">Tu joues en tant que</p>
+      <h1 class="lobby__player-name">{{ nickname() }}</h1>
+    </div>
+
+    <div class="lobby__waiting-block">
+      <div class="lobby__spinner" aria-hidden="true"></div>
+      <p class="lobby__waiting-msg">En attente du lancement par le maître du jeu...</p>
+    </div>
+
+    <p class="lobby__room-info">Salle : <strong>{{ code() }}</strong></p>
+
+    @if (participants().length > 0) {
+      <ul class="lobby__list lobby__list--compact">
+        @for (p of participants(); track p.participant_id) {
+          <li class="lobby__item">
+            <span class="lobby__item-name">{{ p.nickname }}</span>
+            @if (p.is_host) {
+              <span class="lobby__host-badge">hôte</span>
+            }
+          </li>
+        }
+      </ul>
     }
-  </ul>
 
-  <a routerLink="/">← Quitter</a>
-</main>
+    <a routerLink="/" class="lobby__quit">← Quitter</a>
+  </main>
+}

@@ -27,7 +27,7 @@ export class CreateRoomPageComponent {
     this.roomService.createRoom(name).subscribe({
       next: res => {
         this.router.navigate(['/lobby', res.code], {
-          state: { room_id: res.room_id, host_id: res.host_id, role: 'host' },
+          state: { room_id: res.room_id, host_id: res.host_id, role: 'host', nickname: name },
         });
       },
       error: (err: { error?: { detail?: string } }) => {
