@@ -5,14 +5,16 @@ from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
 
-from src.domain.entities import Participant, Room, RoomConfig
-from src.domain.enums import RoomStatus
+from src.domain.entities import Participant, Room, RoomConfig, Round
+from src.domain.enums import RoomStatus, RoundStatus
 from src.domain.exceptions import (
     NicknameAlreadyTakenError,
     RoomNotFoundError,
     RoomNotJoinableError,
+    RoomNotWaitingError,
 )
-from src.infrastructure.models import ParticipantModel, RoomModel
+from src.domain.music_provider import MusicProvider, track_to_song
+from src.infrastructure.models import ParticipantModel, RoomModel, RoundModel, SongModel
 
 CODE_CHARS: str = string.ascii_uppercase + string.digits
 CODE_LENGTH: int = 6
@@ -28,6 +30,13 @@ class CreateRoomResult(TypedDict):
 class JoinRoomResult(TypedDict):
     room_id: UUID
     participant_id: UUID
+
+
+class StartRoundResult(TypedDict):
+    round_id: UUID
+    room_id: UUID
+    song_count: int
+    theme: str
 
 
 _JOINABLE_STATUSES: frozenset[str] = frozenset(
@@ -125,3 +134,69 @@ class RoomService:
         self._session.flush()
 
         return JoinRoomResult(room_id=room.id, participant_id=participant.id)
+
+    def start_round(
+        self, room_id: UUID, theme: str, music_provider: MusicProvider
+    ) -> StartRoundResult:
+        room = self._session.query(RoomModel).filter_by(id=room_id).first()
+        if room is None:
+            raise RoomNotFoundError(f"Room {room_id!r} not found")
+        if room.status != RoomStatus.WAITING.value:
+            raise RoomNotWaitingError(
+                f"Room must be waiting to start a round (status: {room.status!r})"
+            )
+
+        round_index: int = (
+            self._session.query(RoundModel).filter_by(room_id=room_id).count()
+        )
+        round_entity = Round(
+            room_id=room_id,
+            index=round_index,
+            theme=theme,
+            status=RoundStatus.IN_PROGRESS,
+        )
+
+        tracks = music_provider.search(theme, limit=10)
+        songs = [
+            track_to_song(track, round_entity.id, idx)
+            for idx, track in enumerate(tracks)
+        ]
+
+        self._session.add(
+            RoundModel(
+                id=round_entity.id,
+                room_id=room_id,
+                index=round_entity.index,
+                theme=theme,
+                status=RoundStatus.IN_PROGRESS.value,
+            )
+        )
+        self._session.flush()
+
+        for song in songs:
+            self._session.add(
+                SongModel(
+                    id=song.id,
+                    title=song.title,
+                    artist=song.artist,
+                    round_id=song.round_id,
+                    index=song.index,
+                    aliases_title=song.aliases_title,
+                    aliases_artist=song.aliases_artist,
+                    preview_url=song.preview_url,
+                    status=song.status.value,
+                    started_at=song.started_at,
+                    ends_at=song.ends_at,
+                )
+            )
+        self._session.flush()
+
+        room.status = RoomStatus.ROUND_IN_PROGRESS.value
+        self._session.flush()
+
+        return StartRoundResult(
+            round_id=round_entity.id,
+            room_id=room_id,
+            song_count=len(songs),
+            theme=theme,
+        )

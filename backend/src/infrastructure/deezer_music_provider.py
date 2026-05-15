@@ -1,0 +1,43 @@
+from typing import Any
+
+import httpx
+
+from src.domain.music_provider import MusicProvider, TrackInfo
+from src.infrastructure.static_fixture_provider import StaticFixtureMusicProvider
+
+_DEEZER_SEARCH_URL = "https://api.deezer.com/search"
+
+
+class DeezerMusicProvider:
+    def __init__(
+        self,
+        fallback: MusicProvider | None = None,
+        client: httpx.Client | None = None,
+    ) -> None:
+        self._fallback: MusicProvider = fallback or StaticFixtureMusicProvider()
+        self._client = client or httpx.Client(timeout=5.0)
+
+    def search(self, theme: str, limit: int = 10) -> list[TrackInfo]:
+        try:
+            response = self._client.get(
+                _DEEZER_SEARCH_URL,
+                params={"q": theme, "limit": limit},
+            )
+            response.raise_for_status()
+            data: dict[str, Any] = response.json()
+            items: list[dict[str, Any]] = data.get("data", [])[:limit]
+            tracks = [self._map_track(item) for item in items]
+            if not tracks:
+                return self._fallback.search(theme, limit)
+            return tracks
+        except Exception:
+            return self._fallback.search(theme, limit)
+
+    @staticmethod
+    def _map_track(item: dict[str, Any]) -> TrackInfo:
+        raw_preview: str = item.get("preview", "") or ""
+        return TrackInfo(
+            title=item["title"],
+            artist=item["artist"]["name"],
+            preview_url=raw_preview if raw_preview else None,
+        )

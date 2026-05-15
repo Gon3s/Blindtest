@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -6,14 +8,19 @@ from src.api.schemas.rooms import (
     CreateRoomResponse,
     JoinRoomRequest,
     JoinRoomResponse,
+    StartRoundRequest,
+    StartRoundResponse,
 )
 from src.application.room_service import RoomService
 from src.domain.exceptions import (
     NicknameAlreadyTakenError,
     RoomNotFoundError,
     RoomNotJoinableError,
+    RoomNotWaitingError,
 )
+from src.domain.music_provider import MusicProvider
 from src.infrastructure.db import get_db
+from src.infrastructure.static_fixture_provider import StaticFixtureMusicProvider
 from src.infrastructure.ws_manager import RoomConnectionManager, get_ws_manager
 
 router = APIRouter()
@@ -21,6 +28,10 @@ router = APIRouter()
 
 def get_room_service(session: Session = Depends(get_db)) -> RoomService:
     return RoomService(session)
+
+
+def get_music_provider() -> MusicProvider:
+    return StaticFixtureMusicProvider()
 
 
 @router.post("/rooms", response_model=CreateRoomResponse, status_code=201)
@@ -63,4 +74,39 @@ async def join_room(
     return JoinRoomResponse(
         room_id=result["room_id"],
         participant_id=result["participant_id"],
+    )
+
+
+@router.post(
+    "/rooms/{room_id}/rounds", response_model=StartRoundResponse, status_code=201
+)
+async def start_round(
+    room_id: UUID,
+    payload: StartRoundRequest,
+    service: RoomService = Depends(get_room_service),
+    manager: RoomConnectionManager = Depends(get_ws_manager),
+    music_provider: MusicProvider = Depends(get_music_provider),
+) -> StartRoundResponse:
+    try:
+        result = service.start_round(room_id, payload.theme, music_provider)
+    except RoomNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except RoomNotWaitingError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    await manager.broadcast_to_room(
+        result["room_id"],
+        {
+            "event": "round.started",
+            "data": {
+                "round_id": str(result["round_id"]),
+                "theme": result["theme"],
+                "song_count": result["song_count"],
+            },
+        },
+    )
+    return StartRoundResponse(
+        round_id=result["round_id"],
+        room_id=result["room_id"],
+        song_count=result["song_count"],
+        theme=result["theme"],
     )

@@ -16,3 +16,7 @@ class RoomNotJoinableError(ValueError):
 
 class NicknameAlreadyTakenError(ValueError):
     pass
+
+
+class RoomNotWaitingError(ValueError):
+    pass

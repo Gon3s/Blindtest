@@ -34,3 +34,21 @@ class JoinRoomRequest(BaseModel):
 class JoinRoomResponse(BaseModel):
     room_id: UUID
     participant_id: UUID
+
+
+class StartRoundRequest(BaseModel):
+    theme: str
+
+    @field_validator("theme")
+    @classmethod
+    def theme_not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("theme must not be empty")
+        return v
+
+
+class StartRoundResponse(BaseModel):
+    round_id: UUID
+    room_id: UUID
+    song_count: int
+    theme: str
