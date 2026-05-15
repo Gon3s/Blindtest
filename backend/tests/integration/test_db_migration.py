@@ -29,12 +29,25 @@ def alembic_cfg() -> Config:
     return cfg
 
 
+_ALL_TABLES = [
+    "room_events",
+    "score_entries",
+    "answers",
+    "songs",
+    "rounds",
+    "participants",
+    "teams",
+    "rooms",
+    "alembic_version",
+]
+
+
 @pytest.fixture
 def migrated_engine(alembic_cfg: Config):  # type: ignore[return]
     eng = get_engine(TEST_DB_URL)
-    # Ensure clean state before running
     with eng.connect() as conn:
-        conn.execute(text("DROP TABLE IF EXISTS alembic_version CASCADE"))
+        for table in _ALL_TABLES:
+            conn.execute(text(f"DROP TABLE IF EXISTS {table} CASCADE"))
         conn.commit()
     command.upgrade(alembic_cfg, "head")
     yield eng
