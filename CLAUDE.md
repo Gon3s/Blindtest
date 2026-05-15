@@ -122,7 +122,7 @@ Un ticket est **Done** ssi :
 | T-016 | API créer une salle | ✅ Done |
 | T-017 | API rejoindre une salle | ✅ Done |
 | T-018 | Front accueil / créer / rejoindre | ✅ Done |
-| T-019 | WebSocket salle et lobby | 🔲 Todo |
+| T-019 | WebSocket salle et lobby | ✅ Done |
 | T-020 | Front lobby host et attente joueur | 🔲 Todo |
 
 **Prochains tickets** : voir Notion → https://www.notion.so/35db64600100815ca0a8d8ed1174d4ac
@@ -204,5 +204,5 @@ Ce fichier charge à chaque session Claude Code.
 
 - ✅ Sprint 0 — Infra complète
 - ✅ Sprint 1 — Domaine métier (T-008–T-014)
-- 🚧 Sprint 2 — API salle/lobby (T-015 ✅, T-016 ✅, T-017 ✅, T-018 ✅)
-- → Prochain : T-019 (WebSocket salle et lobby)
+- 🚧 Sprint 2 — API salle/lobby (T-015 ✅, T-016 ✅, T-017 ✅, T-018 ✅, T-019 ✅)
+- → Prochain : T-020 (Front lobby host et attente joueur)

@@ -14,6 +14,7 @@ from src.domain.exceptions import (
     RoomNotJoinableError,
 )
 from src.infrastructure.db import get_db
+from src.infrastructure.ws_manager import RoomConnectionManager, get_ws_manager
 
 router = APIRouter()
 
@@ -36,10 +37,11 @@ def create_room(
 
 
 @router.post("/rooms/{code}/join", response_model=JoinRoomResponse, status_code=201)
-def join_room(
+async def join_room(
     code: str,
     payload: JoinRoomRequest,
     service: RoomService = Depends(get_room_service),
+    manager: RoomConnectionManager = Depends(get_ws_manager),
 ) -> JoinRoomResponse:
     try:
         result = service.join_room(code, payload.nickname)
@@ -47,6 +49,17 @@ def join_room(
         raise HTTPException(status_code=404, detail=str(exc))
     except (RoomNotJoinableError, NicknameAlreadyTakenError) as exc:
         raise HTTPException(status_code=409, detail=str(exc))
+    await manager.broadcast_to_room(
+        result["room_id"],
+        {
+            "event": "participant.joined",
+            "data": {
+                "participant_id": str(result["participant_id"]),
+                "nickname": payload.nickname,
+                "is_host": False,
+            },
+        },
+    )
     return JoinRoomResponse(
         room_id=result["room_id"],
         participant_id=result["participant_id"],

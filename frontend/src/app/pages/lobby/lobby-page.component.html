@@ -1,5 +1,12 @@
 <main class="lobby">
   <h1>Salle {{ code() }}</h1>
   <p>En attente des joueurs...</p>
+
+  <ul class="participants">
+    @for (p of participants(); track p.participant_id) {
+      <li>{{ p.nickname }}@if (p.is_host) { (hôte)}</li>
+    }
+  </ul>
+
   <a routerLink="/">← Quitter</a>
 </main>

@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.routes.health import router as health_router
 from src.api.routes.rooms import router as rooms_router
+from src.api.routes.ws import router as ws_router
 from src.infrastructure.db import init_db
 
 
@@ -26,3 +27,4 @@ app.add_middleware(
 
 app.include_router(health_router)
 app.include_router(rooms_router)
+app.include_router(ws_router)
