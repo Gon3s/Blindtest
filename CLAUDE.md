@@ -102,7 +102,7 @@ Un ticket est **Done** ssi :
 | T-006 | Configurer PostgreSQL + migrations | ✅ Done |
 | T-007 | Créer les scripts qualité | ✅ Done |
 
-### Sprint 1 — Domaine métier (en cours)
+### Sprint 1 — Domaine métier ✅ Done
 
 | Ticket | Titre | Status |
 |--------|-------|--------|
@@ -113,6 +113,17 @@ Un ticket est **Done** ssi :
 | T-012 | Validation laxiste V0 | ✅ Done |
 | T-013 | Scoring chanson | ✅ Done |
 | T-014 | Classements | ✅ Done |
+
+### Sprint 2 — API salle/lobby (en cours)
+
+| Ticket | Titre | Status |
+|--------|-------|--------|
+| T-015 | Créer les tables MVP | ✅ Done |
+| T-016 | API créer une salle | ✅ Done |
+| T-017 | API rejoindre une salle | 🔲 Todo |
+| T-018 | Front accueil / créer / rejoindre | 🔲 Todo |
+| T-019 | WebSocket salle et lobby | 🔲 Todo |
+| T-020 | Front lobby host et attente joueur | 🔲 Todo |
 
 **Prochains tickets** : voir Notion → https://www.notion.so/35db64600100815ca0a8d8ed1174d4ac
 
@@ -192,5 +203,6 @@ Ce fichier charge à chaque session Claude Code.
 ## 🚀 Status
 
 - ✅ Sprint 0 — Infra complète
-- ✅ Sprint 1 — Domaine métier (T-008/009/010)
-- → Prochains tickets dans Notion
+- ✅ Sprint 1 — Domaine métier (T-008–T-014)
+- 🚧 Sprint 2 — API salle/lobby (T-015 ✅, T-016 ✅)
+- → Prochain : T-017 (API rejoindre une salle)
