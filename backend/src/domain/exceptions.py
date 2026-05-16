@@ -20,3 +20,23 @@ class NicknameAlreadyTakenError(ValueError):
 
 class RoomNotWaitingError(ValueError):
     pass
+
+
+class RoundNotFoundError(ValueError):
+    pass
+
+
+class RoundNotInProgressError(ValueError):
+    pass
+
+
+class SongNotFoundError(ValueError):
+    pass
+
+
+class SongNotPlayableError(ValueError):
+    pass
+
+
+class SongNotLockableError(ValueError):
+    pass

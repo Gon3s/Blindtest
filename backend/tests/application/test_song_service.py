@@ -1,0 +1,371 @@
+import asyncio
+from datetime import datetime, timedelta, timezone
+from unittest.mock import MagicMock
+from uuid import UUID, uuid4
+
+import pytest
+
+from src.application.room_service import RoomService
+from src.domain.enums import RoundStatus, SongStatus
+from src.domain.exceptions import (
+    RoundNotFoundError,
+    RoundNotInProgressError,
+    SongNotFoundError,
+    SongNotLockableError,
+    SongNotPlayableError,
+)
+from src.infrastructure.models import RoundModel, SongModel
+
+
+class FakeClock:
+    def __init__(self, fixed: datetime) -> None:
+        self._fixed = fixed
+
+    def now(self) -> datetime:
+        return self._fixed
+
+
+_FIXED_NOW = datetime(2026, 5, 15, 12, 0, 0, tzinfo=timezone.utc)
+_DURATION = 30
+
+
+def _make_song_mock(
+    status: str = SongStatus.UPCOMING.value,
+    round_id: UUID | None = None,
+) -> MagicMock:
+    song = MagicMock(spec=SongModel)
+    song.id = uuid4()
+    song.round_id = round_id or uuid4()
+    song.status = status
+    song.started_at = None
+    song.ends_at = None
+    return song
+
+
+def _make_round_mock(
+    status: str = RoundStatus.IN_PROGRESS.value,
+    room_id: UUID | None = None,
+) -> MagicMock:
+    round_ = MagicMock(spec=RoundModel)
+    round_.id = uuid4()
+    round_.room_id = room_id or uuid4()
+    round_.status = status
+    return round_
+
+
+def _session_for(round_: MagicMock, song: MagicMock) -> MagicMock:
+    mock = MagicMock()
+
+    def _query(model: type) -> MagicMock:
+        q = MagicMock()
+        if model is RoundModel:
+            q.filter_by.return_value.first.return_value = round_
+        elif model is SongModel:
+            q.filter_by.return_value.first.return_value = song
+        return q
+
+    mock.query.side_effect = _query
+    return mock
+
+
+# ── start_song ────────────────────────────────────────────────────────────────
+
+
+@pytest.fixture
+def round_id() -> UUID:
+    return uuid4()
+
+
+@pytest.fixture
+def room_id() -> UUID:
+    return uuid4()
+
+
+@pytest.fixture
+def round_(round_id: UUID, room_id: UUID) -> MagicMock:
+    r = _make_round_mock()
+    r.id = round_id
+    r.room_id = room_id
+    return r
+
+
+@pytest.fixture
+def song(round_id: UUID) -> MagicMock:
+    return _make_song_mock(round_id=round_id)
+
+
+@pytest.fixture
+def session(round_: MagicMock, song: MagicMock) -> MagicMock:
+    return _session_for(round_, song)
+
+
+@pytest.fixture
+def service(session: MagicMock) -> RoomService:
+    return RoomService(session, clock=FakeClock(_FIXED_NOW))
+
+
+def test_start_song_sets_status_to_playing(
+    service: RoomService, song: MagicMock, round_: MagicMock
+) -> None:
+    service.start_song(round_.id, song_index=0)
+    assert song.status == SongStatus.PLAYING.value
+
+
+def test_start_song_sets_started_at(
+    service: RoomService, song: MagicMock, round_: MagicMock
+) -> None:
+    service.start_song(round_.id, song_index=0)
+    assert song.started_at == _FIXED_NOW
+
+
+def test_start_song_sets_ends_at_30s_later(
+    service: RoomService, song: MagicMock, round_: MagicMock
+) -> None:
+    service.start_song(round_.id, song_index=0)
+    assert song.ends_at == _FIXED_NOW + timedelta(seconds=_DURATION)
+
+
+def test_start_song_returns_correct_ids(
+    service: RoomService, round_: MagicMock, room_id: UUID
+) -> None:
+    result = service.start_song(round_.id, song_index=0)
+    assert result["round_id"] == round_.id
+    assert result["room_id"] == room_id
+    assert isinstance(result["song_id"], UUID)
+
+
+def test_start_song_returns_timestamps(
+    service: RoomService, round_: MagicMock
+) -> None:
+    result = service.start_song(round_.id, song_index=0)
+    assert result["started_at"] == _FIXED_NOW
+    assert result["ends_at"] == _FIXED_NOW + timedelta(seconds=_DURATION)
+
+
+def test_start_song_returns_song_index(
+    service: RoomService, round_: MagicMock
+) -> None:
+    result = service.start_song(round_.id, song_index=3)
+    assert result["song_index"] == 3
+
+
+def test_start_song_round_not_found_raises() -> None:
+    mock = MagicMock()
+
+    def _query(model: type) -> MagicMock:
+        q = MagicMock()
+        q.filter_by.return_value.first.return_value = None
+        return q
+
+    mock.query.side_effect = _query
+    service = RoomService(mock, clock=FakeClock(_FIXED_NOW))
+    with pytest.raises(RoundNotFoundError):
+        service.start_song(uuid4(), song_index=0)
+
+
+def test_start_song_round_not_in_progress_raises() -> None:
+    round_ = _make_round_mock(status=RoundStatus.FINISHED.value)
+    song = _make_song_mock(round_id=round_.id)
+    mock = _session_for(round_, song)
+    service = RoomService(mock, clock=FakeClock(_FIXED_NOW))
+    with pytest.raises(RoundNotInProgressError):
+        service.start_song(round_.id, song_index=0)
+
+
+def test_start_song_song_not_found_raises() -> None:
+    round_ = _make_round_mock()
+    mock = MagicMock()
+
+    def _query(model: type) -> MagicMock:
+        q = MagicMock()
+        if model is RoundModel:
+            q.filter_by.return_value.first.return_value = round_
+        else:
+            q.filter_by.return_value.first.return_value = None
+        return q
+
+    mock.query.side_effect = _query
+    service = RoomService(mock, clock=FakeClock(_FIXED_NOW))
+    with pytest.raises(SongNotFoundError):
+        service.start_song(round_.id, song_index=99)
+
+
+def test_start_song_already_playing_raises(
+    round_: MagicMock, room_id: UUID
+) -> None:
+    song = _make_song_mock(status=SongStatus.PLAYING.value, round_id=round_.id)
+    mock = _session_for(round_, song)
+    service = RoomService(mock, clock=FakeClock(_FIXED_NOW))
+    with pytest.raises(SongNotPlayableError):
+        service.start_song(round_.id, song_index=0)
+
+
+# ── lock_song ─────────────────────────────────────────────────────────────────
+
+
+def _session_for_lock(song: MagicMock, round_: MagicMock) -> MagicMock:
+    mock = MagicMock()
+
+    def _query(model: type) -> MagicMock:
+        q = MagicMock()
+        if model is SongModel:
+            q.filter_by.return_value.first.return_value = song
+        elif model is RoundModel:
+            q.filter_by.return_value.first.return_value = round_
+        return q
+
+    mock.query.side_effect = _query
+    return mock
+
+
+def test_lock_song_sets_status_to_locked() -> None:
+    round_ = _make_round_mock()
+    song = _make_song_mock(status=SongStatus.PLAYING.value, round_id=round_.id)
+    mock = _session_for_lock(song, round_)
+    service = RoomService(mock)
+    service.lock_song(song.id)
+    assert song.status == SongStatus.LOCKED.value
+
+
+def test_lock_song_returns_correct_ids() -> None:
+    round_ = _make_round_mock()
+    room_id = round_.room_id
+    song = _make_song_mock(status=SongStatus.PLAYING.value, round_id=round_.id)
+    mock = _session_for_lock(song, round_)
+    service = RoomService(mock)
+    result = service.lock_song(song.id)
+    assert result["song_id"] == song.id
+    assert result["round_id"] == song.round_id
+    assert result["room_id"] == room_id
+
+
+def test_lock_song_not_found_raises() -> None:
+    mock = MagicMock()
+    mock.query.return_value.filter_by.return_value.first.return_value = None
+    service = RoomService(mock)
+    with pytest.raises(SongNotFoundError):
+        service.lock_song(uuid4())
+
+
+def test_lock_song_already_locked_raises() -> None:
+    round_ = _make_round_mock()
+    song = _make_song_mock(status=SongStatus.LOCKED.value, round_id=round_.id)
+    mock = _session_for_lock(song, round_)
+    service = RoomService(mock)
+    with pytest.raises(SongNotLockableError):
+        service.lock_song(song.id)
+
+
+def test_lock_song_upcoming_raises() -> None:
+    round_ = _make_round_mock()
+    song = _make_song_mock(status=SongStatus.UPCOMING.value, round_id=round_.id)
+    mock = _session_for_lock(song, round_)
+    service = RoomService(mock)
+    with pytest.raises(SongNotLockableError):
+        service.lock_song(song.id)
+
+
+# ── _auto_lock_song background task ───────────────────────────────────────────
+
+
+def test_auto_lock_sleeps_for_delay_and_broadcasts() -> None:
+    from unittest.mock import AsyncMock
+
+    from src.api.routes.songs import _auto_lock_song
+
+    song_id = uuid4()
+    round_id = uuid4()
+    room_id = uuid4()
+
+    playing_song = _make_song_mock(status=SongStatus.PLAYING.value, round_id=round_id)
+    playing_song.id = song_id
+    lock_round = _make_round_mock()
+    lock_round.id = round_id
+    lock_round.room_id = room_id
+
+    mock_session = MagicMock()
+
+    def _query(model: type) -> MagicMock:
+        q = MagicMock()
+        if model is SongModel:
+            q.filter_by.return_value.first.return_value = playing_song
+        elif model is RoundModel:
+            q.filter_by.return_value.first.return_value = lock_round
+        return q
+
+    mock_session.query.side_effect = _query
+
+    mock_factory = MagicMock(return_value=mock_session)
+    mock_manager = MagicMock()
+    mock_manager.broadcast_to_room = AsyncMock()
+
+    sleep_calls: list[float] = []
+
+    async def fake_sleep(delay: float) -> None:
+        sleep_calls.append(delay)
+
+    asyncio.run(
+        _auto_lock_song(
+            song_id=song_id,
+            room_id=room_id,
+            delay=30.0,
+            session_factory=mock_factory,
+            manager=mock_manager,
+            sleep_fn=fake_sleep,
+        )
+    )
+
+    assert sleep_calls == [30.0]
+    mock_manager.broadcast_to_room.assert_called_once()
+    call_args = mock_manager.broadcast_to_room.call_args.args
+    assert call_args[0] == room_id
+    msg = call_args[1]
+    assert msg["event"] == "song.locked"
+    assert msg["data"]["song_id"] == str(song_id)
+
+
+def test_auto_lock_song_locked_status_after_run() -> None:
+    from unittest.mock import AsyncMock
+
+    from src.api.routes.songs import _auto_lock_song
+
+    song_id = uuid4()
+    round_id = uuid4()
+    room_id = uuid4()
+
+    playing_song = _make_song_mock(status=SongStatus.PLAYING.value, round_id=round_id)
+    playing_song.id = song_id
+    lock_round = _make_round_mock()
+    lock_round.id = round_id
+    lock_round.room_id = room_id
+
+    mock_session = MagicMock()
+
+    def _query(model: type) -> MagicMock:
+        q = MagicMock()
+        if model is SongModel:
+            q.filter_by.return_value.first.return_value = playing_song
+        elif model is RoundModel:
+            q.filter_by.return_value.first.return_value = lock_round
+        return q
+
+    mock_session.query.side_effect = _query
+    mock_factory = MagicMock(return_value=mock_session)
+    mock_manager = MagicMock()
+    mock_manager.broadcast_to_room = AsyncMock()
+
+    async def instant(delay: float) -> None:
+        pass
+
+    asyncio.run(
+        _auto_lock_song(
+            song_id=song_id,
+            room_id=room_id,
+            delay=30.0,
+            session_factory=mock_factory,
+            manager=mock_manager,
+            sleep_fn=instant,
+        )
+    )
+
+    assert playing_song.status == SongStatus.LOCKED.value

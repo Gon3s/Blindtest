@@ -1,17 +1,24 @@
 import random
 import string
+from datetime import datetime, timedelta
 from typing import TypedDict
 from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
 
+from src.domain.clock import Clock, UtcClock
 from src.domain.entities import Participant, Room, RoomConfig, Round
-from src.domain.enums import RoomStatus, RoundStatus
+from src.domain.enums import RoomStatus, RoundStatus, SongStatus
 from src.domain.exceptions import (
     NicknameAlreadyTakenError,
     RoomNotFoundError,
     RoomNotJoinableError,
     RoomNotWaitingError,
+    RoundNotFoundError,
+    RoundNotInProgressError,
+    SongNotFoundError,
+    SongNotLockableError,
+    SongNotPlayableError,
 )
 from src.domain.music_provider import MusicProvider, track_to_song
 from src.infrastructure.models import ParticipantModel, RoomModel, RoundModel, SongModel
@@ -39,14 +46,33 @@ class StartRoundResult(TypedDict):
     theme: str
 
 
+class StartSongResult(TypedDict):
+    song_id: UUID
+    round_id: UUID
+    room_id: UUID
+    song_index: int
+    started_at: datetime
+    ends_at: datetime
+
+
+class LockSongResult(TypedDict):
+    song_id: UUID
+    round_id: UUID
+    room_id: UUID
+
+
 _JOINABLE_STATUSES: frozenset[str] = frozenset(
     {RoomStatus.CREATED.value, RoomStatus.WAITING.value}
 )
 
 
+_SONG_DURATION_SECONDS: int = 30
+
+
 class RoomService:
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, clock: Clock | None = None) -> None:
         self._session = session
+        self._clock: Clock = clock or UtcClock()
 
     def _generate_code(self) -> str:
         return "".join(random.choices(CODE_CHARS, k=CODE_LENGTH))
@@ -199,4 +225,66 @@ class RoomService:
             room_id=room_id,
             song_count=len(songs),
             theme=theme,
+        )
+
+    def start_song(self, round_id: UUID, song_index: int) -> StartSongResult:
+        round_ = self._session.query(RoundModel).filter_by(id=round_id).first()
+        if round_ is None:
+            raise RoundNotFoundError(f"Round {round_id!r} not found")
+        if round_.status != RoundStatus.IN_PROGRESS.value:
+            raise RoundNotInProgressError(
+                f"Round is not in progress (status: {round_.status!r})"
+            )
+
+        song = (
+            self._session.query(SongModel)
+            .filter_by(round_id=round_id, index=song_index)
+            .first()
+        )
+        if song is None:
+            raise SongNotFoundError(
+                f"Song at index {song_index} not found in round {round_id!r}"
+            )
+        if song.status != SongStatus.UPCOMING.value:
+            raise SongNotPlayableError(
+                f"Song is not playable (status: {song.status!r})"
+            )
+
+        now = self._clock.now()
+        ends_at = now + timedelta(seconds=_SONG_DURATION_SECONDS)
+
+        song.status = SongStatus.PLAYING.value
+        song.started_at = now
+        song.ends_at = ends_at
+        self._session.flush()
+
+        return StartSongResult(
+            song_id=song.id,
+            round_id=round_id,
+            room_id=round_.room_id,
+            song_index=song_index,
+            started_at=now,
+            ends_at=ends_at,
+        )
+
+    def lock_song(self, song_id: UUID) -> LockSongResult:
+        song = self._session.query(SongModel).filter_by(id=song_id).first()
+        if song is None:
+            raise SongNotFoundError(f"Song {song_id!r} not found")
+        if song.status != SongStatus.PLAYING.value:
+            raise SongNotLockableError(
+                f"Song cannot be locked (status: {song.status!r})"
+            )
+
+        round_ = self._session.query(RoundModel).filter_by(id=song.round_id).first()
+        if round_ is None:
+            raise RoundNotFoundError(f"Round {song.round_id!r} not found")
+
+        song.status = SongStatus.LOCKED.value
+        self._session.flush()
+
+        return LockSongResult(
+            song_id=song_id,
+            round_id=song.round_id,
+            room_id=round_.room_id,
         )

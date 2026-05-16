@@ -24,6 +24,12 @@ def init_db(url: str | None = None) -> None:
     _SessionLocal = make_session_factory(_engine)
 
 
+def get_session_factory() -> sessionmaker[Session]:
+    if _SessionLocal is None:
+        raise RuntimeError("Database not initialised — call init_db() first")
+    return _SessionLocal
+
+
 def get_db() -> Generator[Session, None, None]:
     if _SessionLocal is None:
         raise RuntimeError("Database not initialised — call init_db() first")
