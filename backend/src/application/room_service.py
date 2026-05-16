@@ -13,6 +13,7 @@ from src.domain.exceptions import (
     AnswerNotFoundError,
     NicknameAlreadyTakenError,
     NotHostError,
+    RoomNotFinishedRoundError,
     RoomNotFoundError,
     RoomNotJoinableError,
     RoomNotWaitingError,
@@ -183,9 +184,7 @@ class RoomService:
         return "".join(random.choices(CODE_CHARS, k=CODE_LENGTH))
 
     def _code_exists(self, code: str) -> bool:
-        return (
-            self._session.query(RoomModel).filter_by(code=code).first() is not None
-        )
+        return self._session.query(RoomModel).filter_by(code=code).first() is not None
 
     def create_room(self, host_nickname: str) -> CreateRoomResult:
         code = self._generate_code()
@@ -454,9 +453,7 @@ class RoomService:
             artist_found=artist_found,
         )
 
-    def get_song_summary(
-        self, song_id: UUID, host_id: UUID
-    ) -> SongSummaryResult:
+    def get_song_summary(self, song_id: UUID, host_id: UUID) -> SongSummaryResult:
         song = self._session.query(SongModel).filter_by(id=song_id).first()
         if song is None:
             raise SongNotFoundError(f"Song {song_id!r} not found")
@@ -474,13 +471,9 @@ class RoomService:
             raise RoomNotFoundError(f"Room {round_.room_id!r} not found")
 
         if room.host_id != host_id:
-            raise NotHostError(
-                f"Participant {host_id!r} is not the host of this room"
-            )
+            raise NotHostError(f"Participant {host_id!r} is not the host of this room")
 
-        raw_answers = (
-            self._session.query(AnswerModel).filter_by(song_id=song_id).all()
-        )
+        raw_answers = self._session.query(AnswerModel).filter_by(song_id=song_id).all()
 
         entries: list[AnswerSummaryEntry] = []
         doubtful_count = 0
@@ -562,9 +555,7 @@ class RoomService:
         time_remaining = 0.0
         total_seconds = 0.0
         if song.started_at and song.ends_at:
-            total_seconds = max(
-                0.0, (song.ends_at - song.started_at).total_seconds()
-            )
+            total_seconds = max(0.0, (song.ends_at - song.started_at).total_seconds())
             time_remaining = max(
                 0.0, (song.ends_at - answer.submitted_at).total_seconds()
             )
@@ -639,9 +630,7 @@ class RoomService:
             room.status = RoomStatus.REVEAL.value
         self._session.flush()
 
-        raw_answers = (
-            self._session.query(AnswerModel).filter_by(song_id=song_id).all()
-        )
+        raw_answers = self._session.query(AnswerModel).filter_by(song_id=song_id).all()
 
         player_results: list[PlayerRevealEntry] = []
         for ans in raw_answers:
@@ -699,9 +688,7 @@ class RoomService:
         round_leaderboard: list[RoundLeaderboardEntry] = []
         if round_finished:
             round_score_entries = (
-                self._session.query(ScoreEntryModel)
-                .filter_by(round_id=round_.id)
-                .all()
+                self._session.query(ScoreEntryModel).filter_by(round_id=round_.id).all()
             )
             round_totals: dict[UUID, int] = {}
             for se in round_score_entries:
@@ -739,3 +726,17 @@ class RoomService:
             round_finished=round_finished,
             round_leaderboard=round_leaderboard,
         )
+
+    def restart_round(
+        self, room_id: UUID, theme: str, music_provider: MusicProvider
+    ) -> StartRoundResult:
+        room = self._session.query(RoomModel).filter_by(id=room_id).first()
+        if room is None:
+            raise RoomNotFoundError(f"Room {room_id!r} not found")
+        if room.status != RoomStatus.ROUND_FINISHED.value:
+            raise RoomNotFinishedRoundError(
+                f"Room must be in round_finished to restart (status: {room.status!r})"
+            )
+        room.status = RoomStatus.WAITING.value
+        self._session.flush()
+        return self.start_round(room_id, theme, music_provider)

@@ -64,3 +64,7 @@ class SongNotCorrectableError(ValueError):
 
 class SongNotRevealableError(ValueError):
     pass
+
+
+class RoomNotFinishedRoundError(ValueError):
+    pass
