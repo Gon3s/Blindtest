@@ -33,13 +33,14 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
   readonly isHost = signal(false);
   readonly nickname = signal('');
 
+  private roomId = '';
   private subscription?: Subscription;
 
   ngOnInit(): void {
     const state = history.state as { room_id?: string; role?: string; nickname?: string };
-    const roomId = state.room_id ?? '';
+    this.roomId = state.room_id ?? '';
 
-    if (!roomId) {
+    if (!this.roomId) {
       void this.router.navigate(['/']);
       return;
     }
@@ -47,7 +48,7 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
     this.isHost.set(state.role === 'host');
     this.nickname.set(state.nickname ?? '');
 
-    this.wsService.connect(roomId);
+    this.wsService.connect(this.roomId);
     this.subscription = this.wsService.messages$.subscribe((event: WsEvent) => {
       if (event.event === 'room.state') {
         const d = event.data as { participants: Participant[] };
@@ -55,6 +56,23 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
       } else if (event.event === 'participant.joined') {
         const p = event.data as Participant;
         this.participants.update(list => [...list, p]);
+      } else if (event.event === 'song.started') {
+        const d = event.data as {
+          song_id: string;
+          song_index: number;
+          round_id: string;
+          started_at: string;
+          ends_at: string;
+        };
+        void this.router.navigate(['/play', this.code()], {
+          state: {
+            room_id: this.roomId,
+            nickname: this.nickname(),
+            song_index: d.song_index,
+            total_songs: 10,
+            ends_at: d.ends_at,
+          },
+        });
       }
     });
   }

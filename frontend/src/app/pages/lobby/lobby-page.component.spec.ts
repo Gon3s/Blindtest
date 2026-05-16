@@ -138,4 +138,30 @@ describe('LobbyPageComponent — player waiting view', () => {
     fixture.detectChanges();
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Charlie');
   });
+
+  it('should navigate to /play/:code on song.started event', async () => {
+    const { fixture, msgs } = await setup('player', 'Charlie');
+    const { Router } = await import('@angular/router');
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigate');
+
+    msgs.next({
+      event: 'song.started',
+      data: {
+        song_id: 'song-uuid',
+        song_index: 0,
+        round_id: 'round-uuid',
+        started_at: new Date().toISOString(),
+        ends_at: new Date(Date.now() + 30_000).toISOString(),
+      },
+    });
+    fixture.detectChanges();
+
+    expect(navigateSpy).toHaveBeenCalledWith(
+      ['/play', 'ABC123'],
+      expect.objectContaining({
+        state: expect.objectContaining({ room_id: 'room-uuid', song_index: 0 }),
+      }),
+    );
+  });
 });

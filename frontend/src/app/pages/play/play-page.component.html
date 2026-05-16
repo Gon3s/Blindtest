@@ -1,0 +1,29 @@
+<main class="play">
+  <header class="play__header">
+    <span data-testid="song-number" class="play__song-number">
+      {{ songIndex() + 1 }}&nbsp;/&nbsp;{{ totalSongs() }}
+    </span>
+    <span data-testid="timer" class="play__timer">{{ timeLeft() }}</span>
+  </header>
+
+  <section class="play__answer-block">
+    <label for="answer-input" class="play__answer-label">Ta réponse</label>
+    <input
+      id="answer-input"
+      data-testid="answer-input"
+      type="text"
+      class="play__answer-input"
+      [disabled]="locked()"
+      [value]="answer()"
+      (input)="onAnswerInput($event)"
+      autocomplete="off"
+      autocorrect="off"
+      spellcheck="false"
+      placeholder="Titre ou artiste…"
+    />
+  </section>
+
+  @if (locked()) {
+    <p class="play__locked-msg" data-testid="locked-msg">Temps écoulé !</p>
+  }
+</main>

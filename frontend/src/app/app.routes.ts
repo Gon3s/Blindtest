@@ -20,5 +20,10 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/lobby/lobby-page.component').then(m => m.LobbyPageComponent),
   },
+  {
+    path: 'play/:code',
+    loadComponent: () =>
+      import('./pages/play/play-page.component').then(m => m.PlayPageComponent),
+  },
   { path: '**', redirectTo: '' },
 ];
