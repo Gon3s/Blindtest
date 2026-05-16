@@ -7,17 +7,21 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from src.api.routes.rooms import get_room_service
 from src.api.schemas.songs import (
+    AnswerSummaryItem,
+    SongSummaryResponse,
     StartSongResponse,
     SubmitAnswerRequest,
     SubmitAnswerResponse,
 )
 from src.application.room_service import RoomService
 from src.domain.exceptions import (
+    NotHostError,
     RoundNotFoundError,
     RoundNotInProgressError,
     SongNotAcceptingAnswersError,
     SongNotFoundError,
     SongNotLockableError,
+    SongNotLockedError,
     SongNotPlayableError,
 )
 from src.infrastructure.db import get_session_factory
@@ -157,4 +161,33 @@ async def submit_answer(
         validation_status=result["validation_status"],
         title_found=result["title_found"],
         artist_found=result["artist_found"],
+    )
+
+
+@router.get(
+    "/songs/{song_id}/summary",
+    response_model=SongSummaryResponse,
+    status_code=200,
+)
+def get_song_summary(
+    song_id: UUID,
+    host_id: UUID,
+    service: RoomService = Depends(get_room_service),
+) -> SongSummaryResponse:
+    try:
+        result = service.get_song_summary(song_id, host_id)
+    except SongNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except SongNotLockedError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except NotHostError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
+
+    return SongSummaryResponse(
+        song_id=result["song_id"],
+        title=result["title"],
+        artist=result["artist"],
+        total_answers=result["total_answers"],
+        doubtful_count=result["doubtful_count"],
+        answers=[AnswerSummaryItem(**item) for item in result["answers"]],
     )

@@ -44,3 +44,11 @@ class SongNotLockableError(ValueError):
 
 class SongNotAcceptingAnswersError(ValueError):
     pass
+
+
+class SongNotLockedError(ValueError):
+    pass
+
+
+class NotHostError(ValueError):
+    pass

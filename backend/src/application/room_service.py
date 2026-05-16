@@ -11,6 +11,7 @@ from src.domain.entities import Participant, Room, RoomConfig, Round
 from src.domain.enums import RoomStatus, RoundStatus, SongStatus, ValidationStatus
 from src.domain.exceptions import (
     NicknameAlreadyTakenError,
+    NotHostError,
     RoomNotFoundError,
     RoomNotJoinableError,
     RoomNotWaitingError,
@@ -19,6 +20,7 @@ from src.domain.exceptions import (
     SongNotAcceptingAnswersError,
     SongNotFoundError,
     SongNotLockableError,
+    SongNotLockedError,
     SongNotPlayableError,
 )
 from src.domain.music_provider import MusicProvider, track_to_song
@@ -29,6 +31,15 @@ from src.infrastructure.models import (
     RoomModel,
     RoundModel,
     SongModel,
+)
+
+_LOCKED_STATUSES: frozenset[str] = frozenset(
+    {
+        SongStatus.LOCKED.value,
+        SongStatus.VALIDATION.value,
+        SongStatus.REVEALED.value,
+        SongStatus.SCORED.value,
+    }
 )
 
 CODE_CHARS: str = string.ascii_uppercase + string.digits
@@ -75,6 +86,25 @@ class SubmitAnswerResult(TypedDict):
     validation_status: str
     title_found: bool
     artist_found: bool
+
+
+class AnswerSummaryEntry(TypedDict):
+    answer_id: UUID
+    participant_id: UUID
+    nickname: str
+    text: str
+    validation_status: str
+    title_found: bool
+    artist_found: bool
+
+
+class SongSummaryResult(TypedDict):
+    song_id: UUID
+    title: str
+    artist: str
+    total_answers: int
+    doubtful_count: int
+    answers: list[AnswerSummaryEntry]
 
 
 _JOINABLE_STATUSES: frozenset[str] = frozenset(
@@ -359,4 +389,64 @@ class RoomService:
             validation_status=overall.value,
             title_found=title_found,
             artist_found=artist_found,
+        )
+
+    def get_song_summary(
+        self, song_id: UUID, host_id: UUID
+    ) -> SongSummaryResult:
+        song = self._session.query(SongModel).filter_by(id=song_id).first()
+        if song is None:
+            raise SongNotFoundError(f"Song {song_id!r} not found")
+        if song.status not in _LOCKED_STATUSES:
+            raise SongNotLockedError(
+                f"Song is not locked yet (status: {song.status!r})"
+            )
+
+        round_ = self._session.query(RoundModel).filter_by(id=song.round_id).first()
+        if round_ is None:
+            raise RoundNotFoundError(f"Round {song.round_id!r} not found")
+
+        room = self._session.query(RoomModel).filter_by(id=round_.room_id).first()
+        if room is None:
+            raise RoomNotFoundError(f"Room {round_.room_id!r} not found")
+
+        if room.host_id != host_id:
+            raise NotHostError(
+                f"Participant {host_id!r} is not the host of this room"
+            )
+
+        raw_answers = (
+            self._session.query(AnswerModel).filter_by(song_id=song_id).all()
+        )
+
+        entries: list[AnswerSummaryEntry] = []
+        doubtful_count = 0
+        for ans in raw_answers:
+            participant = (
+                self._session.query(ParticipantModel)
+                .filter_by(id=ans.participant_id)
+                .first()
+            )
+            nickname = participant.nickname if participant else "Unknown"
+            if ans.validation_status == ValidationStatus.DOUBTFUL.value:
+                doubtful_count += 1
+            entries.append(
+                AnswerSummaryEntry(
+                    answer_id=ans.id,
+                    participant_id=ans.participant_id,
+                    nickname=nickname,
+                    text=ans.text,
+                    validation_status=ans.validation_status,
+                    title_found=ans.title_found,
+                    artist_found=ans.artist_found,
+                )
+            )
+
+        return SongSummaryResult(
+            song_id=song.id,
+            title=song.title,
+            artist=song.artist,
+            total_answers=len(entries),
+            doubtful_count=doubtful_count,
+            answers=entries,
         )

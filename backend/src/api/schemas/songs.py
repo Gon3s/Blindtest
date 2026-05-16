@@ -24,3 +24,22 @@ class SubmitAnswerResponse(BaseModel):
     validation_status: str
     title_found: bool
     artist_found: bool
+
+
+class AnswerSummaryItem(BaseModel):
+    answer_id: UUID
+    participant_id: UUID
+    nickname: str
+    text: str
+    validation_status: str
+    title_found: bool
+    artist_found: bool
+
+
+class SongSummaryResponse(BaseModel):
+    song_id: UUID
+    title: str
+    artist: str
+    total_answers: int
+    doubtful_count: int
+    answers: list[AnswerSummaryItem]
