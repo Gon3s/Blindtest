@@ -16,6 +16,7 @@ import {
   MiniLeaderboardItem,
   PlayerRevealItem,
   RoomService,
+  RoundLeaderboardItem,
   SongSummaryResponse,
   SubmitAnswerResponse,
 } from '../../services/room.service';
@@ -37,6 +38,15 @@ interface SongRevealedData {
   artist: string;
   player_results: PlayerRevealItem[];
   mini_leaderboard: MiniLeaderboardItem[];
+}
+
+interface RoundFinishedData {
+  room_id: string;
+  round_leaderboard: RoundLeaderboardItem[];
+}
+
+interface RoundLeaderboardMergedEntry extends RoundLeaderboardItem {
+  total_points: number;
 }
 
 @Component({
@@ -63,6 +73,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   readonly isHost = signal(false);
   readonly songSummary = signal<SongSummaryResponse | null>(null);
   readonly revealData = signal<SongRevealedData | null>(null);
+  readonly roundFinishedData = signal<RoundFinishedData | null>(null);
 
   readonly sortedAnswers = computed(() => {
     const summary = this.songSummary();
@@ -78,6 +89,21 @@ export class PlayPageComponent implements OnInit, OnDestroy {
     if (!reveal) return null;
     return reveal.player_results.find(r => r.participant_id === this.participantId) ?? null;
   });
+
+  readonly roundLeaderboardMerged = computed((): RoundLeaderboardMergedEntry[] => {
+    const round = this.roundFinishedData();
+    if (!round) return [];
+    const miniMap = new Map<string, number>();
+    this.revealData()?.mini_leaderboard.forEach(m => miniMap.set(m.participant_id, m.total_points));
+    return round.round_leaderboard.map(e => ({
+      ...e,
+      total_points: miniMap.get(e.participant_id) ?? 0,
+    }));
+  });
+
+  readonly podiumEntries = computed(() =>
+    this.roundLeaderboardMerged().filter(e => e.rank <= 3),
+  );
 
   private songId = '';
   private roundId = '';
@@ -135,6 +161,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
         this.submitError.set(null);
         this.songSummary.set(null);
         this.revealData.set(null);
+        this.roundFinishedData.set(null);
         this.restartTimer();
       } else if (event.event === 'song.locked') {
         this.locked.set(true);
@@ -144,6 +171,9 @@ export class PlayPageComponent implements OnInit, OnDestroy {
         }
       } else if (event.event === 'song.revealed') {
         this.revealData.set(event.data as SongRevealedData);
+        this.cdr.markForCheck();
+      } else if (event.event === 'round.finished') {
+        this.roundFinishedData.set(event.data as RoundFinishedData);
         this.cdr.markForCheck();
       }
     });
@@ -185,6 +215,10 @@ export class PlayPageComponent implements OnInit, OnDestroy {
 
   revealSong(): void {
     this.roomService.revealSong(this.songId, this.hostId).subscribe();
+  }
+
+  startNewRound(): void {
+    // T-036: implement new round start
   }
 
   nextSong(): void {

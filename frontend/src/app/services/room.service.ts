@@ -64,6 +64,13 @@ export interface MiniLeaderboardItem {
   total_points: number;
 }
 
+export interface RoundLeaderboardItem {
+  rank: number;
+  participant_id: string;
+  nickname: string;
+  round_points: number;
+}
+
 export interface RevealSongResponse {
   song_id: string;
   room_id: string;

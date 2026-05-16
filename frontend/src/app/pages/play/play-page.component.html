@@ -6,7 +6,48 @@
     <span data-testid="timer" class="play__timer">{{ timeLeft() }}</span>
   </header>
 
-  @if (revealData(); as reveal) {
+  @if (roundFinishedData(); as roundData) {
+    <section class="play__round-leaderboard" data-testid="round-leaderboard-section">
+      <h2 class="play__round-leaderboard-title">Classement de la manche</h2>
+
+      <div class="play__podium" data-testid="podium">
+        @for (entry of podiumEntries(); track entry.participant_id) {
+          <div
+            class="play__podium-entry play__podium-entry--rank-{{ entry.rank }}"
+            [attr.data-testid]="'podium-entry-' + entry.rank"
+          >
+            <span class="play__podium-rank">#{{ entry.rank }}</span>
+            <span class="play__podium-nickname" data-testid="podium-nickname">{{ entry.nickname }}</span>
+            <span class="play__podium-points">{{ entry.round_points }} pts</span>
+          </div>
+        }
+      </div>
+
+      <ul class="play__round-leaderboard-list" data-testid="round-leaderboard-list">
+        @for (entry of roundLeaderboardMerged(); track entry.participant_id) {
+          <li class="play__round-leaderboard-row" data-testid="round-leaderboard-row">
+            <span class="play__round-leaderboard-rank" data-testid="round-leaderboard-rank">{{ entry.rank }}</span>
+            <span class="play__round-leaderboard-nickname" data-testid="round-leaderboard-nickname">{{ entry.nickname }}</span>
+            <span class="play__round-leaderboard-round-points" data-testid="round-leaderboard-round-points">{{ entry.round_points }} pts manche</span>
+            <span class="play__round-leaderboard-total-points" data-testid="round-leaderboard-total-points">{{ entry.total_points }} pts total</span>
+          </li>
+        }
+      </ul>
+
+      @if (isHost()) {
+        <div class="play__round-cta">
+          <button
+            type="button"
+            class="btn btn-primary play__new-round-btn"
+            data-testid="new-round-btn"
+            (click)="startNewRound()"
+          >
+            Nouvelle manche
+          </button>
+        </div>
+      }
+    </section>
+  } @else if (revealData(); as reveal) {
     <section class="play__reveal" data-testid="reveal-section">
       <div class="play__reveal-answer">
         <p class="play__reveal-label">La réponse était</p>

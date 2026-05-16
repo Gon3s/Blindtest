@@ -9,6 +9,7 @@ import {
   OverrideAnswerResponse,
   PlayerRevealItem,
   RevealSongResponse,
+  RoundLeaderboardItem,
   RoomService,
   SongSummaryResponse,
   SubmitAnswerResponse,
@@ -824,5 +825,220 @@ describe('PlayPageComponent — reveal (T-033)', () => {
     expect(
       (fixture.nativeElement as HTMLElement).querySelector('[data-testid="next-song-btn"]'),
     ).not.toBeNull();
+  });
+});
+
+// ─── Round Leaderboard (T-035) ────────────────────────────────────────────────
+
+const mockLastRevealEvent: WsEvent = {
+  event: 'song.revealed',
+  data: {
+    song_id: 'song-10',
+    title: 'Last Song',
+    artist: 'Artist',
+    player_results: [] as PlayerRevealItem[],
+    mini_leaderboard: [
+      { rank: 1, participant_id: 'p1', nickname: 'Alice', total_points: 50 },
+      { rank: 2, participant_id: 'p2', nickname: 'Bob', total_points: 35 },
+      { rank: 3, participant_id: 'p3', nickname: 'Carol', total_points: 20 },
+    ] as MiniLeaderboardItem[],
+  },
+};
+
+const mockRoundFinishedEvent: WsEvent = {
+  event: 'round.finished',
+  data: {
+    room_id: 'room-uuid',
+    round_leaderboard: [
+      { rank: 1, participant_id: 'p1', nickname: 'Alice', round_points: 15 },
+      { rank: 2, participant_id: 'p2', nickname: 'Bob', round_points: 10 },
+      { rank: 3, participant_id: 'p3', nickname: 'Carol', round_points: 5 },
+    ] as RoundLeaderboardItem[],
+  },
+};
+
+const mockRoundFinishedTieEvent: WsEvent = {
+  event: 'round.finished',
+  data: {
+    room_id: 'room-uuid',
+    round_leaderboard: [
+      { rank: 1, participant_id: 'p1', nickname: 'Alice', round_points: 15 },
+      { rank: 1, participant_id: 'p2', nickname: 'Bob', round_points: 15 },
+      { rank: 3, participant_id: 'p3', nickname: 'Carol', round_points: 5 },
+    ] as RoundLeaderboardItem[],
+  },
+};
+
+async function configureRoundTestBed(opts: { isHost?: boolean } = {}) {
+  const { service: wsService, msgs } = createWsMock();
+  const roomService = {
+    submitAnswer: vi.fn(),
+    getSongSummary: vi.fn(),
+    overrideAnswer: vi.fn(),
+    startSong: vi.fn(),
+    revealSong: vi.fn(),
+    startRound: vi.fn(),
+  };
+
+  history.replaceState(
+    {
+      room_id: 'room-uuid',
+      song_id: 'song-uuid',
+      participant_id: 'p1',
+      is_host: opts.isHost ?? false,
+      host_id: 'host-uuid',
+      round_id: 'round-uuid',
+      song_index: 9,
+      total_songs: 10,
+      ends_at: BASE_ENDS.toISOString(),
+    },
+    '',
+  );
+
+  await TestBed.configureTestingModule({
+    imports: [PlayPageComponent],
+    providers: [
+      provideRouter([]),
+      { provide: ActivatedRoute, useValue: { paramMap: of({ get: () => null }) } },
+      { provide: WebSocketService, useValue: wsService },
+      { provide: RoomService, useValue: roomService },
+    ],
+  }).compileComponents();
+
+  return { wsService, msgs, roomService };
+}
+
+describe('PlayPageComponent — round leaderboard (T-035)', () => {
+  afterEach(() => {
+    history.replaceState(null, '');
+    TestBed.resetTestingModule();
+  });
+
+  it('should show round leaderboard section after round.finished event', async () => {
+    const { msgs } = await configureRoundTestBed();
+    const fixture = mountFixture();
+
+    msgs.next(mockLastRevealEvent);
+    msgs.next(mockRoundFinishedEvent);
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="round-leaderboard-section"]'),
+    ).not.toBeNull();
+  });
+
+  it('should display players in rank order (rank 1 first)', async () => {
+    const { msgs } = await configureRoundTestBed();
+    const fixture = mountFixture();
+
+    msgs.next(mockLastRevealEvent);
+    msgs.next(mockRoundFinishedEvent);
+    fixture.detectChanges();
+
+    const rows = (fixture.nativeElement as HTMLElement).querySelectorAll(
+      '[data-testid="round-leaderboard-row"]',
+    );
+    expect(rows.length).toBe(3);
+    expect(
+      rows[0].querySelector('[data-testid="round-leaderboard-nickname"]')?.textContent?.trim(),
+    ).toBe('Alice');
+    expect(
+      rows[1].querySelector('[data-testid="round-leaderboard-nickname"]')?.textContent?.trim(),
+    ).toBe('Bob');
+    expect(
+      rows[2].querySelector('[data-testid="round-leaderboard-nickname"]')?.textContent?.trim(),
+    ).toBe('Carol');
+  });
+
+  it('should display same rank number for tied players', async () => {
+    const { msgs } = await configureRoundTestBed();
+    const fixture = mountFixture();
+
+    msgs.next(mockLastRevealEvent);
+    msgs.next(mockRoundFinishedTieEvent);
+    fixture.detectChanges();
+
+    const rows = (fixture.nativeElement as HTMLElement).querySelectorAll(
+      '[data-testid="round-leaderboard-row"]',
+    );
+    expect(
+      rows[0].querySelector('[data-testid="round-leaderboard-rank"]')?.textContent?.trim(),
+    ).toBe('1');
+    expect(
+      rows[1].querySelector('[data-testid="round-leaderboard-rank"]')?.textContent?.trim(),
+    ).toBe('1');
+    expect(
+      rows[2].querySelector('[data-testid="round-leaderboard-rank"]')?.textContent?.trim(),
+    ).toBe('3');
+  });
+
+  it('should show round_points (score manche) for each player', async () => {
+    const { msgs } = await configureRoundTestBed();
+    const fixture = mountFixture();
+
+    msgs.next(mockLastRevealEvent);
+    msgs.next(mockRoundFinishedEvent);
+    fixture.detectChanges();
+
+    const rows = (fixture.nativeElement as HTMLElement).querySelectorAll(
+      '[data-testid="round-leaderboard-row"]',
+    );
+    expect(
+      rows[0].querySelector('[data-testid="round-leaderboard-round-points"]')?.textContent,
+    ).toContain('15');
+    expect(
+      rows[1].querySelector('[data-testid="round-leaderboard-round-points"]')?.textContent,
+    ).toContain('10');
+    expect(
+      rows[2].querySelector('[data-testid="round-leaderboard-round-points"]')?.textContent,
+    ).toContain('5');
+  });
+
+  it('should show total_points (score global) for each player from last mini_leaderboard', async () => {
+    const { msgs } = await configureRoundTestBed();
+    const fixture = mountFixture();
+
+    msgs.next(mockLastRevealEvent);
+    msgs.next(mockRoundFinishedEvent);
+    fixture.detectChanges();
+
+    const rows = (fixture.nativeElement as HTMLElement).querySelectorAll(
+      '[data-testid="round-leaderboard-row"]',
+    );
+    expect(
+      rows[0].querySelector('[data-testid="round-leaderboard-total-points"]')?.textContent,
+    ).toContain('50');
+    expect(
+      rows[1].querySelector('[data-testid="round-leaderboard-total-points"]')?.textContent,
+    ).toContain('35');
+    expect(
+      rows[2].querySelector('[data-testid="round-leaderboard-total-points"]')?.textContent,
+    ).toContain('20');
+  });
+
+  it('should show "Nouvelle manche" CTA for host', async () => {
+    const { msgs } = await configureRoundTestBed({ isHost: true });
+    const fixture = mountFixture();
+
+    msgs.next(mockLastRevealEvent);
+    msgs.next(mockRoundFinishedEvent);
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="new-round-btn"]'),
+    ).not.toBeNull();
+  });
+
+  it('should NOT show "Nouvelle manche" CTA for player', async () => {
+    const { msgs } = await configureRoundTestBed({ isHost: false });
+    const fixture = mountFixture();
+
+    msgs.next(mockLastRevealEvent);
+    msgs.next(mockRoundFinishedEvent);
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="new-round-btn"]'),
+    ).toBeNull();
   });
 });
