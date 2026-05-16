@@ -4,6 +4,7 @@ import { Observable, Subject } from 'rxjs';
 import { of } from 'rxjs';
 import { PlayPageComponent } from './play-page.component';
 import { WebSocketService, WsEvent } from '../../services/websocket.service';
+import { RoomService, SubmitAnswerResponse } from '../../services/room.service';
 
 const BASE_NOW = new Date('2026-01-01T12:00:00.000Z');
 const BASE_ENDS = new Date('2026-01-01T12:00:30.000Z'); // 30s later
@@ -16,6 +17,14 @@ function createWsMock() {
     messages$: msgs.asObservable() as Observable<WsEvent>,
   };
   return { service, msgs };
+}
+
+const noopRoomService = { submitAnswer: vi.fn() };
+
+function createRoomServiceMock() {
+  const subject = new Subject<SubmitAnswerResponse>();
+  const service = { submitAnswer: vi.fn().mockReturnValue(subject.asObservable()) };
+  return { service, subject };
 }
 
 interface SetupOpts {
@@ -49,6 +58,7 @@ async function configureTestBed(opts: SetupOpts = {}) {
         },
       },
       { provide: WebSocketService, useValue: service },
+      { provide: RoomService, useValue: noopRoomService },
     ],
   }).compileComponents();
 
@@ -228,6 +238,7 @@ describe('PlayPageComponent — WebSocket connection', () => {
           useValue: { paramMap: of({ get: () => null }) },
         },
         { provide: WebSocketService, useValue: service },
+        { provide: RoomService, useValue: noopRoomService },
       ],
     }).compileComponents();
 
@@ -237,5 +248,270 @@ describe('PlayPageComponent — WebSocket connection', () => {
     expect(router.url).toBe('/');
 
     void msgs;
+  });
+});
+
+// ─── Submit answer ─────────────────────────────────────────────────────────────
+
+async function configureTestBedWithService(opts: SetupOpts = {}) {
+  const { service: wsService, msgs } = createWsMock();
+  const { service: roomService, subject: submitSubject } = createRoomServiceMock();
+
+  history.replaceState(
+    {
+      room_id: 'room-uuid',
+      participant_id: 'participant-uuid',
+      nickname: 'Alice',
+      song_id: 'song-uuid',
+      song_index: opts.song_index ?? 0,
+      total_songs: opts.total_songs ?? 10,
+      ends_at: opts.ends_at ?? BASE_ENDS.toISOString(),
+    },
+    '',
+  );
+
+  await TestBed.configureTestingModule({
+    imports: [PlayPageComponent],
+    providers: [
+      provideRouter([]),
+      {
+        provide: ActivatedRoute,
+        useValue: {
+          paramMap: of({ get: (k: string) => (k === 'code' ? 'ABC123' : null) }),
+        },
+      },
+      { provide: WebSocketService, useValue: wsService },
+      { provide: RoomService, useValue: roomService },
+    ],
+  }).compileComponents();
+
+  return { wsService, msgs, roomService, submitSubject };
+}
+
+describe('PlayPageComponent — submit answer', () => {
+  afterEach(() => {
+    history.replaceState(null, '');
+    TestBed.resetTestingModule();
+  });
+
+  it('should show a submit button', async () => {
+    await configureTestBedWithService();
+    const fixture = mountFixture();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="submit-btn"]'),
+    ).not.toBeNull();
+  });
+
+  it('should call submitAnswer with correct args on button click', async () => {
+    const { roomService } = await configureTestBedWithService();
+    const fixture = mountFixture();
+    fixture.componentInstance.answer.set('Daft Punk');
+    fixture.detectChanges();
+
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[data-testid="submit-btn"]')
+      ?.click();
+
+    expect(roomService.submitAnswer).toHaveBeenCalledWith(
+      'song-uuid',
+      'participant-uuid',
+      'Daft Punk',
+    );
+  });
+});
+
+// ─── Feedback ─────────────────────────────────────────────────────────────────
+
+describe('PlayPageComponent — feedback', () => {
+  afterEach(() => {
+    history.replaceState(null, '');
+    TestBed.resetTestingModule();
+  });
+
+  it('should show no feedback initially', async () => {
+    await configureTestBedWithService();
+    const fixture = mountFixture();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="feedback"]'),
+    ).toBeNull();
+  });
+
+  it('should show "Pas encore !" when nothing found', async () => {
+    const { submitSubject } = await configureTestBedWithService();
+    const fixture = mountFixture();
+    fixture.componentInstance.answer.set('Wrong');
+    fixture.detectChanges();
+
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[data-testid="submit-btn"]')
+      ?.click();
+
+    submitSubject.next({
+      answer_id: 'uuid',
+      submitted_at: 'ts',
+      validation_status: 'not_found',
+      title_found: false,
+      artist_found: false,
+    });
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="feedback-not-found"]'),
+    ).not.toBeNull();
+  });
+
+  it('should show "Titre trouvé !" when title_found', async () => {
+    const { submitSubject } = await configureTestBedWithService();
+    const fixture = mountFixture();
+    fixture.componentInstance.answer.set('Get Lucky');
+    fixture.detectChanges();
+
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[data-testid="submit-btn"]')
+      ?.click();
+
+    submitSubject.next({
+      answer_id: 'uuid',
+      submitted_at: 'ts',
+      validation_status: 'partial',
+      title_found: true,
+      artist_found: false,
+    });
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="feedback-title-found"]'),
+    ).not.toBeNull();
+  });
+
+  it('should show "Artiste trouvé !" when artist_found', async () => {
+    const { submitSubject } = await configureTestBedWithService();
+    const fixture = mountFixture();
+    fixture.componentInstance.answer.set('Daft Punk');
+    fixture.detectChanges();
+
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[data-testid="submit-btn"]')
+      ?.click();
+
+    submitSubject.next({
+      answer_id: 'uuid',
+      submitted_at: 'ts',
+      validation_status: 'partial',
+      title_found: false,
+      artist_found: true,
+    });
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="feedback-artist-found"]'),
+    ).not.toBeNull();
+  });
+
+  it('should show "Bravo ! Tout trouvé !" when both found', async () => {
+    const { submitSubject } = await configureTestBedWithService();
+    const fixture = mountFixture();
+    fixture.componentInstance.answer.set('Get Lucky Daft Punk');
+    fixture.detectChanges();
+
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[data-testid="submit-btn"]')
+      ?.click();
+
+    submitSubject.next({
+      answer_id: 'uuid',
+      submitted_at: 'ts',
+      validation_status: 'found',
+      title_found: true,
+      artist_found: true,
+    });
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="feedback-both-found"]'),
+    ).not.toBeNull();
+  });
+
+  it('should clear feedback on song.started event', async () => {
+    const { msgs, submitSubject } = await configureTestBedWithService();
+    const fixture = mountFixture();
+    fixture.componentInstance.answer.set('Wrong');
+    fixture.detectChanges();
+
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[data-testid="submit-btn"]')
+      ?.click();
+
+    submitSubject.next({
+      answer_id: 'uuid',
+      submitted_at: 'ts',
+      validation_status: 'not_found',
+      title_found: false,
+      artist_found: false,
+    });
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="feedback"]'),
+    ).not.toBeNull();
+
+    msgs.next({
+      event: 'song.started',
+      data: {
+        song_id: 'song-uuid-2',
+        song_index: 1,
+        round_id: 'round-uuid',
+        started_at: BASE_NOW.toISOString(),
+        ends_at: BASE_ENDS.toISOString(),
+      },
+    });
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="feedback"]'),
+    ).toBeNull();
+  });
+});
+
+// ─── Submit errors ─────────────────────────────────────────────────────────────
+
+describe('PlayPageComponent — submit errors', () => {
+  afterEach(() => {
+    history.replaceState(null, '');
+    TestBed.resetTestingModule();
+  });
+
+  it('should not call service and show error for empty answer', async () => {
+    const { roomService } = await configureTestBedWithService();
+    const fixture = mountFixture();
+
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[data-testid="submit-btn"]')
+      ?.click();
+    fixture.detectChanges();
+
+    expect(roomService.submitAnswer).not.toHaveBeenCalled();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="submit-error"]'),
+    ).not.toBeNull();
+  });
+
+  it('should show "Trop tard !" for 409 response', async () => {
+    const { submitSubject } = await configureTestBedWithService();
+    const fixture = mountFixture();
+    fixture.componentInstance.answer.set('Daft Punk');
+    fixture.detectChanges();
+
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[data-testid="submit-btn"]')
+      ?.click();
+
+    submitSubject.error({ status: 409 });
+    fixture.detectChanges();
+
+    const errorEl = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="submit-error"]',
+    );
+    expect(errorEl?.textContent).toContain('Trop tard');
   });
 });

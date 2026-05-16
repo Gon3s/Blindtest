@@ -13,6 +13,14 @@ export interface JoinRoomResponse {
   participant_id: string;
 }
 
+export interface SubmitAnswerResponse {
+  answer_id: string;
+  submitted_at: string;
+  validation_status: string;
+  title_found: boolean;
+  artist_found: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class RoomService {
   private readonly http = inject(HttpClient);
@@ -26,5 +34,16 @@ export class RoomService {
 
   joinRoom(code: string, nickname: string): Observable<JoinRoomResponse> {
     return this.http.post<JoinRoomResponse>(`${this.apiUrl}/rooms/${code}/join`, { nickname });
+  }
+
+  submitAnswer(
+    songId: string,
+    participantId: string,
+    text: string,
+  ): Observable<SubmitAnswerResponse> {
+    return this.http.post<SubmitAnswerResponse>(`${this.apiUrl}/songs/${songId}/answers`, {
+      participant_id: participantId,
+      text,
+    });
   }
 }

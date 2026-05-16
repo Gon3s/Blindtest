@@ -84,6 +84,8 @@ class SongModel(Base):
 
 class AnswerModel(Base):
     __tablename__ = "answers"
+    # MVP: multiple submissions per (song_id, participant_id) allowed — last wins.
+    # TODO: upsert + UniqueConstraint("song_id", "participant_id") when scoring lands.
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
     song_id: Mapped[UUID] = mapped_column(

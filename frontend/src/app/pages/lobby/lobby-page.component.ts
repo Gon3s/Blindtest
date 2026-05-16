@@ -34,10 +34,16 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
   readonly nickname = signal('');
 
   private roomId = '';
+  private participantId = '';
   private subscription?: Subscription;
 
   ngOnInit(): void {
-    const state = history.state as { room_id?: string; role?: string; nickname?: string };
+    const state = history.state as {
+      room_id?: string;
+      role?: string;
+      nickname?: string;
+      participant_id?: string;
+    };
     this.roomId = state.room_id ?? '';
 
     if (!this.roomId) {
@@ -47,6 +53,7 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
 
     this.isHost.set(state.role === 'host');
     this.nickname.set(state.nickname ?? '');
+    this.participantId = state.participant_id ?? '';
 
     this.wsService.connect(this.roomId);
     this.subscription = this.wsService.messages$.subscribe((event: WsEvent) => {
@@ -67,7 +74,9 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
         void this.router.navigate(['/play', this.code()], {
           state: {
             room_id: this.roomId,
+            participant_id: this.participantId,
             nickname: this.nickname(),
+            song_id: d.song_id,
             song_index: d.song_index,
             total_songs: 10,
             ends_at: d.ends_at,

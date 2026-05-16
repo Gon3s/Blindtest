@@ -16,12 +16,45 @@
       [disabled]="locked()"
       [value]="answer()"
       (input)="onAnswerInput($event)"
+      (keydown.enter)="submitAnswer()"
       autocomplete="off"
       autocorrect="off"
       spellcheck="false"
       placeholder="Titre ou artiste…"
     />
+    <button
+      data-testid="submit-btn"
+      class="play__submit-btn"
+      [disabled]="locked()"
+      (click)="submitAnswer()"
+      type="button"
+    >
+      Envoyer
+    </button>
   </section>
+
+  @if (submitError()) {
+    <p class="play__error" data-testid="submit-error">{{ submitError() }}</p>
+  }
+
+  @if (feedback() !== 'none') {
+    <div class="play__feedback" data-testid="feedback">
+      @switch (feedback()) {
+        @case ('not_found') {
+          <span data-testid="feedback-not-found">Pas encore !</span>
+        }
+        @case ('title_found') {
+          <span data-testid="feedback-title-found">Titre trouvé !</span>
+        }
+        @case ('artist_found') {
+          <span data-testid="feedback-artist-found">Artiste trouvé !</span>
+        }
+        @case ('both_found') {
+          <span data-testid="feedback-both-found">Bravo ! Tout trouvé !</span>
+        }
+      }
+    </div>
+  }
 
   @if (locked()) {
     <p class="play__locked-msg" data-testid="locked-msg">Temps écoulé !</p>

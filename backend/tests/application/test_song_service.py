@@ -6,10 +6,11 @@ from uuid import UUID, uuid4
 import pytest
 
 from src.application.room_service import RoomService
-from src.domain.enums import RoundStatus, SongStatus
+from src.domain.enums import RoundStatus, SongStatus, ValidationStatus
 from src.domain.exceptions import (
     RoundNotFoundError,
     RoundNotInProgressError,
+    SongNotAcceptingAnswersError,
     SongNotFoundError,
     SongNotLockableError,
     SongNotPlayableError,
@@ -369,3 +370,106 @@ def test_auto_lock_song_locked_status_after_run() -> None:
     )
 
     assert playing_song.status == SongStatus.LOCKED.value
+
+
+# ── submit_answer ──────────────────────────────────────────────────────────────
+
+
+def _make_playing_song() -> MagicMock:
+    song = MagicMock(spec=SongModel)
+    song.id = uuid4()
+    song.round_id = uuid4()
+    song.status = SongStatus.PLAYING.value
+    song.title = "One More Time"
+    song.artist = "Daft Punk"
+    song.aliases_title = []
+    song.aliases_artist = []
+    return song
+
+
+def _session_for_answer(song: MagicMock) -> MagicMock:
+    mock = MagicMock()
+    mock.query.return_value.filter_by.return_value.first.return_value = song
+    return mock
+
+
+def test_submit_answer_song_not_found_raises() -> None:
+    mock = MagicMock()
+    mock.query.return_value.filter_by.return_value.first.return_value = None
+    service = RoomService(mock, clock=FakeClock(_FIXED_NOW))
+    with pytest.raises(SongNotFoundError):
+        service.submit_answer(uuid4(), uuid4(), "Daft Punk")
+
+
+def test_submit_answer_song_not_playing_raises() -> None:
+    song = _make_playing_song()
+    song.status = SongStatus.LOCKED.value
+    mock = _session_for_answer(song)
+    service = RoomService(mock, clock=FakeClock(_FIXED_NOW))
+    with pytest.raises(SongNotAcceptingAnswersError):
+        service.submit_answer(song.id, uuid4(), "Daft Punk")
+
+
+def test_submit_answer_returns_answer_id() -> None:
+    song = _make_playing_song()
+    mock = _session_for_answer(song)
+    service = RoomService(mock, clock=FakeClock(_FIXED_NOW))
+    result = service.submit_answer(song.id, uuid4(), "Daft Punk")
+    assert isinstance(result["answer_id"], UUID)
+
+
+def test_submit_answer_submitted_at_from_clock() -> None:
+    song = _make_playing_song()
+    mock = _session_for_answer(song)
+    service = RoomService(mock, clock=FakeClock(_FIXED_NOW))
+    result = service.submit_answer(song.id, uuid4(), "Daft Punk")
+    assert result["submitted_at"] == _FIXED_NOW
+
+
+def test_submit_answer_title_found_on_exact_match() -> None:
+    song = _make_playing_song()
+    mock = _session_for_answer(song)
+    service = RoomService(mock, clock=FakeClock(_FIXED_NOW))
+    result = service.submit_answer(song.id, uuid4(), "one more time")
+    assert result["title_found"] is True
+    assert result["artist_found"] is False
+
+
+def test_submit_answer_validation_status_found_on_any_exact() -> None:
+    song = _make_playing_song()
+    mock = _session_for_answer(song)
+    service = RoomService(mock, clock=FakeClock(_FIXED_NOW))
+    result = service.submit_answer(song.id, uuid4(), "daft punk")
+    assert result["validation_status"] == ValidationStatus.FOUND.value
+
+
+def test_submit_answer_validation_status_not_found_on_wrong_answer() -> None:
+    song = _make_playing_song()
+    mock = _session_for_answer(song)
+    service = RoomService(mock, clock=FakeClock(_FIXED_NOW))
+    result = service.submit_answer(song.id, uuid4(), "around the world foo bar baz")
+    assert result["validation_status"] == ValidationStatus.NOT_FOUND.value
+    assert result["title_found"] is False
+    assert result["artist_found"] is False
+
+
+def test_submit_answer_validation_status_doubtful_on_fuzzy_title() -> None:
+    song = _make_playing_song()
+    mock = _session_for_answer(song)
+    service = RoomService(mock, clock=FakeClock(_FIXED_NOW))
+    # "one more tyme" is close to "One More Time" (fuzzy ≥ 0.75) but not exact
+    result = service.submit_answer(song.id, uuid4(), "one more tyme")
+    assert result["validation_status"] == ValidationStatus.DOUBTFUL.value
+    assert result["title_found"] is False
+    assert result["artist_found"] is False
+
+
+def test_submit_answer_validation_status_doubtful_on_fuzzy_artist() -> None:
+    song = _make_playing_song()
+    mock = _session_for_answer(song)
+    service = RoomService(mock, clock=FakeClock(_FIXED_NOW))
+    # "daff punk" is close to "Daft Punk" (fuzzy ratio ~0.89 ≥ 0.75) but not exact
+    result = service.submit_answer(song.id, uuid4(), "daff punk")
+    assert result["validation_status"] == ValidationStatus.DOUBTFUL.value
+    assert result["title_found"] is False
+    assert result["artist_found"] is False

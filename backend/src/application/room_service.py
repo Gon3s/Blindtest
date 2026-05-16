@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from src.domain.clock import Clock, UtcClock
 from src.domain.entities import Participant, Room, RoomConfig, Round
-from src.domain.enums import RoomStatus, RoundStatus, SongStatus
+from src.domain.enums import RoomStatus, RoundStatus, SongStatus, ValidationStatus
 from src.domain.exceptions import (
     NicknameAlreadyTakenError,
     RoomNotFoundError,
@@ -16,12 +16,20 @@ from src.domain.exceptions import (
     RoomNotWaitingError,
     RoundNotFoundError,
     RoundNotInProgressError,
+    SongNotAcceptingAnswersError,
     SongNotFoundError,
     SongNotLockableError,
     SongNotPlayableError,
 )
 from src.domain.music_provider import MusicProvider, track_to_song
-from src.infrastructure.models import ParticipantModel, RoomModel, RoundModel, SongModel
+from src.domain.validation import validate_answer
+from src.infrastructure.models import (
+    AnswerModel,
+    ParticipantModel,
+    RoomModel,
+    RoundModel,
+    SongModel,
+)
 
 CODE_CHARS: str = string.ascii_uppercase + string.digits
 CODE_LENGTH: int = 6
@@ -59,6 +67,14 @@ class LockSongResult(TypedDict):
     song_id: UUID
     round_id: UUID
     room_id: UUID
+
+
+class SubmitAnswerResult(TypedDict):
+    answer_id: UUID
+    submitted_at: datetime
+    validation_status: str
+    title_found: bool
+    artist_found: bool
 
 
 _JOINABLE_STATUSES: frozenset[str] = frozenset(
@@ -287,4 +303,60 @@ class RoomService:
             song_id=song_id,
             round_id=song.round_id,
             room_id=round_.room_id,
+        )
+
+    def submit_answer(
+        self, song_id: UUID, participant_id: UUID, text: str
+    ) -> SubmitAnswerResult:
+        song = self._session.query(SongModel).filter_by(id=song_id).first()
+        if song is None:
+            raise SongNotFoundError(f"Song {song_id!r} not found")
+        if song.status != SongStatus.PLAYING.value:
+            raise SongNotAcceptingAnswersError(
+                f"Song is not accepting answers (status: {song.status!r})"
+            )
+
+        now = self._clock.now()
+        validation = validate_answer(
+            text, song.title, song.artist, song.aliases_title, song.aliases_artist
+        )
+
+        title_found = validation.title == ValidationStatus.FOUND
+        artist_found = validation.artist == ValidationStatus.FOUND
+
+        if (
+            validation.title == ValidationStatus.FOUND
+            or validation.artist == ValidationStatus.FOUND
+        ):
+            overall = ValidationStatus.FOUND
+        elif (
+            validation.title == ValidationStatus.DOUBTFUL
+            or validation.artist == ValidationStatus.DOUBTFUL
+        ):
+            overall = ValidationStatus.DOUBTFUL
+        else:
+            overall = ValidationStatus.NOT_FOUND
+
+        answer_id = uuid4()
+        self._session.add(
+            AnswerModel(
+                id=answer_id,
+                song_id=song_id,
+                participant_id=participant_id,
+                text=text,
+                submitted_at=now,
+                title_found=title_found,
+                artist_found=artist_found,
+                validation_status=overall.value,
+                host_override=None,
+            )
+        )
+        self._session.flush()
+
+        return SubmitAnswerResult(
+            answer_id=answer_id,
+            submitted_at=now,
+            validation_status=overall.value,
+            title_found=title_found,
+            artist_found=artist_found,
         )

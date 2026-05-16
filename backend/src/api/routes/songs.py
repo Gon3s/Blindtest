@@ -6,11 +6,16 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session, sessionmaker
 
 from src.api.routes.rooms import get_room_service
-from src.api.schemas.songs import StartSongResponse
+from src.api.schemas.songs import (
+    StartSongResponse,
+    SubmitAnswerRequest,
+    SubmitAnswerResponse,
+)
 from src.application.room_service import RoomService
 from src.domain.exceptions import (
     RoundNotFoundError,
     RoundNotInProgressError,
+    SongNotAcceptingAnswersError,
     SongNotFoundError,
     SongNotLockableError,
     SongNotPlayableError,
@@ -126,4 +131,30 @@ async def start_song(
         song_index=result["song_index"],
         started_at=result["started_at"],
         ends_at=result["ends_at"],
+    )
+
+
+@router.post(
+    "/songs/{song_id}/answers",
+    response_model=SubmitAnswerResponse,
+    status_code=201,
+)
+async def submit_answer(
+    song_id: UUID,
+    body: SubmitAnswerRequest,
+    service: RoomService = Depends(get_room_service),
+) -> SubmitAnswerResponse:
+    try:
+        result = service.submit_answer(song_id, body.participant_id, body.text)
+    except SongNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except SongNotAcceptingAnswersError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+
+    return SubmitAnswerResponse(
+        answer_id=result["answer_id"],
+        submitted_at=result["submitted_at"],
+        validation_status=result["validation_status"],
+        title_found=result["title_found"],
+        artist_found=result["artist_found"],
     )

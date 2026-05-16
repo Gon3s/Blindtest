@@ -40,3 +40,7 @@ class SongNotPlayableError(ValueError):
 
 class SongNotLockableError(ValueError):
     pass
+
+
+class SongNotAcceptingAnswersError(ValueError):
+    pass

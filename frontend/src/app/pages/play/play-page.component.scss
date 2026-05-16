@@ -65,6 +65,43 @@
     }
   }
 
+  &__submit-btn {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    background: var(--color-primary, #6c5ce7);
+    border: none;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: opacity 0.15s;
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+
+  &__error {
+    font-size: 0.9rem;
+    color: var(--color-danger, #d63031);
+    text-align: center;
+  }
+
+  &__feedback {
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-align: center;
+    padding: 1rem 1.5rem;
+    border-radius: 0.75rem;
+    background: var(--color-feedback-bg, #f0edff);
+    color: var(--color-primary, #6c5ce7);
+    width: 100%;
+    max-width: 480px;
+    box-sizing: border-box;
+  }
+
   &__locked-msg {
     font-size: 1rem;
     color: var(--color-muted, #888);
