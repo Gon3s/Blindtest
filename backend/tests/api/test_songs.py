@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi.testclient import TestClient
 
+from src.api.deps import get_session
 from src.api.routes.rooms import get_room_service
 from src.api.routes.songs import get_db_factory, get_sleep
 from src.domain.exceptions import (
@@ -85,6 +86,7 @@ def song_client(start_result: dict, mock_manager: MagicMock) -> TestClient:
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     app.dependency_overrides[get_sleep] = lambda: _instant_sleep
     app.dependency_overrides[get_db_factory] = lambda: mock_factory
+    app.dependency_overrides[get_session] = lambda: MagicMock()
     yield TestClient(app)
     app.dependency_overrides.clear()
 
@@ -145,6 +147,7 @@ def test_start_song_round_not_found_returns_404(mock_manager: MagicMock) -> None
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     app.dependency_overrides[get_sleep] = lambda: _instant_sleep
     app.dependency_overrides[get_db_factory] = lambda: mock_factory
+    app.dependency_overrides[get_session] = lambda: MagicMock()
     try:
         client = TestClient(app)
         response = client.post(f"/rounds/{uuid4()}/songs/0/start")
@@ -160,6 +163,7 @@ def test_start_song_round_not_in_progress_returns_409(mock_manager: MagicMock) -
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     app.dependency_overrides[get_sleep] = lambda: _instant_sleep
     app.dependency_overrides[get_db_factory] = lambda: mock_factory
+    app.dependency_overrides[get_session] = lambda: MagicMock()
     try:
         client = TestClient(app)
         response = client.post(f"/rounds/{uuid4()}/songs/0/start")
@@ -175,6 +179,7 @@ def test_start_song_song_not_found_returns_404(mock_manager: MagicMock) -> None:
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     app.dependency_overrides[get_sleep] = lambda: _instant_sleep
     app.dependency_overrides[get_db_factory] = lambda: mock_factory
+    app.dependency_overrides[get_session] = lambda: MagicMock()
     try:
         client = TestClient(app)
         response = client.post(f"/rounds/{uuid4()}/songs/0/start")
@@ -190,6 +195,7 @@ def test_start_song_song_not_playable_returns_409(mock_manager: MagicMock) -> No
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     app.dependency_overrides[get_sleep] = lambda: _instant_sleep
     app.dependency_overrides[get_db_factory] = lambda: mock_factory
+    app.dependency_overrides[get_session] = lambda: MagicMock()
     try:
         client = TestClient(app)
         response = client.post(f"/rounds/{uuid4()}/songs/0/start")

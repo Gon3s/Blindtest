@@ -3,7 +3,14 @@ from uuid import UUID
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session, sessionmaker
 
-from src.api.deps import SleepFn, auto_lock_song, get_db_factory, get_room_service, get_session, get_sleep
+from src.api.deps import (
+    SleepFn,
+    auto_lock_song,
+    get_db_factory,
+    get_room_service,
+    get_session,
+    get_sleep,
+)
 from src.api.schemas.rooms import (
     CreateRoomRequest,
     CreateRoomResponse,

@@ -1,13 +1,17 @@
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 
+from src.api.deps import get_db_factory, get_session
 from src.api.routes.rooms import get_music_provider, get_room_service
 from src.domain.exceptions import RoomNotFoundError, RoomNotWaitingError
 from src.infrastructure.ws_manager import RoomConnectionManager, get_ws_manager
 from src.main import app
+
+_FIXED_NOW = datetime(2026, 5, 15, 12, 0, 0, tzinfo=timezone.utc)
 
 
 class _FakeRoundService:
@@ -28,6 +32,16 @@ class _FakeRoundService:
             raise self._exc
         assert self._result is not None
         return self._result
+
+    def start_song(self, round_id: UUID, song_index: int) -> dict:
+        return {
+            "song_id": uuid4(),
+            "round_id": round_id,
+            "room_id": uuid4(),
+            "song_index": song_index,
+            "started_at": _FIXED_NOW,
+            "ends_at": _FIXED_NOW + timedelta(seconds=30),
+        }
 
 
 def _make_result(room_id: UUID | None = None) -> dict:
@@ -58,6 +72,8 @@ def round_client(round_result: dict, mock_manager: MagicMock) -> TestClient:
     app.dependency_overrides[get_room_service] = lambda: fake
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     app.dependency_overrides[get_music_provider] = lambda: MagicMock()
+    app.dependency_overrides[get_session] = lambda: MagicMock()
+    app.dependency_overrides[get_db_factory] = lambda: MagicMock()
     yield TestClient(app)
     app.dependency_overrides.clear()
 
@@ -93,6 +109,8 @@ def test_start_round_room_not_found_returns_404(mock_manager: MagicMock) -> None
     app.dependency_overrides[get_room_service] = lambda: fake
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     app.dependency_overrides[get_music_provider] = lambda: MagicMock()
+    app.dependency_overrides[get_session] = lambda: MagicMock()
+    app.dependency_overrides[get_db_factory] = lambda: MagicMock()
     try:
         client = TestClient(app)
         response = client.post(f"/rooms/{uuid4()}/rounds", json={"theme": "Pop 90s"})
@@ -106,6 +124,8 @@ def test_start_round_room_not_waiting_returns_409(mock_manager: MagicMock) -> No
     app.dependency_overrides[get_room_service] = lambda: fake
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     app.dependency_overrides[get_music_provider] = lambda: MagicMock()
+    app.dependency_overrides[get_session] = lambda: MagicMock()
+    app.dependency_overrides[get_db_factory] = lambda: MagicMock()
     try:
         client = TestClient(app)
         response = client.post(f"/rooms/{uuid4()}/rounds", json={"theme": "Pop 90s"})
@@ -119,8 +139,9 @@ def test_start_round_broadcasts_round_started_event(
 ) -> None:
     room_id = uuid4()
     round_client.post(f"/rooms/{room_id}/rounds", json={"theme": "Pop 90s"})
-    mock_manager.broadcast_to_room.assert_called_once()
-    _, broadcast_msg = mock_manager.broadcast_to_room.call_args.args
+    calls = mock_manager.broadcast_to_room.call_args_list
+    assert len(calls) >= 1
+    _, broadcast_msg = calls[0].args
     assert broadcast_msg["event"] == "round.started"
     assert UUID(broadcast_msg["data"]["round_id"]) == round_result["round_id"]
     assert broadcast_msg["data"]["song_count"] == 10

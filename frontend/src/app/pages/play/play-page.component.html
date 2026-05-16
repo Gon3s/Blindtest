@@ -62,24 +62,68 @@
 
       @if (isHost()) {
         <div class="play__host-controls" data-testid="host-controls">
-          @if (songTitle()) {
-            <div class="play__answer-reveal" data-testid="answer-reveal">
-              <p class="play__reveal-label">La réponse était :</p>
-              <p class="play__reveal-title" data-testid="reveal-title">{{ songTitle() }}</p>
-              <p class="play__reveal-artist" data-testid="reveal-artist">{{ songArtist() }}</p>
-            </div>
-          }
+          @if (songSummary(); as summary) {
+            <div class="play__host-summary" data-testid="host-summary">
+              <div class="play__answer-reveal">
+                <p class="play__reveal-label">La réponse était :</p>
+                <p class="play__reveal-title" data-testid="reveal-title">{{ summary.title }}</p>
+                <p class="play__reveal-artist" data-testid="reveal-artist">{{ summary.artist }}</p>
+                <p class="play__total-answers" data-testid="total-answers">
+                  {{ summary.total_answers }} réponse(s)
+                </p>
+              </div>
 
-          @if (songIndex() + 1 < totalSongs()) {
-            <button
-              data-testid="next-song-btn"
-              class="btn btn-primary play__next-btn"
-              (click)="nextSong()"
-            >
-              Chanson suivante →
-            </button>
-          } @else {
-            <p class="play__end-msg">Fin de la manche !</p>
+              <ul class="play__answers-list">
+                @for (a of sortedAnswers(); track a.answer_id) {
+                  <li
+                    class="play__answer-row"
+                    data-testid="answer-row"
+                    [class.play__answer-row--doubtful]="a.validation_status === 'doubtful'"
+                  >
+                    <span class="play__answer-nickname" data-testid="answer-nickname">
+                      {{ a.nickname }}
+                    </span>
+                    <span class="play__answer-text">{{ a.text }}</span>
+                    <span class="play__answer-badge play__answer-badge--{{ a.validation_status }}">
+                      {{ a.validation_status }}
+                    </span>
+                    @if (a.validation_status === 'doubtful') {
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-success"
+                        [attr.data-testid]="'accept-btn-' + a.answer_id"
+                        (click)="acceptAnswer(a)"
+                      >
+                        Accepter
+                      </button>
+                    }
+                  </li>
+                }
+              </ul>
+
+              <div class="play__host-actions">
+                <button
+                  type="button"
+                  class="btn btn-primary play__reveal-btn"
+                  data-testid="reveal-btn"
+                  disabled
+                >
+                  Révéler
+                </button>
+
+                @if (songIndex() + 1 < totalSongs()) {
+                  <button
+                    data-testid="next-song-btn"
+                    class="btn btn-secondary play__next-btn"
+                    (click)="nextSong()"
+                  >
+                    Chanson suivante →
+                  </button>
+                } @else {
+                  <p class="play__end-msg">Fin de la manche !</p>
+                }
+              </div>
+            </div>
           }
         </div>
       } @else {

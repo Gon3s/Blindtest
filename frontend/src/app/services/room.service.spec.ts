@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { RoomService } from './room.service';
+import { OverrideAnswerResponse, RoomService, SongSummaryResponse } from './room.service';
 
 describe('RoomService', () => {
   let service: RoomService;
@@ -63,6 +63,64 @@ describe('RoomService', () => {
     const req = httpMock.expectOne('http://localhost:8000/songs/song-uuid/answers');
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({ participant_id: 'participant-uuid', text: 'Daft Punk' });
+    req.flush(mockResponse);
+  });
+
+  it('should fetch full song summary via GET /songs/:id/summary', () => {
+    const mockResponse: SongSummaryResponse = {
+      song_id: 'song-uuid',
+      title: 'Get Lucky',
+      artist: 'Daft Punk',
+      total_answers: 2,
+      doubtful_count: 1,
+      answers: [
+        {
+          answer_id: 'ans-1',
+          participant_id: 'p1',
+          nickname: 'Alice',
+          text: 'get lucky',
+          validation_status: 'found',
+          title_found: true,
+          artist_found: true,
+        },
+      ],
+    };
+
+    service.getSongSummary('song-uuid', 'host-uuid').subscribe(res => {
+      expect(res).toEqual(mockResponse);
+    });
+
+    const req = httpMock.expectOne(
+      'http://localhost:8000/songs/song-uuid/summary?host_id=host-uuid',
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush(mockResponse);
+  });
+
+  it('should override an answer via PATCH /songs/:id/answers/:answerId', () => {
+    const mockResponse: OverrideAnswerResponse = {
+      answer_id: 'ans-uuid',
+      title_found: true,
+      artist_found: true,
+      validation_status: 'found',
+      score: 2,
+    };
+
+    service
+      .overrideAnswer('song-uuid', 'ans-uuid', 'host-uuid', true, true)
+      .subscribe(res => {
+        expect(res).toEqual(mockResponse);
+      });
+
+    const req = httpMock.expectOne(
+      'http://localhost:8000/songs/song-uuid/answers/ans-uuid',
+    );
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({
+      host_id: 'host-uuid',
+      title_accepted: true,
+      artist_accepted: true,
+    });
     req.flush(mockResponse);
   });
 });

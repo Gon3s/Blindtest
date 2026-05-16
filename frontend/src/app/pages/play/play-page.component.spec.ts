@@ -4,7 +4,12 @@ import { Observable, Subject } from 'rxjs';
 import { of } from 'rxjs';
 import { PlayPageComponent } from './play-page.component';
 import { WebSocketService, WsEvent } from '../../services/websocket.service';
-import { RoomService, SubmitAnswerResponse } from '../../services/room.service';
+import {
+  OverrideAnswerResponse,
+  RoomService,
+  SongSummaryResponse,
+  SubmitAnswerResponse,
+} from '../../services/room.service';
 
 const BASE_NOW = new Date('2026-01-01T12:00:00.000Z');
 const BASE_ENDS = new Date('2026-01-01T12:00:30.000Z'); // 30s later
@@ -135,7 +140,7 @@ describe('PlayPageComponent — answer field', () => {
     expect(input?.disabled).toBe(false);
   });
 
-  it('should disable the answer input after song.locked event', async () => {
+  it('should hide the answer input after song.locked event', async () => {
     const { msgs } = await configureTestBed();
     const fixture = mountFixture();
 
@@ -145,7 +150,7 @@ describe('PlayPageComponent — answer field', () => {
     const input = (fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>(
       '[data-testid="answer-input"]',
     );
-    expect(input?.disabled).toBe(true);
+    expect(input).toBeNull();
   });
 });
 
@@ -513,5 +518,156 @@ describe('PlayPageComponent — submit errors', () => {
       '[data-testid="submit-error"]',
     );
     expect(errorEl?.textContent).toContain('Trop tard');
+  });
+});
+
+// ─── Host song summary (T-031) ────────────────────────────────────────────────
+
+const mockSummary: SongSummaryResponse = {
+  song_id: 'song-uuid',
+  title: 'Get Lucky',
+  artist: 'Daft Punk',
+  total_answers: 3,
+  doubtful_count: 1,
+  answers: [
+    {
+      answer_id: 'ans-1',
+      participant_id: 'p1',
+      nickname: 'Alice',
+      text: 'get lucky daft punk',
+      validation_status: 'found',
+      title_found: true,
+      artist_found: true,
+    },
+    {
+      answer_id: 'ans-2',
+      participant_id: 'p2',
+      nickname: 'Bob',
+      text: 'get luckky',
+      validation_status: 'doubtful',
+      title_found: false,
+      artist_found: false,
+    },
+    {
+      answer_id: 'ans-3',
+      participant_id: 'p3',
+      nickname: 'Carol',
+      text: 'nope',
+      validation_status: 'not_found',
+      title_found: false,
+      artist_found: false,
+    },
+  ],
+};
+
+async function configureHostTestBed() {
+  const { service: wsService, msgs } = createWsMock();
+  const summarySubject = new Subject<SongSummaryResponse>();
+  const overrideSubject = new Subject<OverrideAnswerResponse>();
+  const roomService = {
+    submitAnswer: vi.fn(),
+    getSongSummary: vi.fn().mockReturnValue(summarySubject.asObservable()),
+    overrideAnswer: vi.fn().mockReturnValue(overrideSubject.asObservable()),
+    startSong: vi.fn(),
+  };
+
+  history.replaceState(
+    {
+      room_id: 'room-uuid',
+      song_id: 'song-uuid',
+      participant_id: 'participant-uuid',
+      is_host: true,
+      host_id: 'host-uuid',
+      round_id: 'round-uuid',
+      song_index: 0,
+      total_songs: 10,
+      ends_at: BASE_ENDS.toISOString(),
+    },
+    '',
+  );
+
+  await TestBed.configureTestingModule({
+    imports: [PlayPageComponent],
+    providers: [
+      provideRouter([]),
+      {
+        provide: ActivatedRoute,
+        useValue: { paramMap: of({ get: () => null }) },
+      },
+      { provide: WebSocketService, useValue: wsService },
+      { provide: RoomService, useValue: roomService },
+    ],
+  }).compileComponents();
+
+  return { wsService, msgs, roomService, summarySubject, overrideSubject };
+}
+
+describe('PlayPageComponent — host song summary (T-031)', () => {
+  afterEach(() => {
+    history.replaceState(null, '');
+    TestBed.resetTestingModule();
+  });
+
+  it('should show correct title, artist and answer count after song.locked', async () => {
+    const { msgs, summarySubject } = await configureHostTestBed();
+    const fixture = mountFixture();
+
+    msgs.next({ event: 'song.locked', data: { song_id: 'song-uuid', round_id: 'round-uuid' } });
+    summarySubject.next(mockSummary);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="host-summary"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="reveal-title"]')?.textContent?.trim()).toBe('Get Lucky');
+    expect(el.querySelector('[data-testid="reveal-artist"]')?.textContent?.trim()).toBe('Daft Punk');
+    expect(el.querySelector('[data-testid="total-answers"]')?.textContent).toContain('3');
+  });
+
+  it('should display doubtful answers before others in the list', async () => {
+    const { msgs, summarySubject } = await configureHostTestBed();
+    const fixture = mountFixture();
+
+    msgs.next({ event: 'song.locked', data: { song_id: 'song-uuid', round_id: 'round-uuid' } });
+    summarySubject.next(mockSummary);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    const rows = el.querySelectorAll('[data-testid="answer-row"]');
+    expect(rows.length).toBe(3);
+    expect(rows[0].querySelector('[data-testid="answer-nickname"]')?.textContent?.trim()).toBe('Bob');
+  });
+
+  it('should call overrideAnswer(true, true) when accept button is clicked on doubtful answer', async () => {
+    const { msgs, summarySubject, roomService } = await configureHostTestBed();
+    const fixture = mountFixture();
+
+    msgs.next({ event: 'song.locked', data: { song_id: 'song-uuid', round_id: 'round-uuid' } });
+    summarySubject.next(mockSummary);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    const acceptBtn = el.querySelector<HTMLButtonElement>('[data-testid="accept-btn-ans-2"]');
+    expect(acceptBtn).not.toBeNull();
+    acceptBtn?.click();
+
+    expect(roomService.overrideAnswer).toHaveBeenCalledWith(
+      'song-uuid',
+      'ans-2',
+      'host-uuid',
+      true,
+      true,
+    );
+  });
+
+  it('should show reveal CTA button after song is locked', async () => {
+    const { msgs, summarySubject } = await configureHostTestBed();
+    const fixture = mountFixture();
+
+    msgs.next({ event: 'song.locked', data: { song_id: 'song-uuid', round_id: 'round-uuid' } });
+    summarySubject.next(mockSummary);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="reveal-btn"]')).not.toBeNull();
   });
 });

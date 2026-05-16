@@ -4,13 +4,19 @@ import {
   Component,
   OnDestroy,
   OnInit,
+  computed,
   inject,
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { RoomService, SubmitAnswerResponse } from '../../services/room.service';
+import {
+  AnswerSummaryItem,
+  RoomService,
+  SongSummaryResponse,
+  SubmitAnswerResponse,
+} from '../../services/room.service';
 import { WebSocketService, WsEvent } from '../../services/websocket.service';
 
 type FeedbackState = 'none' | 'not_found' | 'title_found' | 'artist_found' | 'both_found';
@@ -45,8 +51,16 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   readonly feedback = signal<FeedbackState>('none');
   readonly submitError = signal<string | null>(null);
   readonly isHost = signal(false);
-  readonly songTitle = signal<string | null>(null);
-  readonly songArtist = signal<string | null>(null);
+  readonly songSummary = signal<SongSummaryResponse | null>(null);
+
+  readonly sortedAnswers = computed(() => {
+    const summary = this.songSummary();
+    if (!summary) return [];
+    return [
+      ...summary.answers.filter(a => a.validation_status === 'doubtful'),
+      ...summary.answers.filter(a => a.validation_status !== 'doubtful'),
+    ];
+  });
 
   private songId = '';
   private roundId = '';
@@ -102,8 +116,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
         this.answer.set('');
         this.feedback.set('none');
         this.submitError.set(null);
-        this.songTitle.set(null);
-        this.songArtist.set(null);
+        this.songSummary.set(null);
         this.restartTimer();
       } else if (event.event === 'song.locked') {
         this.locked.set(true);
@@ -154,11 +167,35 @@ export class PlayPageComponent implements OnInit, OnDestroy {
     this.roomService.startSong(this.roundId, nextIndex).subscribe();
   }
 
+  acceptAnswer(answer: AnswerSummaryItem): void {
+    this.roomService
+      .overrideAnswer(this.songId, answer.answer_id, this.hostId, true, true)
+      .subscribe({
+        next: res => {
+          const summary = this.songSummary();
+          if (!summary) return;
+          this.songSummary.set({
+            ...summary,
+            answers: summary.answers.map(a =>
+              a.answer_id === res.answer_id
+                ? {
+                    ...a,
+                    title_found: res.title_found,
+                    artist_found: res.artist_found,
+                    validation_status: res.validation_status,
+                  }
+                : a,
+            ),
+          });
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
   private fetchSongSummary(): void {
     this.roomService.getSongSummary(this.songId, this.hostId).subscribe({
       next: res => {
-        this.songTitle.set(res.title);
-        this.songArtist.set(res.artist);
+        this.songSummary.set(res);
         this.cdr.markForCheck();
       },
     });

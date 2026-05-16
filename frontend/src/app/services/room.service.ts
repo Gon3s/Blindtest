@@ -21,6 +21,33 @@ export interface SubmitAnswerResponse {
   artist_found: boolean;
 }
 
+export interface AnswerSummaryItem {
+  answer_id: string;
+  participant_id: string;
+  nickname: string;
+  text: string;
+  validation_status: string;
+  title_found: boolean;
+  artist_found: boolean;
+}
+
+export interface SongSummaryResponse {
+  song_id: string;
+  title: string;
+  artist: string;
+  total_answers: number;
+  doubtful_count: number;
+  answers: AnswerSummaryItem[];
+}
+
+export interface OverrideAnswerResponse {
+  answer_id: string;
+  title_found: boolean;
+  artist_found: boolean;
+  validation_status: string;
+  score: number;
+}
+
 export interface StartRoundResponse {
   round_id: string;
   room_id: string;
@@ -52,7 +79,7 @@ export class RoomService {
     return this.http.post<JoinRoomResponse>(`${this.apiUrl}/rooms/${code}/join`, { nickname });
   }
 
-  startRound(roomId: string, theme: string = 'Général'): Observable<StartRoundResponse> {
+  startRound(roomId: string, theme = 'Général'): Observable<StartRoundResponse> {
     return this.http.post<StartRoundResponse>(`${this.apiUrl}/rooms/${roomId}/rounds`, { theme });
   }
 
@@ -63,10 +90,23 @@ export class RoomService {
     );
   }
 
-  getSongSummary(songId: string, hostId: string): Observable<{ title: string; artist: string }> {
-    return this.http.get<{ title: string; artist: string }>(
+  getSongSummary(songId: string, hostId: string): Observable<SongSummaryResponse> {
+    return this.http.get<SongSummaryResponse>(
       `${this.apiUrl}/songs/${songId}/summary`,
       { params: { host_id: hostId } },
+    );
+  }
+
+  overrideAnswer(
+    songId: string,
+    answerId: string,
+    hostId: string,
+    titleAccepted: boolean,
+    artistAccepted: boolean,
+  ): Observable<OverrideAnswerResponse> {
+    return this.http.patch<OverrideAnswerResponse>(
+      `${this.apiUrl}/songs/${songId}/answers/${answerId}`,
+      { host_id: hostId, title_accepted: titleAccepted, artist_accepted: artistAccepted },
     );
   }
 
