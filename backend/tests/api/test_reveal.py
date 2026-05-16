@@ -30,6 +30,8 @@ def _make_reveal_result(
         "artist": "Daft Punk",
         "player_results": player_results or [],
         "mini_leaderboard": mini_leaderboard or [],
+        "round_finished": False,
+        "round_leaderboard": [],
     }
 
 

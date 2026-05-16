@@ -19,6 +19,7 @@ from src.api.schemas.songs import (
     PlayerRevealItem,
     RevealSongRequest,
     RevealSongResponse,
+    RoundLeaderboardItem,
     SongSummaryResponse,
     StartSongResponse,
     SubmitAnswerRequest,
@@ -249,6 +250,29 @@ async def reveal_song(
         },
     )
 
+    round_finished = result["round_finished"]
+    round_leaderboard = result["round_leaderboard"]
+
+    if round_finished:
+        await manager.broadcast_to_room(
+            result["room_id"],
+            {
+                "event": "round.finished",
+                "data": {
+                    "room_id": str(result["room_id"]),
+                    "round_leaderboard": [
+                        {
+                            "rank": lb["rank"],
+                            "participant_id": str(lb["participant_id"]),
+                            "nickname": lb["nickname"],
+                            "round_points": lb["round_points"],
+                        }
+                        for lb in round_leaderboard
+                    ],
+                },
+            },
+        )
+
     return RevealSongResponse(
         song_id=result["song_id"],
         room_id=result["room_id"],
@@ -258,4 +282,6 @@ async def reveal_song(
         mini_leaderboard=[
             MiniLeaderboardItem(**lb) for lb in result["mini_leaderboard"]
         ],
+        round_finished=round_finished,
+        round_leaderboard=[RoundLeaderboardItem(**lb) for lb in round_leaderboard],
     )

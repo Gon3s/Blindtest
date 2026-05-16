@@ -148,6 +148,13 @@ class MiniLeaderboardEntry(TypedDict):
     total_points: int
 
 
+class RoundLeaderboardEntry(TypedDict):
+    rank: int
+    participant_id: UUID
+    nickname: str
+    round_points: int
+
+
 class RevealSongResult(TypedDict):
     song_id: UUID
     room_id: UUID
@@ -155,6 +162,8 @@ class RevealSongResult(TypedDict):
     artist: str
     player_results: list[PlayerRevealEntry]
     mini_leaderboard: list[MiniLeaderboardEntry]
+    round_finished: bool
+    round_leaderboard: list[RoundLeaderboardEntry]
 
 
 _JOINABLE_STATUSES: frozenset[str] = frozenset(
@@ -615,6 +624,21 @@ class RoomService:
         song.status = SongStatus.REVEALED.value
         self._session.flush()
 
+        songs_in_round = (
+            self._session.query(SongModel).filter_by(round_id=round_.id).all()
+        )
+        _done = frozenset({SongStatus.REVEALED.value, SongStatus.SCORED.value})
+        total_songs = len(songs_in_round)
+        revealed_count = sum(1 for s in songs_in_round if s.status in _done)
+        round_finished = total_songs > 0 and revealed_count == total_songs
+
+        if round_finished:
+            round_.status = RoundStatus.FINISHED.value
+            room.status = RoomStatus.ROUND_FINISHED.value
+        elif room.status == RoomStatus.ROUND_IN_PROGRESS.value:
+            room.status = RoomStatus.REVEAL.value
+        self._session.flush()
+
         raw_answers = (
             self._session.query(AnswerModel).filter_by(song_id=song_id).all()
         )
@@ -672,6 +696,39 @@ class RoomService:
                 )
             )
 
+        round_leaderboard: list[RoundLeaderboardEntry] = []
+        if round_finished:
+            round_score_entries = (
+                self._session.query(ScoreEntryModel)
+                .filter_by(round_id=round_.id)
+                .all()
+            )
+            round_totals: dict[UUID, int] = {}
+            for se in round_score_entries:
+                pid = se.participant_id
+                round_totals[pid] = round_totals.get(pid, 0) + se.points
+
+            round_sorted = sorted(
+                round_totals.items(), key=lambda x: x[1], reverse=True
+            )
+            for i, (pid, pts) in enumerate(round_sorted):
+                participant = (
+                    self._session.query(ParticipantModel).filter_by(id=pid).first()
+                )
+                nickname = participant.nickname if participant else "Unknown"
+                if i > 0 and pts == round_sorted[i - 1][1]:
+                    rank = round_leaderboard[-1]["rank"]
+                else:
+                    rank = i + 1
+                round_leaderboard.append(
+                    RoundLeaderboardEntry(
+                        rank=rank,
+                        participant_id=pid,
+                        nickname=nickname,
+                        round_points=pts,
+                    )
+                )
+
         return RevealSongResult(
             song_id=song.id,
             room_id=round_.room_id,
@@ -679,4 +736,6 @@ class RoomService:
             artist=song.artist,
             player_results=player_results,
             mini_leaderboard=mini_leaderboard,
+            round_finished=round_finished,
+            round_leaderboard=round_leaderboard,
         )

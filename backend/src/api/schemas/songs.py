@@ -79,6 +79,13 @@ class MiniLeaderboardItem(BaseModel):
     total_points: int
 
 
+class RoundLeaderboardItem(BaseModel):
+    rank: int
+    participant_id: UUID
+    nickname: str
+    round_points: int
+
+
 class RevealSongResponse(BaseModel):
     song_id: UUID
     room_id: UUID
@@ -86,3 +93,5 @@ class RevealSongResponse(BaseModel):
     artist: str
     player_results: list[PlayerRevealItem]
     mini_leaderboard: list[MiniLeaderboardItem]
+    round_finished: bool = False
+    round_leaderboard: list[RoundLeaderboardItem] = []
