@@ -52,3 +52,11 @@ class SongNotLockedError(ValueError):
 
 class NotHostError(ValueError):
     pass
+
+
+class AnswerNotFoundError(ValueError):
+    pass
+
+
+class SongNotCorrectableError(ValueError):
+    pass

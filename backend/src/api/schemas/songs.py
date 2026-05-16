@@ -43,3 +43,17 @@ class SongSummaryResponse(BaseModel):
     total_answers: int
     doubtful_count: int
     answers: list[AnswerSummaryItem]
+
+
+class OverrideAnswerRequest(BaseModel):
+    host_id: UUID
+    title_accepted: bool
+    artist_accepted: bool
+
+
+class OverrideAnswerResponse(BaseModel):
+    answer_id: UUID
+    title_found: bool
+    artist_found: bool
+    validation_status: str
+    score: int

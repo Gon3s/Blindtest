@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session, sessionmaker
 from src.api.routes.rooms import get_room_service
 from src.api.schemas.songs import (
     AnswerSummaryItem,
+    OverrideAnswerRequest,
+    OverrideAnswerResponse,
     SongSummaryResponse,
     StartSongResponse,
     SubmitAnswerRequest,
@@ -15,10 +17,12 @@ from src.api.schemas.songs import (
 )
 from src.application.room_service import RoomService
 from src.domain.exceptions import (
+    AnswerNotFoundError,
     NotHostError,
     RoundNotFoundError,
     RoundNotInProgressError,
     SongNotAcceptingAnswersError,
+    SongNotCorrectableError,
     SongNotFoundError,
     SongNotLockableError,
     SongNotLockedError,
@@ -161,6 +165,43 @@ async def submit_answer(
         validation_status=result["validation_status"],
         title_found=result["title_found"],
         artist_found=result["artist_found"],
+    )
+
+
+@router.patch(
+    "/songs/{song_id}/answers/{answer_id}",
+    response_model=OverrideAnswerResponse,
+    status_code=200,
+)
+def override_answer(
+    song_id: UUID,
+    answer_id: UUID,
+    body: OverrideAnswerRequest,
+    service: RoomService = Depends(get_room_service),
+) -> OverrideAnswerResponse:
+    try:
+        result = service.override_answer(
+            song_id,
+            answer_id,
+            body.host_id,
+            body.title_accepted,
+            body.artist_accepted,
+        )
+    except SongNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except AnswerNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except SongNotCorrectableError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except NotHostError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
+
+    return OverrideAnswerResponse(
+        answer_id=result["answer_id"],
+        title_found=result["title_found"],
+        artist_found=result["artist_found"],
+        validation_status=result["validation_status"],
+        score=result["score"],
     )
 
 

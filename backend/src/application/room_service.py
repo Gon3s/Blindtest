@@ -10,6 +10,7 @@ from src.domain.clock import Clock, UtcClock
 from src.domain.entities import Participant, Room, RoomConfig, Round
 from src.domain.enums import RoomStatus, RoundStatus, SongStatus, ValidationStatus
 from src.domain.exceptions import (
+    AnswerNotFoundError,
     NicknameAlreadyTakenError,
     NotHostError,
     RoomNotFoundError,
@@ -18,18 +19,21 @@ from src.domain.exceptions import (
     RoundNotFoundError,
     RoundNotInProgressError,
     SongNotAcceptingAnswersError,
+    SongNotCorrectableError,
     SongNotFoundError,
     SongNotLockableError,
     SongNotLockedError,
     SongNotPlayableError,
 )
 from src.domain.music_provider import MusicProvider, track_to_song
+from src.domain.scoring import compute_song_score
 from src.domain.validation import validate_answer
 from src.infrastructure.models import (
     AnswerModel,
     ParticipantModel,
     RoomModel,
     RoundModel,
+    ScoreEntryModel,
     SongModel,
 )
 
@@ -39,6 +43,14 @@ _LOCKED_STATUSES: frozenset[str] = frozenset(
         SongStatus.VALIDATION.value,
         SongStatus.REVEALED.value,
         SongStatus.SCORED.value,
+    }
+)
+
+_CORRECTABLE_STATUSES: frozenset[str] = frozenset(
+    {
+        SongStatus.LOCKED.value,
+        SongStatus.VALIDATION.value,
+        SongStatus.REVEALED.value,
     }
 )
 
@@ -105,6 +117,14 @@ class SongSummaryResult(TypedDict):
     total_answers: int
     doubtful_count: int
     answers: list[AnswerSummaryEntry]
+
+
+class OverrideAnswerResult(TypedDict):
+    answer_id: UUID
+    title_found: bool
+    artist_found: bool
+    validation_status: str
+    score: int
 
 
 _JOINABLE_STATUSES: frozenset[str] = frozenset(
@@ -449,4 +469,92 @@ class RoomService:
             total_answers=len(entries),
             doubtful_count=doubtful_count,
             answers=entries,
+        )
+
+    def override_answer(
+        self,
+        song_id: UUID,
+        answer_id: UUID,
+        host_id: UUID,
+        title_accepted: bool,
+        artist_accepted: bool,
+    ) -> OverrideAnswerResult:
+        song = self._session.query(SongModel).filter_by(id=song_id).first()
+        if song is None:
+            raise SongNotFoundError(f"Song {song_id!r} not found")
+        if song.status not in _CORRECTABLE_STATUSES:
+            raise SongNotCorrectableError(
+                f"Song is not correctable (status: {song.status!r})"
+            )
+
+        round_ = self._session.query(RoundModel).filter_by(id=song.round_id).first()
+        if round_ is None:
+            raise RoundNotFoundError(f"Round {song.round_id!r} not found")
+
+        room = self._session.query(RoomModel).filter_by(id=round_.room_id).first()
+        if room is None:
+            raise RoomNotFoundError(f"Room {round_.room_id!r} not found")
+        if room.host_id != host_id:
+            raise NotHostError(f"Participant {host_id!r} is not the host of this room")
+
+        answer = (
+            self._session.query(AnswerModel)
+            .filter_by(id=answer_id, song_id=song_id)
+            .first()
+        )
+        if answer is None:
+            raise AnswerNotFoundError(
+                f"Answer {answer_id!r} not found for song {song_id!r}"
+            )
+
+        answer.title_found = title_accepted
+        answer.artist_found = artist_accepted
+        if title_accepted or artist_accepted:
+            answer.validation_status = ValidationStatus.FOUND.value
+            answer.host_override = ValidationStatus.FOUND.value
+        else:
+            answer.validation_status = ValidationStatus.NOT_FOUND.value
+            answer.host_override = ValidationStatus.NOT_FOUND.value
+
+        time_remaining = 0.0
+        total_seconds = 0.0
+        if song.started_at and song.ends_at:
+            total_seconds = max(
+                0.0, (song.ends_at - song.started_at).total_seconds()
+            )
+            time_remaining = max(
+                0.0, (song.ends_at - answer.submitted_at).total_seconds()
+            )
+
+        score = compute_song_score(
+            title_accepted, artist_accepted, time_remaining, total_seconds
+        )
+
+        score_entry = (
+            self._session.query(ScoreEntryModel)
+            .filter_by(participant_id=answer.participant_id, song_id=song_id)
+            .first()
+        )
+        if score_entry is None:
+            self._session.add(
+                ScoreEntryModel(
+                    id=uuid4(),
+                    participant_id=answer.participant_id,
+                    room_id=round_.room_id,
+                    song_id=song_id,
+                    round_id=round_.id,
+                    points=score,
+                )
+            )
+        else:
+            score_entry.points = score
+
+        self._session.flush()
+
+        return OverrideAnswerResult(
+            answer_id=answer_id,
+            title_found=title_accepted,
+            artist_found=artist_accepted,
+            validation_status=answer.validation_status,
+            score=score,
         )
