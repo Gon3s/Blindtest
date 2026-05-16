@@ -1,8 +1,9 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from sqlalchemy.orm import Session, sessionmaker
 
+from src.api.deps import SleepFn, auto_lock_song, get_db_factory, get_room_service, get_session, get_sleep
 from src.api.schemas.rooms import (
     CreateRoomRequest,
     CreateRoomResponse,
@@ -17,17 +18,14 @@ from src.domain.exceptions import (
     RoomNotFoundError,
     RoomNotJoinableError,
     RoomNotWaitingError,
+    SongNotFoundError,
+    SongNotPlayableError,
 )
 from src.domain.music_provider import MusicProvider
-from src.infrastructure.db import get_db
 from src.infrastructure.static_fixture_provider import StaticFixtureMusicProvider
 from src.infrastructure.ws_manager import RoomConnectionManager, get_ws_manager
 
 router = APIRouter()
-
-
-def get_room_service(session: Session = Depends(get_db)) -> RoomService:
-    return RoomService(session)
 
 
 def get_music_provider() -> MusicProvider:
@@ -83,9 +81,13 @@ async def join_room(
 async def start_round(
     room_id: UUID,
     payload: StartRoundRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_session),
     service: RoomService = Depends(get_room_service),
     manager: RoomConnectionManager = Depends(get_ws_manager),
     music_provider: MusicProvider = Depends(get_music_provider),
+    session_factory: sessionmaker[Session] = Depends(get_db_factory),
+    sleep_fn: SleepFn = Depends(get_sleep),
 ) -> StartRoundResponse:
     try:
         result = service.start_round(room_id, payload.theme, music_provider)
@@ -93,6 +95,14 @@ async def start_round(
         raise HTTPException(status_code=404, detail=str(exc))
     except RoomNotWaitingError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
+
+    try:
+        song_result = service.start_song(result["round_id"], 0)
+    except (SongNotFoundError, SongNotPlayableError) as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+
+    db.commit()
+
     await manager.broadcast_to_room(
         result["room_id"],
         {
@@ -104,6 +114,31 @@ async def start_round(
             },
         },
     )
+    await manager.broadcast_to_room(
+        result["room_id"],
+        {
+            "event": "song.started",
+            "data": {
+                "song_id": str(song_result["song_id"]),
+                "song_index": song_result["song_index"],
+                "round_id": str(song_result["round_id"]),
+                "started_at": song_result["started_at"].isoformat(),
+                "ends_at": song_result["ends_at"].isoformat(),
+            },
+        },
+    )
+
+    delay = (song_result["ends_at"] - song_result["started_at"]).total_seconds()
+    background_tasks.add_task(
+        auto_lock_song,
+        song_result["song_id"],
+        result["room_id"],
+        delay,
+        session_factory,
+        manager,
+        sleep_fn,
+    )
+
     return StartRoundResponse(
         round_id=result["round_id"],
         room_id=result["room_id"],

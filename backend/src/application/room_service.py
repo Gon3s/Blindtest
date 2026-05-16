@@ -223,6 +223,10 @@ class RoomService:
                 is_host=False,
             )
         )
+
+        if room.status == RoomStatus.CREATED.value:
+            room.status = RoomStatus.WAITING.value
+
         self._session.flush()
 
         return JoinRoomResult(room_id=room.id, participant_id=participant.id)

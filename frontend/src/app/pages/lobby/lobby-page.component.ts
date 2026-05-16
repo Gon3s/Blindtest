@@ -10,6 +10,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { RoomService } from '../../services/room.service';
 import { Participant, WebSocketService, WsEvent } from '../../services/websocket.service';
 
 @Component({
@@ -24,6 +25,7 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly wsService = inject(WebSocketService);
+  private readonly roomService = inject(RoomService);
 
   readonly code = toSignal(
     this.route.paramMap.pipe(map(p => p.get('code') ?? '')),
@@ -43,6 +45,7 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
       role?: string;
       nickname?: string;
       participant_id?: string;
+      host_id?: string;
     };
     this.roomId = state.room_id ?? '';
 
@@ -53,7 +56,7 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
 
     this.isHost.set(state.role === 'host');
     this.nickname.set(state.nickname ?? '');
-    this.participantId = state.participant_id ?? '';
+    this.participantId = state.participant_id ?? state.host_id ?? '';
 
     this.wsService.connect(this.roomId);
     this.subscription = this.wsService.messages$.subscribe((event: WsEvent) => {
@@ -76,8 +79,11 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
             room_id: this.roomId,
             participant_id: this.participantId,
             nickname: this.nickname(),
+            is_host: this.isHost(),
+            host_id: this.isHost() ? this.participantId : '',
             song_id: d.song_id,
             song_index: d.song_index,
+            round_id: d.round_id,
             total_songs: 10,
             ends_at: d.ends_at,
           },
@@ -91,8 +97,7 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
     this.wsService.disconnect();
   }
 
-  // TODO T-024: wire to start-round API
   startRound(): void {
-    void 0;
+    this.roomService.startRound(this.roomId).subscribe();
   }
 }

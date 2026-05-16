@@ -44,9 +44,14 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   readonly answer = signal('');
   readonly feedback = signal<FeedbackState>('none');
   readonly submitError = signal<string | null>(null);
+  readonly isHost = signal(false);
+  readonly songTitle = signal<string | null>(null);
+  readonly songArtist = signal<string | null>(null);
 
   private songId = '';
+  private roundId = '';
   private participantId = '';
+  private hostId = '';
   private subscription?: Subscription;
   private timerInterval?: ReturnType<typeof setInterval>;
   private endsAt = new Date();
@@ -61,7 +66,10 @@ export class PlayPageComponent implements OnInit, OnDestroy {
       room_id?: string;
       song_id?: string;
       participant_id?: string;
+      is_host?: boolean;
+      host_id?: string;
       song_index?: number;
+      round_id?: string;
       total_songs?: number;
       ends_at?: string;
     };
@@ -73,7 +81,10 @@ export class PlayPageComponent implements OnInit, OnDestroy {
     }
 
     this.songId = state.song_id ?? '';
+    this.roundId = state.round_id ?? '';
     this.participantId = state.participant_id ?? '';
+    this.hostId = state.host_id ?? '';
+    this.isHost.set(state.is_host ?? false);
     this.songIndex.set(state.song_index ?? 0);
     this.totalSongs.set(state.total_songs ?? 10);
     this.endsAt = new Date(state.ends_at ?? Date.now());
@@ -84,16 +95,22 @@ export class PlayPageComponent implements OnInit, OnDestroy {
       if (event.event === 'song.started') {
         const d = event.data as SongStartedData;
         this.songId = d.song_id;
+        this.roundId = d.round_id;
         this.songIndex.set(d.song_index);
         this.endsAt = new Date(d.ends_at);
         this.locked.set(false);
         this.answer.set('');
         this.feedback.set('none');
         this.submitError.set(null);
+        this.songTitle.set(null);
+        this.songArtist.set(null);
         this.restartTimer();
       } else if (event.event === 'song.locked') {
         this.locked.set(true);
         this.stopTimer();
+        if (this.isHost()) {
+          this.fetchSongSummary();
+        }
       }
     });
   }
@@ -127,6 +144,21 @@ export class PlayPageComponent implements OnInit, OnDestroy {
       },
       error: (err: { status?: number }) => {
         this.submitError.set(err.status === 409 ? 'Trop tard !' : "Erreur lors de l'envoi.");
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  nextSong(): void {
+    const nextIndex = this.songIndex() + 1;
+    this.roomService.startSong(this.roundId, nextIndex).subscribe();
+  }
+
+  private fetchSongSummary(): void {
+    this.roomService.getSongSummary(this.songId, this.hostId).subscribe({
+      next: res => {
+        this.songTitle.set(res.title);
+        this.songArtist.set(res.artist);
         this.cdr.markForCheck();
       },
     });

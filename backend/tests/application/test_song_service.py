@@ -272,7 +272,7 @@ def test_lock_song_upcoming_raises() -> None:
 def test_auto_lock_sleeps_for_delay_and_broadcasts() -> None:
     from unittest.mock import AsyncMock
 
-    from src.api.routes.songs import _auto_lock_song
+    from src.api.deps import auto_lock_song as _auto_lock_song
 
     song_id = uuid4()
     round_id = uuid4()
@@ -328,7 +328,7 @@ def test_auto_lock_sleeps_for_delay_and_broadcasts() -> None:
 def test_auto_lock_song_locked_status_after_run() -> None:
     from unittest.mock import AsyncMock
 
-    from src.api.routes.songs import _auto_lock_song
+    from src.api.deps import auto_lock_song as _auto_lock_song
 
     song_id = uuid4()
     round_id = uuid4()

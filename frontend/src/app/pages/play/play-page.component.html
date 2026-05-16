@@ -6,57 +6,85 @@
     <span data-testid="timer" class="play__timer">{{ timeLeft() }}</span>
   </header>
 
-  <section class="play__answer-block">
-    <label for="answer-input" class="play__answer-label">Ta réponse</label>
-    <input
-      id="answer-input"
-      data-testid="answer-input"
-      type="text"
-      class="play__answer-input"
-      [disabled]="locked()"
-      [value]="answer()"
-      (input)="onAnswerInput($event)"
-      (keydown.enter)="submitAnswer()"
-      autocomplete="off"
-      autocorrect="off"
-      spellcheck="false"
-      placeholder="Titre ou artiste…"
-    />
-    <button
-      data-testid="submit-btn"
-      class="play__submit-btn"
-      [disabled]="locked()"
-      (click)="submitAnswer()"
-      type="button"
-    >
-      Envoyer
-    </button>
-  </section>
+  @if (!locked()) {
+    <section class="play__answer-block">
+      <label for="answer-input" class="play__answer-label">Ta réponse</label>
+      <input
+        id="answer-input"
+        data-testid="answer-input"
+        type="text"
+        class="play__answer-input"
+        [value]="answer()"
+        (input)="onAnswerInput($event)"
+        (keydown.enter)="submitAnswer()"
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+        placeholder="Titre ou artiste…"
+      />
+      <button
+        data-testid="submit-btn"
+        class="play__submit-btn"
+        (click)="submitAnswer()"
+        type="button"
+      >
+        Envoyer
+      </button>
+    </section>
 
-  @if (submitError()) {
-    <p class="play__error" data-testid="submit-error">{{ submitError() }}</p>
-  }
+    @if (submitError()) {
+      <p class="play__error" data-testid="submit-error">{{ submitError() }}</p>
+    }
 
-  @if (feedback() !== 'none') {
-    <div class="play__feedback" data-testid="feedback">
-      @switch (feedback()) {
-        @case ('not_found') {
-          <span data-testid="feedback-not-found">Pas encore !</span>
+    @if (feedback() !== 'none') {
+      <div class="play__feedback" data-testid="feedback">
+        @switch (feedback()) {
+          @case ('not_found') {
+            <span data-testid="feedback-not-found">Pas encore !</span>
+          }
+          @case ('title_found') {
+            <span data-testid="feedback-title-found">Titre trouvé !</span>
+          }
+          @case ('artist_found') {
+            <span data-testid="feedback-artist-found">Artiste trouvé !</span>
+          }
+          @case ('both_found') {
+            <span data-testid="feedback-both-found">Bravo ! Tout trouvé !</span>
+          }
         }
-        @case ('title_found') {
-          <span data-testid="feedback-title-found">Titre trouvé !</span>
-        }
-        @case ('artist_found') {
-          <span data-testid="feedback-artist-found">Artiste trouvé !</span>
-        }
-        @case ('both_found') {
-          <span data-testid="feedback-both-found">Bravo ! Tout trouvé !</span>
-        }
-      }
-    </div>
+      </div>
+    }
   }
 
   @if (locked()) {
-    <p class="play__locked-msg" data-testid="locked-msg">Temps écoulé !</p>
+    <div class="play__locked">
+      <p class="play__locked-msg" data-testid="locked-msg">Temps écoulé !</p>
+
+      @if (isHost()) {
+        <div class="play__host-controls" data-testid="host-controls">
+          @if (songTitle()) {
+            <div class="play__answer-reveal" data-testid="answer-reveal">
+              <p class="play__reveal-label">La réponse était :</p>
+              <p class="play__reveal-title" data-testid="reveal-title">{{ songTitle() }}</p>
+              <p class="play__reveal-artist" data-testid="reveal-artist">{{ songArtist() }}</p>
+            </div>
+          }
+
+          @if (songIndex() + 1 < totalSongs()) {
+            <button
+              data-testid="next-song-btn"
+              class="btn btn-primary play__next-btn"
+              (click)="nextSong()"
+            >
+              Chanson suivante →
+            </button>
+          } @else {
+            <p class="play__end-msg">Fin de la manche !</p>
+          }
+        </div>
+      } @else {
+        <p class="play__waiting-host">En attente du maître du jeu…</p>
+      }
+    </div>
   }
 </main>

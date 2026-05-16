@@ -129,7 +129,19 @@ _CATALOG: dict[str, list[TrackInfo]] = {
 }
 
 
+def _all_tracks() -> list[TrackInfo]:
+    seen: set[str] = set()
+    result: list[TrackInfo] = []
+    for tracks in _CATALOG.values():
+        for t in tracks:
+            key = f"{t.title}|{t.artist}"
+            if key not in seen:
+                seen.add(key)
+                result.append(t)
+    return result
+
+
 class StaticFixtureMusicProvider:
     def search(self, theme: str, limit: int = 10) -> list[TrackInfo]:
-        tracks = _CATALOG.get(theme, [])
+        tracks = _CATALOG.get(theme) or _all_tracks()
         return tracks[:limit]
