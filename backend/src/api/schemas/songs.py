@@ -57,3 +57,32 @@ class OverrideAnswerResponse(BaseModel):
     artist_found: bool
     validation_status: str
     score: int
+
+
+class RevealSongRequest(BaseModel):
+    host_id: UUID
+
+
+class PlayerRevealItem(BaseModel):
+    participant_id: UUID
+    nickname: str
+    answer: str
+    title_found: bool
+    artist_found: bool
+    score: int
+
+
+class MiniLeaderboardItem(BaseModel):
+    rank: int
+    participant_id: UUID
+    nickname: str
+    total_points: int
+
+
+class RevealSongResponse(BaseModel):
+    song_id: UUID
+    room_id: UUID
+    title: str
+    artist: str
+    player_results: list[PlayerRevealItem]
+    mini_leaderboard: list[MiniLeaderboardItem]

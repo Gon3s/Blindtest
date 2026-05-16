@@ -134,6 +134,9 @@ Un ticket est **Done** ssi :
 | T-028 | Front envoi réponse et feedback joueur | ✅ Done |
 | T-029 | API vue maître du jeu après timer | ✅ Done |
 | T-030 | API correction maître du jeu | ✅ Done |
+| T-031 | Front vue maître du jeu après timer | ✅ Done |
+| T-032 | API révélation chanson + mini-classement | ✅ Done |
+| T-033 | Front reveal — bonne réponse, points, mini-classement | ✅ Done |
 
 **Prochains tickets** : voir Notion → https://www.notion.so/35db64600100815ca0a8d8ed1174d4ac
 
@@ -215,5 +218,5 @@ Ce fichier charge à chaque session Claude Code.
 - ✅ Sprint 0 — Infra complète
 - ✅ Sprint 1 — Domaine métier (T-008–T-014)
 - ✅ Sprint 2 — API salle/lobby (T-015–T-020)
-- 🔄 Sprint 3 — Jeu en cours (T-025–T-030, partiel)
+- 🔄 Sprint 3 — Jeu en cours (T-025–T-032, partiel)
 - → Prochain : voir Notion backlog

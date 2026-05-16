@@ -13,6 +13,8 @@ import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import {
   AnswerSummaryItem,
+  MiniLeaderboardItem,
+  PlayerRevealItem,
   RoomService,
   SongSummaryResponse,
   SubmitAnswerResponse,
@@ -27,6 +29,14 @@ interface SongStartedData {
   round_id: string;
   started_at: string;
   ends_at: string;
+}
+
+interface SongRevealedData {
+  song_id: string;
+  title: string;
+  artist: string;
+  player_results: PlayerRevealItem[];
+  mini_leaderboard: MiniLeaderboardItem[];
 }
 
 @Component({
@@ -52,6 +62,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   readonly submitError = signal<string | null>(null);
   readonly isHost = signal(false);
   readonly songSummary = signal<SongSummaryResponse | null>(null);
+  readonly revealData = signal<SongRevealedData | null>(null);
 
   readonly sortedAnswers = computed(() => {
     const summary = this.songSummary();
@@ -60,6 +71,12 @@ export class PlayPageComponent implements OnInit, OnDestroy {
       ...summary.answers.filter(a => a.validation_status === 'doubtful'),
       ...summary.answers.filter(a => a.validation_status !== 'doubtful'),
     ];
+  });
+
+  readonly myRevealResult = computed(() => {
+    const reveal = this.revealData();
+    if (!reveal) return null;
+    return reveal.player_results.find(r => r.participant_id === this.participantId) ?? null;
   });
 
   private songId = '';
@@ -117,6 +134,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
         this.feedback.set('none');
         this.submitError.set(null);
         this.songSummary.set(null);
+        this.revealData.set(null);
         this.restartTimer();
       } else if (event.event === 'song.locked') {
         this.locked.set(true);
@@ -124,6 +142,9 @@ export class PlayPageComponent implements OnInit, OnDestroy {
         if (this.isHost()) {
           this.fetchSongSummary();
         }
+      } else if (event.event === 'song.revealed') {
+        this.revealData.set(event.data as SongRevealedData);
+        this.cdr.markForCheck();
       }
     });
   }
@@ -160,6 +181,10 @@ export class PlayPageComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
     });
+  }
+
+  revealSong(): void {
+    this.roomService.revealSong(this.songId, this.hostId).subscribe();
   }
 
   nextSong(): void {

@@ -6,7 +6,51 @@
     <span data-testid="timer" class="play__timer">{{ timeLeft() }}</span>
   </header>
 
-  @if (!locked()) {
+  @if (revealData(); as reveal) {
+    <section class="play__reveal" data-testid="reveal-section">
+      <div class="play__reveal-answer">
+        <p class="play__reveal-label">La réponse était</p>
+        <p class="play__reveal-song-title" data-testid="revealed-title">{{ reveal.title }}</p>
+        <p class="play__reveal-song-artist" data-testid="revealed-artist">{{ reveal.artist }}</p>
+      </div>
+
+      @if (myRevealResult(); as myResult) {
+        <div class="play__my-score" data-testid="my-score">
+          <span class="play__my-score-label">Tes points cette chanson</span>
+          <span class="play__my-score-value">+{{ myResult.score }}</span>
+        </div>
+      }
+
+      <div class="play__leaderboard">
+        <p class="play__leaderboard-title">Mini-classement</p>
+        <ul class="play__leaderboard-list" data-testid="mini-leaderboard">
+          @for (entry of reveal.mini_leaderboard; track entry.participant_id) {
+            <li class="play__leaderboard-row" data-testid="leaderboard-row">
+              <span class="play__leaderboard-rank" data-testid="leaderboard-rank">{{ entry.rank }}</span>
+              <span class="play__leaderboard-nickname" data-testid="leaderboard-nickname">{{ entry.nickname }}</span>
+              <span class="play__leaderboard-points" data-testid="leaderboard-points">{{ entry.total_points }} pts</span>
+            </li>
+          }
+        </ul>
+      </div>
+
+      @if (isHost()) {
+        <div class="play__host-actions">
+          @if (songIndex() + 1 < totalSongs()) {
+            <button
+              data-testid="next-song-btn"
+              class="btn btn-secondary play__next-btn"
+              (click)="nextSong()"
+            >
+              Chanson suivante →
+            </button>
+          } @else {
+            <p class="play__end-msg" data-testid="end-msg">Fin de la manche !</p>
+          }
+        </div>
+      }
+    </section>
+  } @else if (!locked()) {
     <section class="play__answer-block">
       <label for="answer-input" class="play__answer-label">Ta réponse</label>
       <input
@@ -54,9 +98,7 @@
         }
       </div>
     }
-  }
-
-  @if (locked()) {
+  } @else {
     <div class="play__locked">
       <p class="play__locked-msg" data-testid="locked-msg">Temps écoulé !</p>
 
@@ -106,22 +148,10 @@
                   type="button"
                   class="btn btn-primary play__reveal-btn"
                   data-testid="reveal-btn"
-                  disabled
+                  (click)="revealSong()"
                 >
                   Révéler
                 </button>
-
-                @if (songIndex() + 1 < totalSongs()) {
-                  <button
-                    data-testid="next-song-btn"
-                    class="btn btn-secondary play__next-btn"
-                    (click)="nextSong()"
-                  >
-                    Chanson suivante →
-                  </button>
-                } @else {
-                  <p class="play__end-msg">Fin de la manche !</p>
-                }
               </div>
             </div>
           }

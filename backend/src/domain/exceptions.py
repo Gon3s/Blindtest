@@ -60,3 +60,7 @@ class AnswerNotFoundError(ValueError):
 
 class SongNotCorrectableError(ValueError):
     pass
+
+
+class SongNotRevealableError(ValueError):
+    pass

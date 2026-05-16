@@ -13,8 +13,12 @@ from src.api.deps import (
 )
 from src.api.schemas.songs import (
     AnswerSummaryItem,
+    MiniLeaderboardItem,
     OverrideAnswerRequest,
     OverrideAnswerResponse,
+    PlayerRevealItem,
+    RevealSongRequest,
+    RevealSongResponse,
     SongSummaryResponse,
     StartSongResponse,
     SubmitAnswerRequest,
@@ -31,6 +35,7 @@ from src.domain.exceptions import (
     SongNotFoundError,
     SongNotLockedError,
     SongNotPlayableError,
+    SongNotRevealableError,
 )
 from src.infrastructure.ws_manager import RoomConnectionManager, get_ws_manager
 
@@ -189,4 +194,68 @@ def get_song_summary(
         total_answers=result["total_answers"],
         doubtful_count=result["doubtful_count"],
         answers=[AnswerSummaryItem(**item) for item in result["answers"]],
+    )
+
+
+@router.post(
+    "/songs/{song_id}/reveal",
+    response_model=RevealSongResponse,
+    status_code=200,
+)
+async def reveal_song(
+    song_id: UUID,
+    body: RevealSongRequest,
+    service: RoomService = Depends(get_room_service),
+    manager: RoomConnectionManager = Depends(get_ws_manager),
+) -> RevealSongResponse:
+    try:
+        result = service.reveal_song(song_id, body.host_id)
+    except SongNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except SongNotRevealableError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except NotHostError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
+
+    await manager.broadcast_to_room(
+        result["room_id"],
+        {
+            "event": "song.revealed",
+            "data": {
+                "song_id": str(result["song_id"]),
+                "title": result["title"],
+                "artist": result["artist"],
+                "player_results": [
+                    {
+                        "participant_id": str(pr["participant_id"]),
+                        "nickname": pr["nickname"],
+                        "answer": pr["answer"],
+                        "title_found": pr["title_found"],
+                        "artist_found": pr["artist_found"],
+                        "score": pr["score"],
+                    }
+                    for pr in result["player_results"]
+                ],
+                "mini_leaderboard": [
+                    {
+                        "rank": lb["rank"],
+                        "participant_id": str(lb["participant_id"]),
+                        "nickname": lb["nickname"],
+                        "total_points": lb["total_points"],
+                    }
+                    for lb in result["mini_leaderboard"]
+                ],
+            },
+        },
+    )
+
+    return RevealSongResponse(
+        song_id=result["song_id"],
+        room_id=result["room_id"],
+        title=result["title"],
+        artist=result["artist"],
+        player_results=[PlayerRevealItem(**pr) for pr in result["player_results"]],
+        mini_leaderboard=[
+            MiniLeaderboardItem(**lb) for lb in result["mini_leaderboard"]
+        ],
     )

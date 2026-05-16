@@ -48,6 +48,31 @@ export interface OverrideAnswerResponse {
   score: number;
 }
 
+export interface PlayerRevealItem {
+  participant_id: string;
+  nickname: string;
+  answer: string;
+  title_found: boolean;
+  artist_found: boolean;
+  score: number;
+}
+
+export interface MiniLeaderboardItem {
+  rank: number;
+  participant_id: string;
+  nickname: string;
+  total_points: number;
+}
+
+export interface RevealSongResponse {
+  song_id: string;
+  room_id: string;
+  title: string;
+  artist: string;
+  player_results: PlayerRevealItem[];
+  mini_leaderboard: MiniLeaderboardItem[];
+}
+
 export interface StartRoundResponse {
   round_id: string;
   room_id: string;
@@ -108,6 +133,12 @@ export class RoomService {
       `${this.apiUrl}/songs/${songId}/answers/${answerId}`,
       { host_id: hostId, title_accepted: titleAccepted, artist_accepted: artistAccepted },
     );
+  }
+
+  revealSong(songId: string, hostId: string): Observable<RevealSongResponse> {
+    return this.http.post<RevealSongResponse>(`${this.apiUrl}/songs/${songId}/reveal`, {
+      host_id: hostId,
+    });
   }
 
   submitAnswer(

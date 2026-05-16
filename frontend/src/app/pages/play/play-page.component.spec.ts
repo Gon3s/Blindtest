@@ -5,7 +5,10 @@ import { of } from 'rxjs';
 import { PlayPageComponent } from './play-page.component';
 import { WebSocketService, WsEvent } from '../../services/websocket.service';
 import {
+  MiniLeaderboardItem,
   OverrideAnswerResponse,
+  PlayerRevealItem,
+  RevealSongResponse,
   RoomService,
   SongSummaryResponse,
   SubmitAnswerResponse,
@@ -669,5 +672,157 @@ describe('PlayPageComponent — host song summary (T-031)', () => {
 
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('[data-testid="reveal-btn"]')).not.toBeNull();
+  });
+});
+
+// ─── Reveal (T-033) ───────────────────────────────────────────────────────────
+
+const mockRevealEvent: WsEvent = {
+  event: 'song.revealed',
+  data: {
+    song_id: 'song-uuid',
+    title: 'Get Lucky',
+    artist: 'Daft Punk',
+    player_results: [
+      {
+        participant_id: 'p1',
+        nickname: 'Alice',
+        answer: 'get lucky daft punk',
+        title_found: true,
+        artist_found: true,
+        score: 2,
+      },
+      {
+        participant_id: 'p2',
+        nickname: 'Bob',
+        answer: 'get luckky',
+        title_found: false,
+        artist_found: false,
+        score: 0,
+      },
+    ] as PlayerRevealItem[],
+    mini_leaderboard: [
+      { rank: 1, participant_id: 'p1', nickname: 'Alice', total_points: 5 },
+      { rank: 2, participant_id: 'p2', nickname: 'Bob', total_points: 2 },
+    ] as MiniLeaderboardItem[],
+  } as RevealSongResponse,
+};
+
+async function configureRevealTestBed(opts: { isHost?: boolean } = {}) {
+  const { service: wsService, msgs } = createWsMock();
+  const summarySubject = new Subject<SongSummaryResponse>();
+  const revealApiSubject = new Subject<RevealSongResponse>();
+  const roomService = {
+    submitAnswer: vi.fn(),
+    getSongSummary: vi.fn().mockReturnValue(summarySubject.asObservable()),
+    overrideAnswer: vi.fn(),
+    startSong: vi.fn(),
+    revealSong: vi.fn().mockReturnValue(revealApiSubject.asObservable()),
+  };
+
+  history.replaceState(
+    {
+      room_id: 'room-uuid',
+      song_id: 'song-uuid',
+      participant_id: 'p1',
+      is_host: opts.isHost ?? false,
+      host_id: 'host-uuid',
+      round_id: 'round-uuid',
+      song_index: 0,
+      total_songs: 10,
+      ends_at: BASE_ENDS.toISOString(),
+    },
+    '',
+  );
+
+  await TestBed.configureTestingModule({
+    imports: [PlayPageComponent],
+    providers: [
+      provideRouter([]),
+      { provide: ActivatedRoute, useValue: { paramMap: of({ get: () => null }) } },
+      { provide: WebSocketService, useValue: wsService },
+      { provide: RoomService, useValue: roomService },
+    ],
+  }).compileComponents();
+
+  return { wsService, msgs, roomService, summarySubject, revealApiSubject };
+}
+
+describe('PlayPageComponent — reveal (T-033)', () => {
+  afterEach(() => {
+    history.replaceState(null, '');
+    TestBed.resetTestingModule();
+  });
+
+  it('should show reveal section after song.revealed event (player)', async () => {
+    const { msgs } = await configureRevealTestBed({ isHost: false });
+    const fixture = mountFixture();
+
+    msgs.next(mockRevealEvent);
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="reveal-section"]'),
+    ).not.toBeNull();
+  });
+
+  it('should display correct title and artist in reveal section', async () => {
+    const { msgs } = await configureRevealTestBed({ isHost: false });
+    const fixture = mountFixture();
+
+    msgs.next(mockRevealEvent);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="revealed-title"]')?.textContent?.trim()).toBe(
+      'Get Lucky',
+    );
+    expect(el.querySelector('[data-testid="revealed-artist"]')?.textContent?.trim()).toBe(
+      'Daft Punk',
+    );
+  });
+
+  it('should display current player score in reveal section', async () => {
+    const { msgs } = await configureRevealTestBed({ isHost: false });
+    const fixture = mountFixture();
+
+    msgs.next(mockRevealEvent);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="my-score"]')?.textContent).toContain('2');
+  });
+
+  it('should display mini leaderboard with all entries', async () => {
+    const { msgs } = await configureRevealTestBed({ isHost: false });
+    const fixture = mountFixture();
+
+    msgs.next(mockRevealEvent);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    const rows = el.querySelectorAll('[data-testid="leaderboard-row"]');
+    expect(rows.length).toBe(2);
+    expect(
+      rows[0].querySelector('[data-testid="leaderboard-nickname"]')?.textContent?.trim(),
+    ).toBe('Alice');
+    expect(rows[0].querySelector('[data-testid="leaderboard-points"]')?.textContent).toContain(
+      '5',
+    );
+    expect(
+      rows[1].querySelector('[data-testid="leaderboard-nickname"]')?.textContent?.trim(),
+    ).toBe('Bob');
+  });
+
+  it('should show next-song CTA for host after song.revealed', async () => {
+    const { msgs } = await configureRevealTestBed({ isHost: true });
+    const fixture = mountFixture();
+
+    msgs.next(mockRevealEvent);
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="next-song-btn"]'),
+    ).not.toBeNull();
   });
 });

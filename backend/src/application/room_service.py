@@ -24,6 +24,7 @@ from src.domain.exceptions import (
     SongNotLockableError,
     SongNotLockedError,
     SongNotPlayableError,
+    SongNotRevealableError,
 )
 from src.domain.music_provider import MusicProvider, track_to_song
 from src.domain.scoring import compute_song_score
@@ -52,6 +53,10 @@ _CORRECTABLE_STATUSES: frozenset[str] = frozenset(
         SongStatus.VALIDATION.value,
         SongStatus.REVEALED.value,
     }
+)
+
+_REVEALABLE_STATUSES: frozenset[str] = frozenset(
+    {SongStatus.LOCKED.value, SongStatus.VALIDATION.value}
 )
 
 CODE_CHARS: str = string.ascii_uppercase + string.digits
@@ -125,6 +130,31 @@ class OverrideAnswerResult(TypedDict):
     artist_found: bool
     validation_status: str
     score: int
+
+
+class PlayerRevealEntry(TypedDict):
+    participant_id: UUID
+    nickname: str
+    answer: str
+    title_found: bool
+    artist_found: bool
+    score: int
+
+
+class MiniLeaderboardEntry(TypedDict):
+    rank: int
+    participant_id: UUID
+    nickname: str
+    total_points: int
+
+
+class RevealSongResult(TypedDict):
+    song_id: UUID
+    room_id: UUID
+    title: str
+    artist: str
+    player_results: list[PlayerRevealEntry]
+    mini_leaderboard: list[MiniLeaderboardEntry]
 
 
 _JOINABLE_STATUSES: frozenset[str] = frozenset(
@@ -561,4 +591,92 @@ class RoomService:
             artist_found=artist_accepted,
             validation_status=answer.validation_status,
             score=score,
+        )
+
+    def reveal_song(self, song_id: UUID, host_id: UUID) -> RevealSongResult:
+        song = self._session.query(SongModel).filter_by(id=song_id).first()
+        if song is None:
+            raise SongNotFoundError(f"Song {song_id!r} not found")
+        if song.status not in _REVEALABLE_STATUSES:
+            raise SongNotRevealableError(
+                f"Song cannot be revealed (status: {song.status!r})"
+            )
+
+        round_ = self._session.query(RoundModel).filter_by(id=song.round_id).first()
+        if round_ is None:
+            raise RoundNotFoundError(f"Round {song.round_id!r} not found")
+
+        room = self._session.query(RoomModel).filter_by(id=round_.room_id).first()
+        if room is None:
+            raise RoomNotFoundError(f"Room {round_.room_id!r} not found")
+        if room.host_id != host_id:
+            raise NotHostError(f"Participant {host_id!r} is not the host of this room")
+
+        song.status = SongStatus.REVEALED.value
+        self._session.flush()
+
+        raw_answers = (
+            self._session.query(AnswerModel).filter_by(song_id=song_id).all()
+        )
+
+        player_results: list[PlayerRevealEntry] = []
+        for ans in raw_answers:
+            participant = (
+                self._session.query(ParticipantModel)
+                .filter_by(id=ans.participant_id)
+                .first()
+            )
+            nickname = participant.nickname if participant else "Unknown"
+            score_entry = (
+                self._session.query(ScoreEntryModel)
+                .filter_by(participant_id=ans.participant_id, song_id=song_id)
+                .first()
+            )
+            points = score_entry.points if score_entry else 0
+            player_results.append(
+                PlayerRevealEntry(
+                    participant_id=ans.participant_id,
+                    nickname=nickname,
+                    answer=ans.text,
+                    title_found=ans.title_found,
+                    artist_found=ans.artist_found,
+                    score=points,
+                )
+            )
+
+        all_score_entries = (
+            self._session.query(ScoreEntryModel).filter_by(room_id=round_.room_id).all()
+        )
+        totals: dict[UUID, int] = {}
+        for se in all_score_entries:
+            pid = se.participant_id
+            totals[pid] = totals.get(pid, 0) + se.points
+
+        sorted_pairs = sorted(totals.items(), key=lambda x: x[1], reverse=True)
+        mini_leaderboard: list[MiniLeaderboardEntry] = []
+        for i, (pid, pts) in enumerate(sorted_pairs):
+            participant = (
+                self._session.query(ParticipantModel).filter_by(id=pid).first()
+            )
+            nickname = participant.nickname if participant else "Unknown"
+            if i > 0 and pts == sorted_pairs[i - 1][1]:
+                rank = mini_leaderboard[-1]["rank"]
+            else:
+                rank = i + 1
+            mini_leaderboard.append(
+                MiniLeaderboardEntry(
+                    rank=rank,
+                    participant_id=pid,
+                    nickname=nickname,
+                    total_points=pts,
+                )
+            )
+
+        return RevealSongResult(
+            song_id=song.id,
+            room_id=round_.room_id,
+            title=song.title,
+            artist=song.artist,
+            player_results=player_results,
+            mini_leaderboard=mini_leaderboard,
         )
