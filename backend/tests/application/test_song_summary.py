@@ -1,4 +1,5 @@
 """TDD — get_song_summary service method (T-029)."""
+
 from unittest.mock import MagicMock
 from uuid import UUID, uuid4
 
@@ -96,10 +97,12 @@ def _session(
         elif model is AnswerModel:
             q.filter_by.return_value.all.return_value = answers
         elif model is ParticipantModel:
+
             def _fb(**kw: object) -> MagicMock:
                 inner = MagicMock()
                 inner.first.return_value = pmap.get(kw.get("id"))  # type: ignore[arg-type]
                 return inner
+
             q.filter_by.side_effect = _fb
         return q
 

@@ -11,10 +11,7 @@ from src.infrastructure.models import RoomModel, RoundModel, SongModel
 
 
 def _make_tracks(n: int = 10) -> list[TrackInfo]:
-    return [
-        TrackInfo(title=f"Song {i}", artist=f"Artist {i}")
-        for i in range(n)
-    ]
+    return [TrackInfo(title=f"Song {i}", artist=f"Artist {i}") for i in range(n)]
 
 
 class FakeMusicProvider:

@@ -1,4 +1,5 @@
 """TDD — POST /songs/{song_id}/reveal API (T-032)."""
+
 from uuid import UUID, uuid4
 
 import pytest

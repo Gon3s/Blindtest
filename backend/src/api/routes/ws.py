@@ -19,9 +19,7 @@ async def websocket_room(
 ) -> None:
     await manager.connect(room_id, websocket)
     try:
-        participants = (
-            db.query(ParticipantModel).filter_by(room_id=room_id).all()
-        )
+        participants = db.query(ParticipantModel).filter_by(room_id=room_id).all()
         await websocket.send_json(
             {
                 "event": "room.state",

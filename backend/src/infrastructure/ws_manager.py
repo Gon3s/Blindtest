@@ -19,9 +19,7 @@ class RoomConnectionManager:
             if not room_connections:
                 del self._connections[room_id]
 
-    async def broadcast_to_room(
-        self, room_id: UUID, message: dict[str, Any]
-    ) -> None:
+    async def broadcast_to_room(self, room_id: UUID, message: dict[str, Any]) -> None:
         for websocket in list(self._connections.get(room_id, set())):
             try:
                 await websocket.send_json(message)

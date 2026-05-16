@@ -1,4 +1,5 @@
 """TDD — GET /songs/{song_id}/summary API (T-029)."""
+
 from uuid import UUID, uuid4
 
 import pytest

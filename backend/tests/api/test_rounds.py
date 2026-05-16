@@ -80,9 +80,7 @@ def round_client(round_result: dict, mock_manager: MagicMock) -> TestClient:
 
 def test_start_round_returns_201(round_client: TestClient) -> None:
     room_id = uuid4()
-    response = round_client.post(
-        f"/rooms/{room_id}/rounds", json={"theme": "Pop 90s"}
-    )
+    response = round_client.post(f"/rooms/{room_id}/rounds", json={"theme": "Pop 90s"})
     assert response.status_code == 201
 
 
@@ -90,9 +88,7 @@ def test_start_round_returns_round_id_and_song_count(
     round_client: TestClient, round_result: dict
 ) -> None:
     room_id = uuid4()
-    response = round_client.post(
-        f"/rooms/{room_id}/rounds", json={"theme": "Pop 90s"}
-    )
+    response = round_client.post(f"/rooms/{room_id}/rounds", json={"theme": "Pop 90s"})
     data = response.json()
     assert UUID(data["round_id"]) == round_result["round_id"]
     assert data["song_count"] == 10

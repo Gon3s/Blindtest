@@ -133,9 +133,7 @@ def test_override_answer_not_host_returns_403() -> None:
     app.dependency_overrides[get_room_service] = lambda: fake
     try:
         client = TestClient(app)
-        response = client.patch(
-            f"/songs/{uuid4()}/answers/{uuid4()}", json=_VALID_BODY
-        )
+        response = client.patch(f"/songs/{uuid4()}/answers/{uuid4()}", json=_VALID_BODY)
         assert response.status_code == 403
     finally:
         app.dependency_overrides.clear()
@@ -146,9 +144,7 @@ def test_override_answer_song_not_found_returns_404() -> None:
     app.dependency_overrides[get_room_service] = lambda: fake
     try:
         client = TestClient(app)
-        response = client.patch(
-            f"/songs/{uuid4()}/answers/{uuid4()}", json=_VALID_BODY
-        )
+        response = client.patch(f"/songs/{uuid4()}/answers/{uuid4()}", json=_VALID_BODY)
         assert response.status_code == 404
     finally:
         app.dependency_overrides.clear()
@@ -159,9 +155,7 @@ def test_override_answer_not_found_returns_404() -> None:
     app.dependency_overrides[get_room_service] = lambda: fake
     try:
         client = TestClient(app)
-        response = client.patch(
-            f"/songs/{uuid4()}/answers/{uuid4()}", json=_VALID_BODY
-        )
+        response = client.patch(f"/songs/{uuid4()}/answers/{uuid4()}", json=_VALID_BODY)
         assert response.status_code == 404
     finally:
         app.dependency_overrides.clear()
@@ -172,9 +166,7 @@ def test_override_answer_not_correctable_returns_409() -> None:
     app.dependency_overrides[get_room_service] = lambda: fake
     try:
         client = TestClient(app)
-        response = client.patch(
-            f"/songs/{uuid4()}/answers/{uuid4()}", json=_VALID_BODY
-        )
+        response = client.patch(f"/songs/{uuid4()}/answers/{uuid4()}", json=_VALID_BODY)
         assert response.status_code == 409
     finally:
         app.dependency_overrides.clear()

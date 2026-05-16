@@ -15,8 +15,7 @@ class TrackInfo:
 
 
 class MusicProvider(Protocol):
-    def search(self, theme: str, limit: int = 10) -> list[TrackInfo]:
-        ...
+    def search(self, theme: str, limit: int = 10) -> list[TrackInfo]: ...
 
 
 def track_to_song(track: TrackInfo, round_id: UUID, index: int) -> Song:

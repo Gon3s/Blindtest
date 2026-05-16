@@ -49,7 +49,9 @@ class TestDeezerTrackMapping:
     def test_maps_preview_url_when_present(self) -> None:
         provider = DeezerMusicProvider(client=_mock_client({"data": []}))
         track = provider._map_track(_DEEZER_TRACK)
-        assert track.preview_url == "https://cdns-preview-d.dzcdn.net/stream/preview.mp3"
+        assert (
+            track.preview_url == "https://cdns-preview-d.dzcdn.net/stream/preview.mp3"
+        )
 
     def test_preview_url_is_none_when_empty_string(self) -> None:
         provider = DeezerMusicProvider(client=_mock_client({"data": []}))
@@ -93,10 +95,7 @@ class TestDeezerMusicProviderSearch:
         assert params.get("limit") == 5
 
     def test_search_respects_limit(self) -> None:
-        tracks = [
-            {**_DEEZER_TRACK, "id": i, "title": f"Track {i}"}
-            for i in range(10)
-        ]
+        tracks = [{**_DEEZER_TRACK, "id": i, "title": f"Track {i}"} for i in range(10)]
         body = _make_deezer_response(tracks)
         provider = DeezerMusicProvider(client=_mock_client(body))
         results = provider.search("Electro", limit=3)

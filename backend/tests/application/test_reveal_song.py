@@ -1,4 +1,5 @@
 """TDD — reveal_song service method (T-032)."""
+
 from unittest.mock import MagicMock
 from uuid import UUID, uuid4
 
@@ -110,12 +111,15 @@ def _session(
         elif model is AnswerModel:
             q.filter_by.return_value.all.return_value = answers
         elif model is ParticipantModel:
+
             def _fb(**kw: object) -> MagicMock:
                 inner = MagicMock()
                 inner.first.return_value = pmap.get(kw.get("id"))  # type: ignore[arg-type]
                 return inner
+
             q.filter_by.side_effect = _fb
         elif model is ScoreEntryModel:
+
             def _se_fb(**kw: object) -> MagicMock:
                 inner = MagicMock()
                 pid = kw.get("participant_id")
@@ -133,6 +137,7 @@ def _session(
                     inner.first.return_value = None
                     inner.all.return_value = []
                 return inner
+
             q.filter_by.side_effect = _se_fb
         return q
 
@@ -235,9 +240,7 @@ def test_reveal_from_already_revealed_raises_not_revealable(
         RoomService(sess).reveal_song(song.id, host_id)
 
 
-def test_reveal_ok_from_validation_status(
-    host_id: UUID, room_id: UUID
-) -> None:
+def test_reveal_ok_from_validation_status(host_id: UUID, room_id: UUID) -> None:
     song = _song(status=SongStatus.VALIDATION.value)
     round_ = _round(room_id=room_id)
     song.round_id = round_.id

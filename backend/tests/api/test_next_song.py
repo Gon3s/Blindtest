@@ -1,4 +1,5 @@
 """TDD — T-034: API enchaîner les chansons, fin de manche."""
+
 from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID, uuid4
 
@@ -57,6 +58,7 @@ class _FakeService:
         if self._start_song_exc is not None:
             raise self._start_song_exc
         from datetime import datetime, timedelta, timezone
+
         now = datetime(2026, 5, 16, 12, 0, 0, tzinfo=timezone.utc)
         return {
             "song_id": uuid4(),
@@ -190,9 +192,7 @@ def test_start_song_after_round_finished_returns_409(
     """Démarrer une chanson sur un round terminé retourne 409."""
     from src.api.deps import get_db_factory, get_session
 
-    fake = _FakeService(
-        start_song_exc=RoundNotInProgressError("Round is finished")
-    )
+    fake = _FakeService(start_song_exc=RoundNotInProgressError("Round is finished"))
     app.dependency_overrides[get_room_service] = lambda: fake
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     app.dependency_overrides[get_session] = lambda: MagicMock()

@@ -129,7 +129,6 @@ _CATALOG: dict[str, list[TrackInfo]] = {
 }
 
 
-
 class StaticFixtureMusicProvider:
     def search(self, theme: str, limit: int = 10) -> list[TrackInfo]:
         tracks = _CATALOG.get(theme, [])

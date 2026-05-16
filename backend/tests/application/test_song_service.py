@@ -135,17 +135,13 @@ def test_start_song_returns_correct_ids(
     assert isinstance(result["song_id"], UUID)
 
 
-def test_start_song_returns_timestamps(
-    service: RoomService, round_: MagicMock
-) -> None:
+def test_start_song_returns_timestamps(service: RoomService, round_: MagicMock) -> None:
     result = service.start_song(round_.id, song_index=0)
     assert result["started_at"] == _FIXED_NOW
     assert result["ends_at"] == _FIXED_NOW + timedelta(seconds=_DURATION)
 
 
-def test_start_song_returns_song_index(
-    service: RoomService, round_: MagicMock
-) -> None:
+def test_start_song_returns_song_index(service: RoomService, round_: MagicMock) -> None:
     result = service.start_song(round_.id, song_index=3)
     assert result["song_index"] == 3
 
@@ -191,9 +187,7 @@ def test_start_song_song_not_found_raises() -> None:
         service.start_song(round_.id, song_index=99)
 
 
-def test_start_song_already_playing_raises(
-    round_: MagicMock, room_id: UUID
-) -> None:
+def test_start_song_already_playing_raises(round_: MagicMock, room_id: UUID) -> None:
     song = _make_song_mock(status=SongStatus.PLAYING.value, round_id=round_.id)
     mock = _session_for(round_, song)
     service = RoomService(mock, clock=FakeClock(_FIXED_NOW))

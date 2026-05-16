@@ -1,4 +1,5 @@
 """TDD — T-034: enchaîner les 10 chansons, fin de manche, classement manche."""
+
 from unittest.mock import MagicMock
 from uuid import UUID, uuid4
 
@@ -93,6 +94,7 @@ def _build_session(
     def _query(model: type) -> MagicMock:
         q = MagicMock()
         if model is SongModel:
+
             def _song_filter(**kw: object) -> MagicMock:
                 inner = MagicMock()
                 if "id" in kw:
@@ -105,6 +107,7 @@ def _build_session(
                     inner.first.return_value = None
                     inner.all.return_value = []
                 return inner
+
             q.filter_by.side_effect = _song_filter
         elif model is RoundModel:
             q.filter_by.return_value.first.return_value = round_
@@ -113,12 +116,15 @@ def _build_session(
         elif model is AnswerModel:
             q.filter_by.return_value.all.return_value = []
         elif model is ParticipantModel:
+
             def _p_filter(**kw: object) -> MagicMock:
                 inner = MagicMock()
                 inner.first.return_value = pmap.get(kw.get("id"))  # type: ignore[arg-type]
                 return inner
+
             q.filter_by.side_effect = _p_filter
         elif model is ScoreEntryModel:
+
             def _se_filter(**kw: object) -> MagicMock:
                 inner = MagicMock()
                 if "song_id" in kw:
@@ -134,6 +140,7 @@ def _build_session(
                     inner.first.return_value = None
                     inner.all.return_value = []
                 return inner
+
             q.filter_by.side_effect = _se_filter
         return q
 
@@ -258,9 +265,7 @@ def test_last_song_reveal_sets_room_status_round_finished(
 # ── 4. refus chanson 11 ────────────────────────────────────────────────────────
 
 
-def test_start_song_after_round_finished_raises(
-    room_id: UUID, round_id: UUID
-) -> None:
+def test_start_song_after_round_finished_raises(room_id: UUID, round_id: UUID) -> None:
     """Impossible de démarrer une chanson sur un round terminé."""
     round_ = _round_mock(round_id, room_id, status=RoundStatus.FINISHED.value)
     song = _song_mock(uuid4(), round_id, 0, SongStatus.UPCOMING.value)
@@ -302,7 +307,10 @@ def test_round_leaderboard_on_last_reveal(
     round_se = [se_alice, se_bob]
 
     sess = _build_session(
-        current, all_songs, round_, room,
+        current,
+        all_songs,
+        round_,
+        room,
         [alice, bob],
         room_score_entries=room_se,
         round_score_entries=round_se,
@@ -335,7 +343,10 @@ def test_round_leaderboard_tie_same_rank(
     se_bob = _score_entry_mock(bob_id, room_id, round_id, current.id, 100)
 
     sess = _build_session(
-        current, all_songs, round_, room,
+        current,
+        all_songs,
+        round_,
+        room,
         [alice, bob],
         room_score_entries=[se_alice, se_bob],
         round_score_entries=[se_alice, se_bob],
