@@ -141,6 +141,7 @@ Un ticket est **Done** ssi :
 | T-035 | Front classement de manche | ✅ Done |
 | T-036 | API relancer une manche | ✅ Done |
 | T-042 | Lecture preview audio pendant la chanson | ✅ Done |
+| T-038 | Parcours E2E principal | ✅ Done |
 
 **Prochains tickets** : voir Notion → https://www.notion.so/35db64600100815ca0a8d8ed1174d4ac
 
