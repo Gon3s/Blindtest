@@ -2,8 +2,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2rem;
-  padding: 1.5rem 1rem;
+  gap: var(--space-8);
+  padding: var(--space-6) var(--space-4);
   min-height: 100dvh;
   box-sizing: border-box;
 
@@ -16,42 +16,42 @@
   }
 
   &__song-number {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--color-muted, #888);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-muted);
   }
 
   &__answer-block {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--space-2);
     width: 100%;
     max-width: 480px;
   }
 
   &__answer-label {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--color-muted, #888);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-muted);
   }
 
   &__answer-input {
     width: 100%;
-    padding: 0.875rem 1rem;
-    font-size: 1.125rem;
-    border: 2px solid var(--color-border, #e0e0e0);
-    border-radius: 0.75rem;
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--font-size-lg);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
     outline: none;
     box-sizing: border-box;
-    transition: border-color 0.15s;
+    transition: border-color var(--transition-base);
 
     &:focus {
-      border-color: var(--color-primary, #6c5ce7);
+      border-color: var(--color-primary);
     }
 
     &:disabled {
-      background: var(--color-disabled-bg, #f5f5f5);
-      color: var(--color-muted, #888);
+      background: var(--color-disabled-bg);
+      color: var(--color-muted);
       cursor: not-allowed;
     }
   }
@@ -61,27 +61,27 @@
   }
 
   &__error {
-    font-size: 0.9rem;
-    color: var(--color-danger, #d63031);
+    font-size: var(--font-size-sm);
+    color: var(--color-danger);
     text-align: center;
   }
 
   &__feedback {
-    font-size: 1.25rem;
-    font-weight: 700;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
     text-align: center;
-    padding: 1rem 1.5rem;
-    border-radius: 0.75rem;
-    background: var(--color-feedback-bg, #f0edff);
-    color: var(--color-primary, #6c5ce7);
+    padding: var(--space-4) var(--space-6);
+    border-radius: var(--radius-lg);
+    background: var(--color-feedback-bg);
+    color: var(--color-primary);
     width: 100%;
     max-width: 480px;
     box-sizing: border-box;
   }
 
   &__locked-msg {
-    font-size: 1rem;
-    color: var(--color-muted, #888);
+    font-size: var(--font-size-base);
+    color: var(--color-muted);
     text-align: center;
   }
 
@@ -89,55 +89,55 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.5rem;
+    gap: var(--space-6);
     width: 100%;
     max-width: 480px;
   }
 
   &__reveal-answer {
     text-align: center;
-    padding: 1.5rem;
-    background: var(--color-feedback-bg, #f0edff);
-    border-radius: 1rem;
+    padding: var(--space-6);
+    background: var(--color-feedback-bg);
+    border-radius: var(--radius-xl);
     width: 100%;
     box-sizing: border-box;
   }
 
   &__reveal-song-title {
     font-size: 1.75rem;
-    font-weight: 700;
-    color: var(--color-primary, #6c5ce7);
-    margin: 0.25rem 0 0;
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    margin: var(--space-1) 0 0;
   }
 
   &__reveal-song-artist {
     font-size: 1.1rem;
-    color: var(--color-muted, #888);
-    margin: 0.25rem 0 0;
+    color: var(--color-muted);
+    margin: var(--space-1) 0 0;
   }
 
   &__my-score {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.25rem;
-    padding: 1rem 1.5rem;
-    background: var(--color-success-bg, #e8f5e9);
-    border-radius: 0.75rem;
+    gap: var(--space-1);
+    padding: var(--space-4) var(--space-6);
+    background: var(--color-success-bg);
+    border-radius: var(--radius-lg);
     width: 100%;
     box-sizing: border-box;
     text-align: center;
   }
 
   &__my-score-label {
-    font-size: 0.875rem;
-    color: var(--color-muted, #888);
+    font-size: var(--font-size-sm);
+    color: var(--color-muted);
   }
 
   &__my-score-value {
     font-size: 2rem;
-    font-weight: 700;
-    color: var(--color-success, #27ae60);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-success);
   }
 
   &__leaderboard {
@@ -145,12 +145,12 @@
   }
 
   &__leaderboard-title {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--color-muted, #888);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-2);
   }
 
   &__leaderboard-list {
@@ -159,33 +159,33 @@
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--space-2);
   }
 
   &__leaderboard-row {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    background: var(--color-surface, #fff);
-    border: 1px solid var(--color-border, #e0e0e0);
-    border-radius: 0.5rem;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
   }
 
   &__leaderboard-rank {
-    font-size: 0.875rem;
-    font-weight: 700;
-    color: var(--color-muted, #888);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-muted);
     min-width: 1.5rem;
   }
 
   &__leaderboard-nickname {
     flex: 1;
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
   }
 
   &__leaderboard-points {
-    font-weight: 700;
-    color: var(--color-primary, #6c5ce7);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
   }
 }

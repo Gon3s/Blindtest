@@ -48,6 +48,7 @@
   --font-size-2xl:  1.5rem;
   --font-size-3xl:  1.875rem;
   --font-size-4xl:  2.25rem;
+  --font-size-5xl:  2.5rem;
 
   --font-weight-normal:    400;
   --font-weight-medium:    500;
@@ -207,6 +208,25 @@ a {
   }
 }
 
+.btn-danger {
+  background: var(--color-danger);
+  color: #000;
+
+  &:hover:not(:disabled, [disabled]) {
+    filter: brightness(0.9);
+  }
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text);
+  border-color: var(--color-border);
+
+  &:hover:not(:disabled, [disabled]) {
+    background: var(--color-secondary);
+  }
+}
+
 .btn-sm {
   padding: var(--space-1) var(--space-3);
   font-size: var(--font-size-sm);
@@ -249,7 +269,7 @@ input[type='password'] {
 
   &:focus {
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+    box-shadow: 0 0 0 3px var(--color-feedback-bg);
   }
 
   &:disabled {
