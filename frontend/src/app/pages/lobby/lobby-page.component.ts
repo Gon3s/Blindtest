@@ -7,6 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AppButtonComponent } from '../../shared/button/app-button.component';
 import { Subscription } from 'rxjs';
@@ -18,7 +19,7 @@ import { Participant, WebSocketService, WsEvent } from '../../services/websocket
 @Component({
   selector: 'app-lobby-page',
   standalone: true,
-  imports: [RouterLink, AppButtonComponent],
+  imports: [RouterLink, AppButtonComponent, FormsModule],
   templateUrl: './lobby-page.component.html',
   styleUrl: './lobby-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,6 +38,7 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
   readonly participants = signal<Participant[]>([]);
   readonly isHost = signal(false);
   readonly nickname = signal('');
+  readonly theme = signal('');
 
   private roomId = '';
   private participantId = '';
@@ -105,6 +107,6 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
   }
 
   startRound(): void {
-    this.roomService.startRound(this.roomId).subscribe();
+    this.roomService.startRound(this.roomId, this.theme().trim()).subscribe();
   }
 }

@@ -152,6 +152,8 @@ Un ticket est **Done** ssi :
 | T-044 | Design System — Composants Partagés | ✅ Done |
 | T-045 | Responsive Design — Desktop & Tablet | 🔲 Todo |
 | T-046 | Page Spectateurs / Mode TV (/spectate/:code) | 🔲 Todo |
+| T-059 | Front — Intégrer l'identité visuelle HitRoom | 🔲 Todo |
+| T-060 | Front — Champ Thème manquant dans le Lobby (P1) | 🔲 Todo |
 
 ### Sprint 5 — Features
 
@@ -164,7 +166,7 @@ Un ticket est **Done** ssi :
 | T-051 | API — CRUD Blindtests Sauvegardés | 🔲 Todo |
 | T-052 | Front — Interface Admin /admin | 🔲 Todo |
 
-**Backlog complet** : voir Notion → https://www.notion.so/35db64600100815ca0a8d8ed1174d4ac
+**Backlog complet** : voir Notion → https://www.notion.so/40d4d409532a4ff9b0403423eb1484b1
 
 ## 🛠️ Commandes Essentielles
 
@@ -225,8 +227,9 @@ Configurés dans `.claude/agents/` :
 
 ## 🔄 Notion Integration
 
-- **Backlog** : https://www.notion.so/35db64600100815ca0a8d8ed1174d4ac
-- **Mise à jour** : À chaque ticket, update status dans Notion
+- **Tickets DB** : https://www.notion.so/40d4d409532a4ff9b0403423eb1484b1
+- **Produit / Vision** : https://www.notion.so/35db64600100815ca0a8d8ed1174d4ac
+- **Mise à jour** : À chaque ticket, update status dans la DB Notion
 
 ## 📚 Context Saved
 
@@ -245,5 +248,5 @@ Ce fichier charge à chaque session Claude Code.
 - ✅ Sprint 1 — Domaine métier (T-008–T-014)
 - ✅ Sprint 2 — API salle/lobby (T-015–T-020)
 - ✅ Sprint 3 — Jeu en cours (T-025–T-042)
-- 🔄 Sprint 4 — Design & UX Polish (T-043 ✅, T-044 ✅, T-045–T-046 🔲)
+- 🔄 Sprint 4 — Design & UX Polish (T-043 ✅, T-044 ✅, T-045–T-046–T-059–T-060 🔲)
 - 🔲 Sprint 5 — Features (T-047–T-052)

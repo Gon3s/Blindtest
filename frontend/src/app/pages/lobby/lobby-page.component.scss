@@ -101,6 +101,27 @@
     border-radius: 2rem;
   }
 
+  // ── Theme input ────────────────────────────────────
+  &__theme {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: left;
+  }
+
+  &__theme-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.5;
+    font-weight: 600;
+  }
+
+  &__theme-input {
+    width: 100%;
+  }
+
   // ── Start button ───────────────────────────────────
   &__start-btn {
     width: 100%;

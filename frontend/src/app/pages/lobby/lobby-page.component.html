@@ -30,12 +30,25 @@
       }
     </div>
 
+    <div class="lobby__theme">
+      <label for="theme-input" class="lobby__theme-label">Thème</label>
+      <input
+        id="theme-input"
+        data-testid="theme-input"
+        class="lobby__theme-input"
+        type="text"
+        placeholder="Ex : Pop, Rock, Années 80…"
+        [ngModel]="theme()"
+        (ngModelChange)="theme.set($event)"
+      />
+    </div>
+
     <app-button
       data-testid="start-round"
       variant="primary"
       class="lobby__start-btn"
       (clicked)="startRound()"
-      [disabled]="participants().length < 2"
+      [disabled]="participants().length < 2 || !theme().trim()"
     >
       Lancer la manche
     </app-button>

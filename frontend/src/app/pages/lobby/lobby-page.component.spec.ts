@@ -4,6 +4,7 @@ import { Observable, Subject } from 'rxjs';
 import { of } from 'rxjs';
 import { LobbyPageComponent } from './lobby-page.component';
 import { AudioService } from '../../services/audio.service';
+import { RoomService } from '../../services/room.service';
 import { WebSocketService, WsEvent } from '../../services/websocket.service';
 
 function createWsMock() {
@@ -20,9 +21,14 @@ function createAudioMock() {
   return { play: vi.fn(), stop: vi.fn() };
 }
 
+function createRoomServiceMock() {
+  return { startRound: vi.fn().mockReturnValue(of({})) };
+}
+
 async function setup(role: 'host' | 'player', nickname = 'Alice') {
   const { service, msgs } = createWsMock();
   const audioService = createAudioMock();
+  const roomService = createRoomServiceMock();
 
   history.replaceState({ room_id: 'room-uuid', role, nickname }, '');
 
@@ -38,6 +44,7 @@ async function setup(role: 'host' | 'player', nickname = 'Alice') {
       },
       { provide: WebSocketService, useValue: service },
       { provide: AudioService, useValue: audioService },
+      { provide: RoomService, useValue: roomService },
     ],
   }).compileComponents();
 
@@ -45,7 +52,7 @@ async function setup(role: 'host' | 'player', nickname = 'Alice') {
   fixture.detectChanges();
   const { Router } = await import('@angular/router');
   const router = TestBed.inject(Router);
-  return { fixture, service, msgs, audioService, router };
+  return { fixture, service, msgs, audioService, router, roomService };
 }
 
 describe('LobbyPageComponent — host view', () => {
@@ -223,5 +230,51 @@ describe('LobbyPageComponent — audio (T-042)', () => {
   it('should NOT call audioService.play() on component init', async () => {
     const { audioService } = await setup('player', 'Charlie');
     expect(audioService.play).not.toHaveBeenCalled();
+  });
+});
+
+describe('LobbyPageComponent — T-060 theme field', () => {
+  const twoParticipants = [
+    { participant_id: 'p1', nickname: 'Alice', is_host: true },
+    { participant_id: 'p2', nickname: 'Bob', is_host: false },
+  ];
+
+  afterEach(() => {
+    history.replaceState(null, '');
+    TestBed.resetTestingModule();
+  });
+
+  it('désactive le bouton si thème vide', async () => {
+    const { fixture, msgs } = await setup('host');
+    msgs.next({ event: 'room.state', data: { room_id: 'room-uuid', participants: twoParticipants } });
+    fixture.detectChanges();
+
+    const btn = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="start-round"]');
+    expect(btn?.getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('active le bouton si thème non vide et participants >= 2', async () => {
+    const { fixture, msgs } = await setup('host');
+    msgs.next({ event: 'room.state', data: { room_id: 'room-uuid', participants: twoParticipants } });
+    fixture.detectChanges();
+
+    fixture.componentInstance.theme.set('Pop');
+    fixture.detectChanges();
+
+    const btn = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="start-round"]');
+    expect(btn?.getAttribute('aria-disabled')).toBeNull();
+  });
+
+  it('passe le thème saisi à startRound', async () => {
+    const { fixture, msgs, roomService } = await setup('host');
+    msgs.next({ event: 'room.state', data: { room_id: 'room-uuid', participants: twoParticipants } });
+    fixture.detectChanges();
+
+    fixture.componentInstance.theme.set('Pop');
+    fixture.detectChanges();
+
+    fixture.componentInstance.startRound();
+
+    expect(roomService.startRound).toHaveBeenCalledWith('room-uuid', 'Pop');
   });
 });

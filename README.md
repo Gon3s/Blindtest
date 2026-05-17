@@ -82,19 +82,18 @@ claude
 
 ---
 
-## 📋 Tickets Sprint 0
+## 📋 Statut
 
-| Ticket | Titre | Status |
-|--------|-------|--------|
-| T-001 | Initialiser le monorepo | ✅ Done |
-| T-002 | Configurer Claude Code + agents | ✅ Done |
-| T-003 | FastAPI + uv | ✅ Done |
-| T-004 | Angular 21 | ✅ Done |
-| T-005 | Docker Compose | ✅ Done |
-| T-006 | PostgreSQL + migrations | |
-| T-007 | Scripts qualité | ✅ Done |
+| Sprint | Status |
+|--------|--------|
+| Sprint 0 — Infra | ✅ Done |
+| Sprint 1 — Domaine métier | ✅ Done |
+| Sprint 2 — API salle/lobby | ✅ Done |
+| Sprint 3 — Jeu en cours | ✅ Done |
+| Sprint 4 — Design & UX Polish | 🔄 En cours |
+| Sprint 5 — Features | 🔲 Todo |
 
-Voir [Notion](https://www.notion.so/35db6460-0100-8108-b0b9-ec19b6238ac5) pour les détails complets.
+Voir la [base de tickets Notion](https://www.notion.so/40d4d409532a4ff9b0403423eb1484b1) pour le détail complet.
 
 ---
 
@@ -113,7 +112,7 @@ Voir [Notion](https://www.notion.so/35db6460-0100-8108-b0b9-ec19b6238ac5) pour l
 
 - **Produit** : [Vision](https://www.notion.so/35db6460010081e69058ec99565c47be)
 - **Technique** : [Choix & Architecture](https://www.notion.so/35db64600100819dbc06dfb57529adc2)
-- **Tickets** : [Sprint 0-6](https://www.notion.so/35db6460-0100-8108-b0b9-ec19b6238ac5)
+- **Tickets** : [Base Notion](https://www.notion.so/40d4d409532a4ff9b0403423eb1484b1)
 
 ---
 
@@ -147,9 +146,9 @@ claude
 
 ## 📞 Support
 
-Voir [Notion](https://www.notion.so/35db64600100815ca0a8d8ed1174d4ac) pour les questions produit, architecture, et tracage des tickets.
+Voir [Notion](https://www.notion.so/35db64600100815ca0a8d8ed1174d4ac) pour les questions produit et architecture.
 
 ---
 
-**Status** : 🟡 Sprint 0 en cours  
-**Last Update** : 2026-05-13
+**Status** : 🔄 Sprint 4 — Design & UX Polish  
+**Last Update** : 2026-05-17
