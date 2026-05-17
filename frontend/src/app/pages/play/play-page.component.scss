@@ -21,15 +21,6 @@
     color: var(--color-muted, #888);
   }
 
-  &__timer {
-    font-size: 2.5rem;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    color: var(--color-primary, #6c5ce7);
-    min-width: 3ch;
-    text-align: right;
-  }
-
   &__answer-block {
     display: flex;
     flex-direction: column;
@@ -67,20 +58,6 @@
 
   &__submit-btn {
     width: 100%;
-    padding: 0.875rem 1rem;
-    font-size: 1rem;
-    font-weight: 600;
-    color: #fff;
-    background: var(--color-primary, #6c5ce7);
-    border: none;
-    border-radius: 0.75rem;
-    cursor: pointer;
-    transition: opacity 0.15s;
-
-    &:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
   }
 
   &__error {

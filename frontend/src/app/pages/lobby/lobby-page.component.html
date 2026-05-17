@@ -30,14 +30,15 @@
       }
     </div>
 
-    <button
+    <app-button
       data-testid="start-round"
-      class="btn btn-primary lobby__start-btn"
-      (click)="startRound()"
+      variant="primary"
+      class="lobby__start-btn"
+      (clicked)="startRound()"
       [disabled]="participants().length < 2"
     >
       Lancer la manche
-    </button>
+    </app-button>
 
     <a routerLink="/" class="lobby__quit">← Quitter</a>
   </main>

@@ -149,7 +149,7 @@ Un ticket est **Done** ssi :
 | Ticket | Titre | Status |
 |--------|-------|--------|
 | T-043 | Design System — Tokens & Thème | ✅ Done |
-| T-044 | Design System — Composants Partagés | 🔲 Todo |
+| T-044 | Design System — Composants Partagés | ✅ Done |
 | T-045 | Responsive Design — Desktop & Tablet | 🔲 Todo |
 | T-046 | Page Spectateurs / Mode TV (/spectate/:code) | 🔲 Todo |
 
@@ -245,5 +245,5 @@ Ce fichier charge à chaque session Claude Code.
 - ✅ Sprint 1 — Domaine métier (T-008–T-014)
 - ✅ Sprint 2 — API salle/lobby (T-015–T-020)
 - ✅ Sprint 3 — Jeu en cours (T-025–T-042)
-- 🔄 Sprint 4 — Design & UX Polish (T-043 ✅, T-044–T-046 🔲)
+- 🔄 Sprint 4 — Design & UX Polish (T-043 ✅, T-044 ✅, T-045–T-046 🔲)
 - 🔲 Sprint 5 — Features (T-047–T-052)

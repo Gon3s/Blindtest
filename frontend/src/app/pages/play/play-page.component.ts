@@ -22,6 +22,10 @@ import {
   SubmitAnswerResponse,
 } from '../../services/room.service';
 import { WebSocketService, WsEvent } from '../../services/websocket.service';
+import { AppBadgeComponent, BadgeVariant } from '../../shared/badge/app-badge.component';
+import { AppButtonComponent } from '../../shared/button/app-button.component';
+import { AppCardComponent } from '../../shared/card/app-card.component';
+import { AppTimerBarComponent } from '../../shared/timer-bar/app-timer-bar.component';
 
 type FeedbackState = 'none' | 'not_found' | 'title_found' | 'artist_found' | 'both_found';
 
@@ -54,7 +58,7 @@ interface RoundLeaderboardMergedEntry extends RoundLeaderboardItem {
 @Component({
   selector: 'app-play-page',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, AppButtonComponent, AppBadgeComponent, AppCardComponent, AppTimerBarComponent],
   templateUrl: './play-page.component.html',
   styleUrl: './play-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -78,6 +82,12 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   readonly revealData = signal<SongRevealedData | null>(null);
   readonly roundFinishedData = signal<RoundFinishedData | null>(null);
   readonly newRoundTheme = signal('Général');
+  readonly totalDuration = signal(30);
+
+  readonly timerProgress = computed(() => {
+    const total = this.totalDuration();
+    return total > 0 ? Math.min(1, Math.max(0, this.timeLeft() / total)) : 0;
+  });
 
   readonly sortedAnswers = computed(() => {
     const summary = this.songSummary();
@@ -163,6 +173,8 @@ export class PlayPageComponent implements OnInit, OnDestroy {
         this.roundId = d.round_id;
         this.songIndex.set(d.song_index);
         this.endsAt = new Date(d.ends_at);
+        const totalMs = this.endsAt.getTime() - new Date(d.started_at).getTime();
+        this.totalDuration.set(Math.max(1, Math.round(totalMs / 1000)));
         this.locked.set(false);
         this.answer.set('');
         this.feedback.set('none');
@@ -237,6 +249,15 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   nextSong(): void {
     const nextIndex = this.songIndex() + 1;
     this.roomService.startSong(this.roundId, nextIndex).subscribe();
+  }
+
+  badgeVariantFor(status: string): BadgeVariant {
+    switch (status) {
+      case 'found': return 'success';
+      case 'not_found': return 'danger';
+      case 'doubtful': return 'warning';
+      default: return 'neutral';
+    }
   }
 
   acceptAnswer(answer: AnswerSummaryItem): void {

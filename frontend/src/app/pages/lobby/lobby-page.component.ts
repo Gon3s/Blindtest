@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { AppButtonComponent } from '../../shared/button/app-button.component';
 import { Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { AudioService } from '../../services/audio.service';
@@ -17,7 +18,7 @@ import { Participant, WebSocketService, WsEvent } from '../../services/websocket
 @Component({
   selector: 'app-lobby-page',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, AppButtonComponent],
   templateUrl: './lobby-page.component.html',
   styleUrl: './lobby-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

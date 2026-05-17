@@ -3,7 +3,7 @@
     <span data-testid="song-number" class="play__song-number">
       {{ songIndex() + 1 }}&nbsp;/&nbsp;{{ totalSongs() }}
     </span>
-    <span data-testid="timer" class="play__timer">{{ timeLeft() }}</span>
+    <app-timer-bar [progress]="timerProgress()" [timeLeft]="timeLeft()" />
   </header>
 
   @if (roundFinishedData(); as roundData) {
@@ -45,30 +45,30 @@
             [value]="newRoundTheme()"
             (input)="onThemeInput($event)"
           />
-          <button
-            type="button"
-            class="btn btn-primary play__new-round-btn"
+          <app-button
+            variant="primary"
+            class="play__new-round-btn"
             data-testid="new-round-btn"
-            (click)="startNewRound()"
+            (clicked)="startNewRound()"
           >
             Nouvelle manche
-          </button>
+          </app-button>
         </div>
       }
     </section>
   } @else if (revealData(); as reveal) {
     <section class="play__reveal" data-testid="reveal-section">
-      <div class="play__reveal-answer">
+      <app-card class="play__reveal-answer">
         <p class="play__reveal-label">La réponse était</p>
         <p class="play__reveal-song-title" data-testid="revealed-title">{{ reveal.title }}</p>
         <p class="play__reveal-song-artist" data-testid="revealed-artist">{{ reveal.artist }}</p>
-      </div>
+      </app-card>
 
       @if (myRevealResult(); as myResult) {
-        <div class="play__my-score" data-testid="my-score">
+        <app-card class="play__my-score" data-testid="my-score">
           <span class="play__my-score-label">Tes points cette chanson</span>
           <span class="play__my-score-value">+{{ myResult.score }}</span>
-        </div>
+        </app-card>
       }
 
       <div class="play__leaderboard">
@@ -87,13 +87,14 @@
       @if (isHost()) {
         <div class="play__host-actions">
           @if (songIndex() + 1 < totalSongs()) {
-            <button
+            <app-button
+              variant="secondary"
+              class="play__next-btn"
               data-testid="next-song-btn"
-              class="btn btn-secondary play__next-btn"
-              (click)="nextSong()"
+              (clicked)="nextSong()"
             >
               Chanson suivante →
-            </button>
+            </app-button>
           } @else {
             <p class="play__end-msg" data-testid="end-msg">Fin de la manche !</p>
           }
@@ -116,14 +117,14 @@
         spellcheck="false"
         placeholder="Titre ou artiste…"
       />
-      <button
-        data-testid="submit-btn"
+      <app-button
+        variant="primary"
         class="play__submit-btn"
-        (click)="submitAnswer()"
-        type="button"
+        data-testid="submit-btn"
+        (clicked)="submitAnswer()"
       >
         Envoyer
-      </button>
+      </app-button>
     </section>
 
     @if (submitError()) {
@@ -176,32 +177,33 @@
                       {{ a.nickname }}
                     </span>
                     <span class="play__answer-text">{{ a.text }}</span>
-                    <span class="play__answer-badge play__answer-badge--{{ a.validation_status }}">
-                      {{ a.validation_status }}
-                    </span>
+                    <app-badge
+                      [variant]="badgeVariantFor(a.validation_status)"
+                      [text]="a.validation_status"
+                    />
                     @if (a.validation_status === 'doubtful') {
-                      <button
-                        type="button"
-                        class="btn btn-sm btn-success"
+                      <app-button
+                        variant="success"
+                        class="btn-sm"
                         [attr.data-testid]="'accept-btn-' + a.answer_id"
-                        (click)="acceptAnswer(a)"
+                        (clicked)="acceptAnswer(a)"
                       >
                         Accepter
-                      </button>
+                      </app-button>
                     }
                   </li>
                 }
               </ul>
 
               <div class="play__host-actions">
-                <button
-                  type="button"
-                  class="btn btn-primary play__reveal-btn"
+                <app-button
+                  variant="primary"
+                  class="play__reveal-btn"
                   data-testid="reveal-btn"
-                  (click)="revealSong()"
+                  (clicked)="revealSong()"
                 >
                   Révéler
-                </button>
+                </app-button>
               </div>
             </div>
           }
