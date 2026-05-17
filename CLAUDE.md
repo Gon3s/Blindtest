@@ -125,7 +125,7 @@ Un ticket est **Done** ssi :
 | T-019 | WebSocket salle et lobby | ✅ Done |
 | T-020 | Front lobby host et attente joueur | ✅ Done |
 
-### Sprint 3 — Jeu en cours (en cours)
+### Sprint 3 — Jeu en cours ✅ Done
 
 | Ticket | Titre | Status |
 |--------|-------|--------|
@@ -144,7 +144,27 @@ Un ticket est **Done** ssi :
 | T-042 | Lecture preview audio pendant la chanson | ✅ Done |
 | T-038 | Parcours E2E principal | ✅ Done |
 
-**Prochains tickets** : voir Notion → https://www.notion.so/35db64600100815ca0a8d8ed1174d4ac
+### Sprint 4 — Design & UX Polish
+
+| Ticket | Titre | Status |
+|--------|-------|--------|
+| T-043 | Design System — Tokens & Thème | ✅ Done |
+| T-044 | Design System — Composants Partagés | 🔲 Todo |
+| T-045 | Responsive Design — Desktop & Tablet | 🔲 Todo |
+| T-046 | Page Spectateurs / Mode TV (/spectate/:code) | 🔲 Todo |
+
+### Sprint 5 — Features
+
+| Ticket | Titre | Status |
+|--------|-------|--------|
+| T-047 | API — Classement Global Anonyme | 🔲 Todo |
+| T-048 | Front — Page Classement & Historique | 🔲 Todo |
+| T-049 | DB & Domain — Entité SavedPlaylist | 🔲 Todo |
+| T-050 | Deezer — Import Playlist par URL | 🔲 Todo |
+| T-051 | API — CRUD Blindtests Sauvegardés | 🔲 Todo |
+| T-052 | Front — Interface Admin /admin | 🔲 Todo |
+
+**Backlog complet** : voir Notion → https://www.notion.so/35db64600100815ca0a8d8ed1174d4ac
 
 ## 🛠️ Commandes Essentielles
 
@@ -224,5 +244,6 @@ Ce fichier charge à chaque session Claude Code.
 - ✅ Sprint 0 — Infra complète
 - ✅ Sprint 1 — Domaine métier (T-008–T-014)
 - ✅ Sprint 2 — API salle/lobby (T-015–T-020)
-- 🔄 Sprint 3 — Jeu en cours (T-025–T-032, partiel)
-- → Prochain : voir Notion backlog
+- ✅ Sprint 3 — Jeu en cours (T-025–T-042)
+- 🔄 Sprint 4 — Design & UX Polish (T-043 ✅, T-044–T-046 🔲)
+- 🔲 Sprint 5 — Features (T-047–T-052)

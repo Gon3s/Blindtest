@@ -15,8 +15,8 @@
   }
 
   .error {
-    color: red;
-    font-size: 0.875rem;
+    color: var(--color-danger);
+    font-size: var(--font-size-sm);
   }
 
   a {

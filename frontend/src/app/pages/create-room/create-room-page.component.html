@@ -14,7 +14,7 @@
     @if (error()) {
       <p class="error" role="alert">{{ error() }}</p>
     }
-    <button type="submit" [disabled]="loading() || !nickname.trim()">
+    <button type="submit" class="btn btn-primary" [disabled]="loading() || !nickname.trim()">
       {{ loading() ? 'Création...' : 'Créer la salle' }}
     </button>
   </form>

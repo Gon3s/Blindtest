@@ -131,7 +131,7 @@
     }
 
     @if (feedback() !== 'none') {
-      <div class="play__feedback" data-testid="feedback">
+      <div class="play__feedback" data-testid="feedback" role="status">
         @switch (feedback()) {
           @case ('not_found') {
             <span data-testid="feedback-not-found">Pas encore !</span>

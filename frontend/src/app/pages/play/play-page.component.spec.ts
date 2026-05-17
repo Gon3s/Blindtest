@@ -339,6 +339,29 @@ describe('PlayPageComponent — feedback', () => {
     TestBed.resetTestingModule();
   });
 
+  it('should announce feedback to screen readers via role="status"', async () => {
+    const { submitSubject } = await configureTestBedWithService();
+    const fixture = mountFixture();
+    fixture.componentInstance.answer.set('Daft Punk');
+    fixture.detectChanges();
+
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[data-testid="submit-btn"]')
+      ?.click();
+
+    submitSubject.next({
+      answer_id: 'uuid',
+      submitted_at: 'ts',
+      validation_status: 'not_found',
+      title_found: false,
+      artist_found: false,
+    });
+    fixture.detectChanges();
+
+    const feedback = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="feedback"]');
+    expect(feedback?.getAttribute('role')).toBe('status');
+  });
+
   it('should show no feedback initially', async () => {
     await configureTestBedWithService();
     const fixture = mountFixture();

@@ -1,1 +1,261 @@
-/* You can add global styles to this file, and also import other style files */
+/* ══════════════════════════════════════════════════════════
+   Design Tokens — Blindtest
+   Dark "party night" theme, mobile-first
+   ══════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Couleurs : Fond ──────────────────────────────────── */
+  --color-bg:        #0d0d1a;
+  --color-surface:   #141428;
+  --color-surface-2: #1e1e38;
+
+  /* ── Couleurs : Bordure ──────────────────────────────── */
+  --color-border: rgba(255, 255, 255, 0.12);
+
+  /* ── Couleurs : Texte ────────────────────────────────── */
+  --color-text:  #f2f0ff;
+  --color-muted: rgba(242, 240, 255, 0.5);
+
+  /* ── Couleurs : Primary (violet) ─────────────────────── */
+  --color-primary:       #7c3aed;
+  --color-primary-hover: #6d28d9;
+  --color-primary-text:  #ffffff;
+
+  /* ── Couleurs : Secondary ────────────────────────────── */
+  --color-secondary:       rgba(255, 255, 255, 0.08);
+  --color-secondary-hover: rgba(255, 255, 255, 0.14);
+  --color-secondary-text:  #f2f0ff;
+
+  /* ── Couleurs : Status ───────────────────────────────── */
+  --color-success:    #22c55e;
+  --color-success-bg: rgba(34, 197, 94, 0.12);
+  --color-danger:     #f87171;
+  --color-danger-bg:  rgba(248, 113, 113, 0.12);
+
+  /* ── Couleurs : Utilitaires ──────────────────────────── */
+  --color-feedback-bg:   rgba(124, 58, 237, 0.15);
+  --color-disabled-bg:   rgba(255, 255, 255, 0.06);
+  --color-disabled-text: rgba(255, 255, 255, 0.3);
+
+  /* ── Typographie ─────────────────────────────────────── */
+  --font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
+
+  --font-size-xs:   0.75rem;
+  --font-size-sm:   0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg:   1.125rem;
+  --font-size-xl:   1.25rem;
+  --font-size-2xl:  1.5rem;
+  --font-size-3xl:  1.875rem;
+  --font-size-4xl:  2.25rem;
+
+  --font-weight-normal:    400;
+  --font-weight-medium:    500;
+  --font-weight-semibold:  600;
+  --font-weight-bold:      700;
+  --font-weight-extrabold: 800;
+
+  /* ── Espacements ─────────────────────────────────────── */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* ── Rayons ──────────────────────────────────────────── */
+  --radius-sm:   0.375rem;
+  --radius-md:   0.625rem;
+  --radius-lg:   0.75rem;
+  --radius-xl:   1rem;
+  --radius-2xl:  1.5rem;
+  --radius-full: 9999px;
+
+  /* ── Ombres ──────────────────────────────────────────── */
+  --shadow-sm:   0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md:   0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg:   0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(124, 58, 237, 0.3);
+
+  /* ── Transitions ─────────────────────────────────────── */
+  --transition-fast: 0.1s ease;
+  --transition-base: 0.15s ease;
+  --transition-slow: 0.3s ease;
+}
+
+/* ══════════════════════════════════════════════════════════
+   Reset
+   ══════════════════════════════════════════════════════════ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ══════════════════════════════════════════════════════════
+   Base
+   ══════════════════════════════════════════════════════════ */
+
+html {
+  font-size: 16px;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  line-height: 1.6;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  min-height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: var(--font-weight-bold);
+  line-height: 1.2;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   Boutons
+   ══════════════════════════════════════════════════════════ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3) var(--space-6);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.25;
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  transition:
+    background-color var(--transition-base),
+    opacity var(--transition-base),
+    transform var(--transition-fast);
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  &:disabled,
+  &[disabled] {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  &:active:not(:disabled, [disabled]) {
+    transform: scale(0.98);
+  }
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+
+  &:hover:not(:disabled, [disabled]) {
+    background: var(--color-primary-hover);
+  }
+}
+
+.btn-secondary {
+  background: var(--color-secondary);
+  color: var(--color-secondary-text);
+  border-color: var(--color-border);
+
+  &:hover:not(:disabled, [disabled]) {
+    background: var(--color-secondary-hover);
+  }
+}
+
+.btn-success {
+  background: var(--color-success);
+  color: #000;
+
+  &:hover:not(:disabled, [disabled]) {
+    filter: brightness(0.9);
+  }
+}
+
+.btn-sm {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-md);
+}
+
+/* ══════════════════════════════════════════════════════════
+   Formulaires
+   ══════════════════════════════════════════════════════════ */
+
+label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-muted);
+  margin-bottom: var(--space-1);
+}
+
+input[type='text'],
+input[type='email'],
+input[type='password'] {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  background: var(--color-surface-2);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  outline: none;
+  box-sizing: border-box;
+  transition:
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
+
+  &::placeholder {
+    color: var(--color-muted);
+    opacity: 0.6;
+  }
+
+  &:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+  }
+
+  &:disabled {
+    background: var(--color-disabled-bg);
+    color: var(--color-disabled-text);
+    border-color: transparent;
+    cursor: not-allowed;
+  }
+}
