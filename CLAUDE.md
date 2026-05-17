@@ -140,6 +140,7 @@ Un ticket est **Done** ssi :
 | T-034 | API enchaîner les 10 chansons | ✅ Done |
 | T-035 | Front classement de manche | ✅ Done |
 | T-036 | API relancer une manche | ✅ Done |
+| T-037 | Front nouvelle manche | ✅ Done |
 | T-042 | Lecture preview audio pendant la chanson | ✅ Done |
 | T-038 | Parcours E2E principal | ✅ Done |
 
