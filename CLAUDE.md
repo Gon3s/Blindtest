@@ -187,10 +187,10 @@ Un ticket est **Done** ssi :
 
 ```
 # Dans Claude Code
-/ticket T-XXX           # Implémenter un ticket (TDD-first)
-/review                 # Vérifier ready-to-merge
-/tdd-cycle [feature]    # Plan test-first pour feature complexe
-/release                # Créer une release semver
+/new-ticket <description>  # Créer un ticket Notion (itératif, avec prompt)
+/review                    # Vérifier ready-to-merge
+/tdd-cycle [feature]       # Plan test-first pour feature complexe
+/release                   # Créer une release semver
 ```
 
 ## 🤖 Agents Spécialisés
@@ -204,7 +204,7 @@ Configurés dans `.claude/agents/` :
 
 ## 📝 Slash Commands
 
-- `/ticket T-XXX` — Implémenter un ticket Notion (TDD-first)
+- `/new-ticket <description>` — Créer un ticket Notion (itératif : draft → priorité → validation → création)
 - `/review` — Vérifier prêt à merger
 - `/tdd-cycle` — Plan test-first pour feature complexe
 - `/release` — Créer une release semver (bump + tag + GitHub Release)
@@ -222,7 +222,7 @@ Configurés dans `.claude/agents/` :
 ## 💰 Cost Optimization
 
 - Agents utilisent `claude-haiku-4-5` (TDD-Mentor, Reviewers, Product Guardian)
-- Pas d'auto-review dans `/ticket` — lancer `/review` manuellement après 2-3 tickets
+- Pas d'auto-review — lancer `/review` manuellement après 2-3 tickets
 - Batcher les tickets, puis un seul `/review`
 
 ## 🔄 Notion Integration
