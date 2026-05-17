@@ -140,6 +140,7 @@ Un ticket est **Done** ssi :
 | T-034 | API enchaîner les 10 chansons | ✅ Done |
 | T-035 | Front classement de manche | ✅ Done |
 | T-036 | API relancer une manche | ✅ Done |
+| T-042 | Lecture preview audio pendant la chanson | ✅ Done |
 
 **Prochains tickets** : voir Notion → https://www.notion.so/35db64600100815ca0a8d8ed1174d4ac
 
