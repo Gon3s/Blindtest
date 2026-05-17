@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface CreateRoomResponse {
   room_id: string;
@@ -99,7 +100,7 @@ export interface StartSongResponse {
 @Injectable({ providedIn: 'root' })
 export class RoomService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:8000';
+  private readonly apiUrl = environment.apiBaseUrl;
 
   createRoom(hostNickname: string): Observable<CreateRoomResponse> {
     return this.http.post<CreateRoomResponse>(`${this.apiUrl}/rooms`, {

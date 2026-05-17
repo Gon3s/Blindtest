@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { WebSocketService, WsEvent } from './websocket.service';
+import { environment } from '../../environments/environment';
 
 interface MockSocket {
   url: string;
@@ -34,7 +35,7 @@ describe('WebSocketService', () => {
 
   it('should connect with correct WebSocket URL', () => {
     service.connect('my-room-id');
-    expect(mockSocket.url).toBe('ws://localhost:8000/ws/rooms/my-room-id');
+    expect(mockSocket.url).toBe(`${environment.wsBaseUrl}/ws/rooms/my-room-id`);
   });
 
   it('should emit messages from the WebSocket', async () => {

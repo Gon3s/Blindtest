@@ -1,5 +1,6 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { Subject } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface WsEvent {
   event: string;
@@ -20,7 +21,7 @@ export class WebSocketService implements OnDestroy {
 
   connect(roomId: string): void {
     this.disconnect();
-    this.socket = new WebSocket(`ws://localhost:8000/ws/rooms/${roomId}`);
+    this.socket = new WebSocket(`${environment.wsBaseUrl}/ws/rooms/${roomId}`);
     this.socket.onmessage = ({ data }) => {
       this._messages.next(JSON.parse(data as string) as WsEvent);
     };

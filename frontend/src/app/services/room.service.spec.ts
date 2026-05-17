@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { OverrideAnswerResponse, RoomService, SongSummaryResponse } from './room.service';
+import { environment } from '../../environments/environment';
 
 describe('RoomService', () => {
   let service: RoomService;
@@ -28,7 +29,7 @@ describe('RoomService', () => {
       expect(res).toEqual(mockResponse);
     });
 
-    const req = httpMock.expectOne('http://localhost:8000/rooms');
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/rooms`);
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({ host_nickname: 'Alice' });
     req.flush(mockResponse);
@@ -41,7 +42,7 @@ describe('RoomService', () => {
       expect(res).toEqual(mockResponse);
     });
 
-    const req = httpMock.expectOne('http://localhost:8000/rooms/ABC123/join');
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/rooms/ABC123/join`);
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({ nickname: 'Bob' });
     req.flush(mockResponse);
@@ -60,7 +61,7 @@ describe('RoomService', () => {
       expect(res).toEqual(mockResponse);
     });
 
-    const req = httpMock.expectOne('http://localhost:8000/songs/song-uuid/answers');
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/songs/song-uuid/answers`);
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({ participant_id: 'participant-uuid', text: 'Daft Punk' });
     req.flush(mockResponse);
@@ -91,7 +92,7 @@ describe('RoomService', () => {
     });
 
     const req = httpMock.expectOne(
-      'http://localhost:8000/songs/song-uuid/summary?host_id=host-uuid',
+      `${environment.apiBaseUrl}/songs/song-uuid/summary?host_id=host-uuid`,
     );
     expect(req.request.method).toBe('GET');
     req.flush(mockResponse);
@@ -113,7 +114,7 @@ describe('RoomService', () => {
       });
 
     const req = httpMock.expectOne(
-      'http://localhost:8000/songs/song-uuid/answers/ans-uuid',
+      `${environment.apiBaseUrl}/songs/song-uuid/answers/ans-uuid`,
     );
     expect(req.request.method).toBe('PATCH');
     expect(req.request.body).toEqual({
