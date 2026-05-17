@@ -36,6 +36,15 @@
 
       @if (isHost()) {
         <div class="play__round-cta">
+          <label for="new-round-theme" class="play__new-round-label">Thème</label>
+          <input
+            id="new-round-theme"
+            type="text"
+            class="play__new-round-theme-input"
+            data-testid="new-round-theme-input"
+            [value]="newRoundTheme()"
+            (input)="onThemeInput($event)"
+          />
           <button
             type="button"
             class="btn btn-primary play__new-round-btn"

@@ -170,10 +170,15 @@ class TestStaticFixtureMusicProvider:
         ]
         assert len(tracks_with_aliases) > 0
 
-    def test_unknown_theme_returns_empty(self) -> None:
+    def test_unknown_theme_returns_fallback_tracks(self) -> None:
         provider = StaticFixtureMusicProvider()
         results = provider.search("Unknown Theme XYZ")
-        assert results == []
+        assert len(results) > 0
+
+    def test_unknown_theme_fallback_respects_limit(self) -> None:
+        provider = StaticFixtureMusicProvider()
+        results = provider.search("Unknown Theme XYZ", limit=3)
+        assert len(results) == 3
 
     def test_implements_music_provider_protocol(self) -> None:
         provider: MusicProvider = StaticFixtureMusicProvider()

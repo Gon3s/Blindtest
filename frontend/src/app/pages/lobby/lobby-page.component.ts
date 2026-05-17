@@ -10,6 +10,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { AudioService } from '../../services/audio.service';
 import { RoomService } from '../../services/room.service';
 import { Participant, WebSocketService, WsEvent } from '../../services/websocket.service';
 
@@ -26,6 +27,7 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly wsService = inject(WebSocketService);
   private readonly roomService = inject(RoomService);
+  private readonly audioService = inject(AudioService);
 
   readonly code = toSignal(
     this.route.paramMap.pipe(map(p => p.get('code') ?? '')),
@@ -73,7 +75,11 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
           round_id: string;
           started_at: string;
           ends_at: string;
+          preview_url: string | null;
         };
+        if (d.preview_url) {
+          this.audioService.play(d.preview_url);
+        }
         void this.router.navigate(['/play', this.code()], {
           state: {
             room_id: this.roomId,

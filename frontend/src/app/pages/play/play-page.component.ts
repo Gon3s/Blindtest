@@ -11,6 +11,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { AudioService } from '../../services/audio.service';
 import {
   AnswerSummaryItem,
   MiniLeaderboardItem,
@@ -30,6 +31,7 @@ interface SongStartedData {
   round_id: string;
   started_at: string;
   ends_at: string;
+  preview_url: string | null;
 }
 
 interface SongRevealedData {
@@ -62,6 +64,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   private readonly roomService = inject(RoomService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly audioService = inject(AudioService);
 
   readonly songIndex = signal(0);
   readonly totalSongs = signal(10);
@@ -74,6 +77,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   readonly songSummary = signal<SongSummaryResponse | null>(null);
   readonly revealData = signal<SongRevealedData | null>(null);
   readonly roundFinishedData = signal<RoundFinishedData | null>(null);
+  readonly newRoundTheme = signal('Général');
 
   readonly sortedAnswers = computed(() => {
     const summary = this.songSummary();
@@ -116,6 +120,10 @@ export class PlayPageComponent implements OnInit, OnDestroy {
 
   onAnswerInput(event: Event): void {
     this.answer.set((event.target as HTMLInputElement).value);
+  }
+
+  onThemeInput(event: Event): void {
+    this.newRoundTheme.set((event.target as HTMLInputElement).value);
   }
 
   ngOnInit(): void {
@@ -163,9 +171,13 @@ export class PlayPageComponent implements OnInit, OnDestroy {
         this.revealData.set(null);
         this.roundFinishedData.set(null);
         this.restartTimer();
+        if (d.preview_url) {
+          this.audioService.play(d.preview_url);
+        }
       } else if (event.event === 'song.locked') {
         this.locked.set(true);
         this.stopTimer();
+        this.audioService.stop();
         if (this.isHost()) {
           this.fetchSongSummary();
         }
@@ -181,6 +193,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopTimer();
+    this.audioService.stop();
     this.subscription?.unsubscribe();
     this.wsService.disconnect();
   }
@@ -218,7 +231,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   }
 
   startNewRound(): void {
-    // T-036: implement new round start
+    this.roomService.restartRound(this.roomId, this.newRoundTheme()).subscribe();
   }
 
   nextSong(): void {

@@ -3,6 +3,7 @@ import { provideRouter, ActivatedRoute } from '@angular/router';
 import { Observable, Subject } from 'rxjs';
 import { of } from 'rxjs';
 import { LobbyPageComponent } from './lobby-page.component';
+import { AudioService } from '../../services/audio.service';
 import { WebSocketService, WsEvent } from '../../services/websocket.service';
 
 function createWsMock() {
@@ -15,8 +16,13 @@ function createWsMock() {
   return { service, msgs };
 }
 
+function createAudioMock() {
+  return { play: vi.fn(), stop: vi.fn() };
+}
+
 async function setup(role: 'host' | 'player', nickname = 'Alice') {
   const { service, msgs } = createWsMock();
+  const audioService = createAudioMock();
 
   history.replaceState({ room_id: 'room-uuid', role, nickname }, '');
 
@@ -31,12 +37,15 @@ async function setup(role: 'host' | 'player', nickname = 'Alice') {
         },
       },
       { provide: WebSocketService, useValue: service },
+      { provide: AudioService, useValue: audioService },
     ],
   }).compileComponents();
 
   const fixture: ComponentFixture<LobbyPageComponent> = TestBed.createComponent(LobbyPageComponent);
   fixture.detectChanges();
-  return { fixture, service, msgs };
+  const { Router } = await import('@angular/router');
+  const router = TestBed.inject(Router);
+  return { fixture, service, msgs, audioService, router };
 }
 
 describe('LobbyPageComponent — host view', () => {
@@ -140,9 +149,7 @@ describe('LobbyPageComponent — player waiting view', () => {
   });
 
   it('should navigate to /play/:code on song.started event', async () => {
-    const { fixture, msgs } = await setup('player', 'Charlie');
-    const { Router } = await import('@angular/router');
-    const router = TestBed.inject(Router);
+    const { fixture, msgs, router } = await setup('player', 'Charlie');
     const navigateSpy = vi.spyOn(router, 'navigate');
 
     msgs.next({
@@ -153,6 +160,7 @@ describe('LobbyPageComponent — player waiting view', () => {
         round_id: 'round-uuid',
         started_at: new Date().toISOString(),
         ends_at: new Date(Date.now() + 30_000).toISOString(),
+        preview_url: null,
       },
     });
     fixture.detectChanges();
@@ -163,5 +171,57 @@ describe('LobbyPageComponent — player waiting view', () => {
         state: expect.objectContaining({ room_id: 'room-uuid', song_index: 0 }),
       }),
     );
+  });
+});
+
+describe('LobbyPageComponent — audio (T-042)', () => {
+  afterEach(() => {
+    history.replaceState(null, '');
+    TestBed.resetTestingModule();
+  });
+
+  it('should call audioService.play() with preview_url on song.started', async () => {
+    const { fixture, msgs, audioService, router } = await setup('player', 'Charlie');
+    vi.spyOn(router, 'navigate');
+
+    msgs.next({
+      event: 'song.started',
+      data: {
+        song_id: 'song-uuid',
+        song_index: 0,
+        round_id: 'round-uuid',
+        started_at: new Date().toISOString(),
+        ends_at: new Date(Date.now() + 30_000).toISOString(),
+        preview_url: 'https://example.com/preview.mp3',
+      },
+    });
+    fixture.detectChanges();
+
+    expect(audioService.play).toHaveBeenCalledWith('https://example.com/preview.mp3');
+  });
+
+  it('should NOT call audioService.play() when preview_url is null', async () => {
+    const { fixture, msgs, audioService, router } = await setup('player', 'Charlie');
+    vi.spyOn(router, 'navigate');
+
+    msgs.next({
+      event: 'song.started',
+      data: {
+        song_id: 'song-uuid',
+        song_index: 0,
+        round_id: 'round-uuid',
+        started_at: new Date().toISOString(),
+        ends_at: new Date(Date.now() + 30_000).toISOString(),
+        preview_url: null,
+      },
+    });
+    fixture.detectChanges();
+
+    expect(audioService.play).not.toHaveBeenCalled();
+  });
+
+  it('should NOT call audioService.play() on component init', async () => {
+    const { audioService } = await setup('player', 'Charlie');
+    expect(audioService.play).not.toHaveBeenCalled();
   });
 });

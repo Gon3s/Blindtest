@@ -22,7 +22,9 @@ _ENDS_AT = _FIXED_NOW + timedelta(seconds=30)
 
 
 def _make_start_result(
-    round_id: UUID | None = None, room_id: UUID | None = None
+    round_id: UUID | None = None,
+    room_id: UUID | None = None,
+    preview_url: str | None = None,
 ) -> dict:
     return {
         "song_id": uuid4(),
@@ -31,6 +33,7 @@ def _make_start_result(
         "song_index": 0,
         "started_at": _FIXED_NOW,
         "ends_at": _ENDS_AT,
+        "preview_url": preview_url,
     }
 
 
@@ -200,5 +203,42 @@ def test_start_song_song_not_playable_returns_409(mock_manager: MagicMock) -> No
         client = TestClient(app)
         response = client.post(f"/rounds/{uuid4()}/songs/0/start")
         assert response.status_code == 409
+    finally:
+        app.dependency_overrides.clear()
+
+
+def _make_song_client(result: dict, manager: MagicMock) -> TestClient:
+    fake = _FakeSongService(result=result)
+    mock_factory = MagicMock()
+    app.dependency_overrides[get_room_service] = lambda: fake
+    app.dependency_overrides[get_ws_manager] = lambda: manager
+    app.dependency_overrides[get_sleep] = lambda: _instant_sleep
+    app.dependency_overrides[get_db_factory] = lambda: mock_factory
+    app.dependency_overrides[get_session] = lambda: MagicMock()
+    return TestClient(app)
+
+
+def test_start_song_started_event_has_preview_url_when_available(
+    mock_manager: MagicMock,
+) -> None:
+    result = _make_start_result(preview_url="https://example.com/preview.mp3")
+    client = _make_song_client(result, mock_manager)
+    try:
+        client.post(f"/rounds/{result['round_id']}/songs/0/start")
+        data = mock_manager.broadcast_to_room.call_args_list[0].args[1]["data"]
+        assert data["preview_url"] == "https://example.com/preview.mp3"
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_start_song_started_event_has_preview_url_null_when_unavailable(
+    mock_manager: MagicMock,
+) -> None:
+    result = _make_start_result(preview_url=None)
+    client = _make_song_client(result, mock_manager)
+    try:
+        client.post(f"/rounds/{result['round_id']}/songs/0/start")
+        data = mock_manager.broadcast_to_room.call_args_list[0].args[1]["data"]
+        assert data["preview_url"] is None
     finally:
         app.dependency_overrides.clear()

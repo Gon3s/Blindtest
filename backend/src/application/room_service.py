@@ -1,7 +1,7 @@
 import random
 import string
 from datetime import datetime, timedelta
-from typing import TypedDict
+from typing import Optional, TypedDict
 from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
@@ -90,6 +90,7 @@ class StartSongResult(TypedDict):
     song_index: int
     started_at: datetime
     ends_at: datetime
+    preview_url: Optional[str]
 
 
 class LockSongResult(TypedDict):
@@ -373,6 +374,7 @@ class RoomService:
             song_index=song_index,
             started_at=now,
             ends_at=ends_at,
+            preview_url=song.preview_url,
         )
 
     def lock_song(self, song_id: UUID) -> LockSongResult:

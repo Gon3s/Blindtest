@@ -81,6 +81,7 @@ async def start_song(
                 "round_id": str(result["round_id"]),
                 "started_at": result["started_at"].isoformat(),
                 "ends_at": result["ends_at"].isoformat(),
+                "preview_url": result["preview_url"],
             },
         },
     )
@@ -103,6 +104,7 @@ async def start_song(
         song_index=result["song_index"],
         started_at=result["started_at"],
         ends_at=result["ends_at"],
+        preview_url=result["preview_url"],
     )
 
 

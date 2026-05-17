@@ -158,4 +158,8 @@ export class RoomService {
       text,
     });
   }
+
+  restartRound(roomId: string, theme: string): Observable<StartRoundResponse> {
+    return this.http.post<StartRoundResponse>(`${this.apiUrl}/rooms/${roomId}/restart`, { theme });
+  }
 }

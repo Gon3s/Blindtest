@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -11,6 +12,7 @@ class StartSongResponse(BaseModel):
     song_index: int
     started_at: datetime
     ends_at: datetime
+    preview_url: Optional[str] = None
 
 
 class SubmitAnswerRequest(BaseModel):

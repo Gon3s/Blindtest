@@ -132,4 +132,6 @@ _CATALOG: dict[str, list[TrackInfo]] = {
 class StaticFixtureMusicProvider:
     def search(self, theme: str, limit: int = 10) -> list[TrackInfo]:
         tracks = _CATALOG.get(theme, [])
+        if not tracks:
+            tracks = [t for ts in _CATALOG.values() for t in ts]
         return tracks[:limit]

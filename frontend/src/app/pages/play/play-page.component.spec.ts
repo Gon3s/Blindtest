@@ -4,6 +4,7 @@ import { Observable, Subject } from 'rxjs';
 import { of } from 'rxjs';
 import { PlayPageComponent } from './play-page.component';
 import { WebSocketService, WsEvent } from '../../services/websocket.service';
+import { AudioService } from '../../services/audio.service';
 import {
   MiniLeaderboardItem,
   OverrideAnswerResponse,
@@ -12,6 +13,7 @@ import {
   RoundLeaderboardItem,
   RoomService,
   SongSummaryResponse,
+  StartRoundResponse,
   SubmitAnswerResponse,
 } from '../../services/room.service';
 
@@ -878,6 +880,7 @@ async function configureRoundTestBed(opts: { isHost?: boolean } = {}) {
     startSong: vi.fn(),
     revealSong: vi.fn(),
     startRound: vi.fn(),
+    restartRound: vi.fn().mockReturnValue(new Subject<StartRoundResponse>().asObservable()),
   };
 
   history.replaceState(
@@ -1040,5 +1043,232 @@ describe('PlayPageComponent — round leaderboard (T-035)', () => {
     expect(
       (fixture.nativeElement as HTMLElement).querySelector('[data-testid="new-round-btn"]'),
     ).toBeNull();
+  });
+});
+
+// ─── New Round (T-037) ───────────────────────────────────────────────────────
+
+async function configureNewRoundTestBed(opts: { isHost?: boolean } = {}) {
+  const { service: wsService, msgs } = createWsMock();
+  const restartSubject = new Subject<StartRoundResponse>();
+  const roomService = {
+    submitAnswer: vi.fn(),
+    getSongSummary: vi.fn(),
+    overrideAnswer: vi.fn(),
+    startSong: vi.fn(),
+    revealSong: vi.fn(),
+    startRound: vi.fn(),
+    restartRound: vi.fn().mockReturnValue(restartSubject.asObservable()),
+  };
+
+  history.replaceState(
+    {
+      room_id: 'room-uuid',
+      song_id: 'song-uuid',
+      participant_id: 'p1',
+      is_host: opts.isHost ?? false,
+      host_id: 'host-uuid',
+      round_id: 'round-uuid',
+      song_index: 9,
+      total_songs: 10,
+      ends_at: BASE_ENDS.toISOString(),
+    },
+    '',
+  );
+
+  await TestBed.configureTestingModule({
+    imports: [PlayPageComponent],
+    providers: [
+      provideRouter([]),
+      { provide: ActivatedRoute, useValue: { paramMap: of({ get: () => null }) } },
+      { provide: WebSocketService, useValue: wsService },
+      { provide: RoomService, useValue: roomService },
+    ],
+  }).compileComponents();
+
+  return { wsService, msgs, roomService, restartSubject };
+}
+
+describe('PlayPageComponent — new round (T-037)', () => {
+  afterEach(() => {
+    history.replaceState(null, '');
+    TestBed.resetTestingModule();
+  });
+
+  it('should show theme input for host in round-leaderboard section after round.finished', async () => {
+    const { msgs } = await configureNewRoundTestBed({ isHost: true });
+    const fixture = mountFixture();
+
+    msgs.next(mockLastRevealEvent);
+    msgs.next(mockRoundFinishedEvent);
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="new-round-theme-input"]'),
+    ).not.toBeNull();
+  });
+
+  it('should default the theme input to "Général"', async () => {
+    const { msgs } = await configureNewRoundTestBed({ isHost: true });
+    const fixture = mountFixture();
+
+    msgs.next(mockLastRevealEvent);
+    msgs.next(mockRoundFinishedEvent);
+    fixture.detectChanges();
+
+    const input = (fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>(
+      '[data-testid="new-round-theme-input"]',
+    );
+    expect(input?.value).toBe('Général');
+  });
+
+  it('should call restartRound with room id and current theme when host clicks launch', async () => {
+    const { msgs, roomService } = await configureNewRoundTestBed({ isHost: true });
+    const fixture = mountFixture();
+
+    msgs.next(mockLastRevealEvent);
+    msgs.next(mockRoundFinishedEvent);
+    fixture.detectChanges();
+
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[data-testid="new-round-btn"]')
+      ?.click();
+
+    expect(roomService.restartRound).toHaveBeenCalledWith('room-uuid', 'Général');
+  });
+
+  it('should reset to answer view for players after song.started from new round', async () => {
+    const { msgs } = await configureNewRoundTestBed({ isHost: false });
+    const fixture = mountFixture();
+
+    msgs.next(mockLastRevealEvent);
+    msgs.next(mockRoundFinishedEvent);
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="round-leaderboard-section"]'),
+    ).not.toBeNull();
+
+    msgs.next({
+      event: 'song.started',
+      data: {
+        song_id: 'new-song-uuid',
+        song_index: 0,
+        round_id: 'new-round-uuid',
+        started_at: BASE_NOW.toISOString(),
+        ends_at: BASE_ENDS.toISOString(),
+      },
+    });
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="round-leaderboard-section"]'),
+    ).toBeNull();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="answer-input"]'),
+    ).not.toBeNull();
+  });
+});
+
+// ─── Audio (T-042) ────────────────────────────────────────────────────────────
+
+async function configureAudioTestBed() {
+  const { service: wsService, msgs } = createWsMock();
+  const audioService = { play: vi.fn(), stop: vi.fn() };
+  const roomService = {
+    submitAnswer: vi.fn(),
+    getSongSummary: vi.fn(),
+    overrideAnswer: vi.fn(),
+    startSong: vi.fn(),
+    revealSong: vi.fn(),
+    restartRound: vi.fn(),
+  };
+
+  history.replaceState(
+    {
+      room_id: 'room-uuid',
+      participant_id: 'p1',
+      is_host: false,
+      host_id: 'host-uuid',
+      round_id: 'round-uuid',
+      song_index: 0,
+      total_songs: 10,
+      ends_at: BASE_ENDS.toISOString(),
+    },
+    '',
+  );
+
+  await TestBed.configureTestingModule({
+    imports: [PlayPageComponent],
+    providers: [
+      provideRouter([]),
+      { provide: ActivatedRoute, useValue: { paramMap: of({ get: () => null }) } },
+      { provide: WebSocketService, useValue: wsService },
+      { provide: RoomService, useValue: roomService },
+      { provide: AudioService, useValue: audioService },
+    ],
+  }).compileComponents();
+
+  return { msgs, audioService };
+}
+
+describe('PlayPageComponent — audio (T-042)', () => {
+  afterEach(() => {
+    history.replaceState(null, '');
+    TestBed.resetTestingModule();
+  });
+
+  it('should start audio playback on song.started when preview_url is provided', async () => {
+    const { msgs, audioService } = await configureAudioTestBed();
+    mountFixture();
+
+    msgs.next({
+      event: 'song.started',
+      data: {
+        song_id: 'song-uuid',
+        song_index: 0,
+        round_id: 'round-uuid',
+        started_at: BASE_NOW.toISOString(),
+        ends_at: BASE_ENDS.toISOString(),
+        preview_url: 'https://example.com/preview.mp3',
+      },
+    });
+
+    expect(audioService.play).toHaveBeenCalledWith('https://example.com/preview.mp3');
+  });
+
+  it('should stop audio on song.locked', async () => {
+    const { msgs, audioService } = await configureAudioTestBed();
+    mountFixture();
+
+    msgs.next({ event: 'song.locked', data: { song_id: 'song-uuid', round_id: 'round-uuid' } });
+
+    expect(audioService.stop).toHaveBeenCalled();
+  });
+
+  it('should not start audio when preview_url is null', async () => {
+    const { msgs, audioService } = await configureAudioTestBed();
+    mountFixture();
+
+    msgs.next({
+      event: 'song.started',
+      data: {
+        song_id: 'song-uuid',
+        song_index: 0,
+        round_id: 'round-uuid',
+        started_at: BASE_NOW.toISOString(),
+        ends_at: BASE_ENDS.toISOString(),
+        preview_url: null,
+      },
+    });
+
+    expect(audioService.play).not.toHaveBeenCalled();
+  });
+
+  it('should not start audio on component init (no song.started received)', async () => {
+    const { audioService } = await configureAudioTestBed();
+    mountFixture();
+
+    expect(audioService.play).not.toHaveBeenCalled();
   });
 });

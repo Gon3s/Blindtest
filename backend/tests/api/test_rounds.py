@@ -41,6 +41,7 @@ class _FakeRoundService:
             "song_index": song_index,
             "started_at": _FIXED_NOW,
             "ends_at": _FIXED_NOW + timedelta(seconds=30),
+            "preview_url": "https://example.com/preview.mp3",
         }
 
 
@@ -141,3 +142,14 @@ def test_start_round_broadcasts_round_started_event(
     assert broadcast_msg["event"] == "round.started"
     assert UUID(broadcast_msg["data"]["round_id"]) == round_result["round_id"]
     assert broadcast_msg["data"]["song_count"] == 10
+
+
+def test_start_round_song_started_event_has_preview_url(
+    round_client: TestClient, mock_manager: MagicMock
+) -> None:
+    round_client.post(f"/rooms/{uuid4()}/rounds", json={"theme": "Pop 90s"})
+    calls = mock_manager.broadcast_to_room.call_args_list
+    song_started = next(c for c in calls if c.args[1]["event"] == "song.started")
+    data = song_started.args[1]["data"]
+    assert "preview_url" in data
+    assert data["preview_url"] == "https://example.com/preview.mp3"

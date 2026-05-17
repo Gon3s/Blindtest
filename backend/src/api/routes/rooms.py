@@ -30,14 +30,14 @@ from src.domain.exceptions import (
     SongNotPlayableError,
 )
 from src.domain.music_provider import MusicProvider
-from src.infrastructure.static_fixture_provider import StaticFixtureMusicProvider
+from src.infrastructure.deezer_music_provider import DeezerMusicProvider
 from src.infrastructure.ws_manager import RoomConnectionManager, get_ws_manager
 
 router = APIRouter()
 
 
 def get_music_provider() -> MusicProvider:
-    return StaticFixtureMusicProvider()
+    return DeezerMusicProvider()
 
 
 @router.post("/rooms", response_model=CreateRoomResponse, status_code=201)
@@ -132,6 +132,7 @@ async def start_round(
                 "round_id": str(song_result["round_id"]),
                 "started_at": song_result["started_at"].isoformat(),
                 "ends_at": song_result["ends_at"].isoformat(),
+                "preview_url": song_result["preview_url"],
             },
         },
     )
@@ -204,6 +205,7 @@ async def restart_round(
                 "round_id": str(song_result["round_id"]),
                 "started_at": song_result["started_at"].isoformat(),
                 "ends_at": song_result["ends_at"].isoformat(),
+                "preview_url": song_result["preview_url"],
             },
         },
     )

@@ -35,6 +35,7 @@ class _FakeRestartService:
             "song_index": song_index,
             "started_at": _FIXED_NOW,
             "ends_at": _FIXED_NOW + timedelta(seconds=30),
+            "preview_url": "https://example.com/preview.mp3",
         }
 
 
@@ -126,3 +127,14 @@ def test_restart_broadcasts_round_started_event(
     restart_client.post(f"/rooms/{uuid4()}/restart", json={"theme": "Rock 80s"})
     events = [c.args[1]["event"] for c in mock_manager.broadcast_to_room.call_args_list]
     assert "round.started" in events
+
+
+def test_restart_song_started_event_has_preview_url(
+    restart_client: TestClient, mock_manager: MagicMock
+) -> None:
+    restart_client.post(f"/rooms/{uuid4()}/restart", json={"theme": "Rock 80s"})
+    calls = mock_manager.broadcast_to_room.call_args_list
+    song_started = next(c for c in calls if c.args[1]["event"] == "song.started")
+    data = song_started.args[1]["data"]
+    assert "preview_url" in data
+    assert data["preview_url"] == "https://example.com/preview.mp3"
