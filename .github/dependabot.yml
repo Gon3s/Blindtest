@@ -1,0 +1,97 @@
+version: 2
+updates:
+  # Python backend (uv ecosystem)
+  - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+    open-pull-requests-limit: 5
+    rebase-strategy: "auto"
+    commit-message:
+      prefix: "chore(deps): "
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "backend"
+    reviewers:
+      - "Gon3s"
+    allow:
+      - dependency-type: "production"
+      - dependency-type: "development"
+    ignore:
+      # Ignore pre-release versions for stability
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    pull-request-branch-name:
+      separator: "/"
+      prefix: "deps"
+
+  # Node/Angular frontend
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    open-pull-requests-limit: 5
+    rebase-strategy: "auto"
+    commit-message:
+      prefix: "chore(deps): "
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "frontend"
+    reviewers:
+      - "Gon3s"
+    allow:
+      - dependency-type: "production"
+      - dependency-type: "development"
+    pull-request-branch-name:
+      separator: "/"
+      prefix: "deps"
+    # Angular is strict with major versions
+    ignore:
+      - dependency-name: "@angular/*"
+        update-types: ["version-update:semver-major"]
+
+  # Docker images
+  - package-ecosystem: "docker"
+    directory: "/infra"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "03:00"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(infra): "
+    labels:
+      - "dependencies"
+      - "infra"
+      - "docker"
+    reviewers:
+      - "Gon3s"
+    pull-request-branch-name:
+      separator: "/"
+      prefix: "deps/docker"
+
+  # Docker Compose root (if exists)
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "03:00"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(infra): "
+    labels:
+      - "dependencies"
+      - "infra"
+      - "docker"
+    reviewers:
+      - "Gon3s"
+    pull-request-branch-name:
+      separator: "/"
+      prefix: "deps/docker"
