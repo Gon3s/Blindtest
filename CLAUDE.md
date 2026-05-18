@@ -154,6 +154,7 @@ Un ticket est **Done** ssi :
 | T-046 | Page Spectateurs / Mode TV (/spectate/:code) | 🔲 Todo |
 | T-059 | Front — Intégrer l'identité visuelle HitRoom | 🔲 Todo |
 | T-060 | Front — Champ Thème manquant dans le Lobby (P1) | 🔲 Todo |
+| T-113 | Fix — Timer s'arrête à 1 au lieu de 0 à la fin de la chanson (P0) | 🔲 Todo |
 
 ### Sprint 5 — Features
 
@@ -165,6 +166,9 @@ Un ticket est **Done** ssi :
 | T-050 | Deezer — Import Playlist par URL | 🔲 Todo |
 | T-051 | API — CRUD Blindtests Sauvegardés | 🔲 Todo |
 | T-052 | Front — Interface Admin /admin | 🔲 Todo |
+| T-111 | Backend — Sélection chansons + RoomConfig source de vérité | ✅ Done |
+| T-112 | Cleanup — constante _DEFAULT_MAX_SONGS + DB query start_song | 🔲 Todo |
+| T-115 | Feature — Mode de réponse configurable par manche (P1) | 🔲 Todo |
 
 **Backlog complet** : voir Notion → https://www.notion.so/40d4d409532a4ff9b0403423eb1484b1
 

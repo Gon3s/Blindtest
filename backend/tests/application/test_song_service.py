@@ -15,7 +15,7 @@ from src.domain.exceptions import (
     SongNotLockableError,
     SongNotPlayableError,
 )
-from src.infrastructure.models import RoundModel, SongModel
+from src.infrastructure.models import RoomModel, RoundModel, SongModel
 
 
 class FakeClock:
@@ -144,6 +144,31 @@ def test_start_song_returns_timestamps(service: RoomService, round_: MagicMock) 
 def test_start_song_returns_song_index(service: RoomService, round_: MagicMock) -> None:
     result = service.start_song(round_.id, song_index=3)
     assert result["song_index"] == 3
+
+
+def test_start_song_uses_config_answer_duration(round_id: UUID, room_id: UUID) -> None:
+    song = _make_song_mock(round_id=round_id)
+    round_ = _make_round_mock(room_id=room_id)
+    round_.id = round_id
+
+    room = MagicMock()
+    room.config = {"answer_duration_seconds": 45}
+
+    def _query(model: type) -> MagicMock:
+        q = MagicMock()
+        if model is RoundModel:
+            q.filter_by.return_value.first.return_value = round_
+        elif model is SongModel:
+            q.filter_by.return_value.first.return_value = song
+        elif model is RoomModel:
+            q.filter_by.return_value.first.return_value = room
+        return q
+
+    mock = MagicMock()
+    mock.query.side_effect = _query
+    svc = RoomService(mock, clock=FakeClock(_FIXED_NOW))
+    result = svc.start_song(round_id, song_index=0)
+    assert result["ends_at"] == _FIXED_NOW + timedelta(seconds=45)
 
 
 def test_start_song_round_not_found_raises() -> None:

@@ -1,7 +1,7 @@
 import random
 import string
 from datetime import datetime, timedelta
-from typing import Optional, TypedDict
+from typing import Any, Optional, TypedDict
 from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
@@ -29,6 +29,7 @@ from src.domain.exceptions import (
 )
 from src.domain.music_provider import MusicProvider, track_to_song
 from src.domain.scoring import compute_song_score
+from src.domain.track_selection import select_round_tracks
 from src.domain.validation import validate_answer
 from src.infrastructure.models import (
     AnswerModel,
@@ -38,6 +39,7 @@ from src.infrastructure.models import (
     ScoreEntryModel,
     SongModel,
 )
+from src.infrastructure.static_fixture_provider import StaticFixtureMusicProvider
 
 _LOCKED_STATUSES: frozenset[str] = frozenset(
     {
@@ -173,7 +175,7 @@ _JOINABLE_STATUSES: frozenset[str] = frozenset(
 )
 
 
-_SONG_DURATION_SECONDS: int = 30
+_DEFAULT_ANSWER_DURATION: int = 30
 
 
 class RoomService:
@@ -281,6 +283,14 @@ class RoomService:
                 f"Room must be waiting to start a round (status: {room.status!r})"
             )
 
+        config_data: dict[str, Any] = room.config if isinstance(room.config, dict) else {}
+        room_config = RoomConfig(
+            max_songs_per_round=int(config_data.get("max_songs_per_round", 10)),
+            answer_duration_seconds=int(
+                config_data.get("answer_duration_seconds", _DEFAULT_ANSWER_DURATION)
+            ),
+        )
+
         round_index: int = (
             self._session.query(RoundModel).filter_by(room_id=room_id).count()
         )
@@ -291,7 +301,12 @@ class RoomService:
             status=RoundStatus.IN_PROGRESS,
         )
 
-        tracks = music_provider.search(theme, limit=10)
+        tracks = select_round_tracks(
+            theme,
+            room_config,
+            music_provider,
+            StaticFixtureMusicProvider(),
+        )
         songs = [
             track_to_song(track, round_entity.id, idx)
             for idx, track in enumerate(tracks)
@@ -359,8 +374,15 @@ class RoomService:
                 f"Song is not playable (status: {song.status!r})"
             )
 
+        room = self._session.query(RoomModel).filter_by(id=round_.room_id).first()
+        answer_duration = (
+            int(room.config.get("answer_duration_seconds", _DEFAULT_ANSWER_DURATION))
+            if room is not None and isinstance(room.config, dict)
+            else _DEFAULT_ANSWER_DURATION
+        )
+
         now = self._clock.now()
-        ends_at = now + timedelta(seconds=_SONG_DURATION_SECONDS)
+        ends_at = now + timedelta(seconds=answer_duration)
 
         song.status = SongStatus.PLAYING.value
         song.started_at = now

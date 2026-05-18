@@ -26,6 +26,7 @@ def _make_room_mock(status: str = RoomStatus.WAITING.value) -> MagicMock:
     room = MagicMock(spec=RoomModel)
     room.id = uuid4()
     room.status = status
+    room.config = {"max_songs_per_round": 10, "answer_duration_seconds": 30}
     return room
 
 

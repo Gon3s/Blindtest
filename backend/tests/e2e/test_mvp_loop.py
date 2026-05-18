@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from src.application.room_service import RevealSongResult, RoomService
+from src.infrastructure.models import SongModel as SongModelDB
 from src.infrastructure.static_fixture_provider import StaticFixtureMusicProvider
 
 # SQLite-compatible DDL — JSONB→TEXT, UUID→TEXT; ORM bind/result processors still work.
@@ -149,8 +150,13 @@ def test_mvp_loop(svc: RoomService) -> None:
     assert song0["song_index"] == 0
     assert song0["ends_at"] > song0["started_at"]
 
+    # Look up actual song title (shuffle may reorder from fixture default)
+    song0_model = svc._session.query(SongModelDB).filter_by(id=song_id).first()
+    assert song0_model is not None
+    song0_title: str = song0_model.title
+
     # ── 5. Bob submits a correct answer ─────────────────────────────────────
-    answer = svc.submit_answer(song_id, player_id, "Baby One More Time")
+    answer = svc.submit_answer(song_id, player_id, song0_title)
     svc._session.commit()
     assert answer["title_found"] is True
 
@@ -176,7 +182,7 @@ def test_mvp_loop(svc: RoomService) -> None:
     reveal = svc.reveal_song(song_id, host_id)
     svc._session.commit()
 
-    assert reveal["title"] == "...Baby One More Time"
+    assert reveal["title"] == song0_title
     assert len(reveal["player_results"]) == 1
     assert reveal["player_results"][0]["title_found"] is True
     assert reveal["player_results"][0]["score"] > 0
