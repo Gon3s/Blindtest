@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { OverrideAnswerResponse, RoomService, SongSummaryResponse } from './room.service';
+import { OverrideAnswerResponse, RevealSongResponse, RoomService, SongSummaryResponse, StartSongResponse } from './room.service';
 import { environment } from '../../environments/environment';
 
 describe('RoomService', () => {
@@ -122,6 +122,84 @@ describe('RoomService', () => {
       title_accepted: true,
       artist_accepted: true,
     });
+    req.flush(mockResponse);
+  });
+
+  it('should reveal a song via POST /songs/:id/reveal with round_finished and round_leaderboard', () => {
+    const mockResponse: RevealSongResponse = {
+      song_id: 'song-uuid',
+      room_id: 'room-uuid',
+      title: 'Get Lucky',
+      artist: 'Daft Punk',
+      player_results: [
+        {
+          participant_id: 'p1',
+          nickname: 'Alice',
+          answer: 'get lucky',
+          title_found: true,
+          artist_found: true,
+          score: 200,
+        },
+      ],
+      mini_leaderboard: [
+        { rank: 1, participant_id: 'p1', nickname: 'Alice', total_points: 200 },
+      ],
+      round_finished: true,
+      round_leaderboard: [
+        { rank: 1, participant_id: 'p1', nickname: 'Alice', round_points: 200 },
+      ],
+    };
+
+    service.revealSong('song-uuid', 'host-uuid').subscribe(res => {
+      expect(res).toEqual(mockResponse);
+    });
+
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/songs/song-uuid/reveal`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ host_id: 'host-uuid' });
+    req.flush(mockResponse);
+  });
+
+  it('should start a song via POST including preview_url', () => {
+    const mockResponse: StartSongResponse = {
+      song_id: 'song-uuid',
+      round_id: 'round-uuid',
+      room_id: 'room-uuid',
+      song_index: 0,
+      started_at: '2026-01-01T12:00:00Z',
+      ends_at: '2026-01-01T12:00:30Z',
+      preview_url: 'https://cdn.deezer.com/preview.mp3',
+    };
+
+    service.startSong('round-uuid', 0).subscribe(res => {
+      expect(res).toEqual(mockResponse);
+    });
+
+    const req = httpMock.expectOne(
+      `${environment.apiBaseUrl}/rounds/round-uuid/songs/0/start`,
+    );
+    expect(req.request.method).toBe('POST');
+    req.flush(mockResponse);
+  });
+
+  it('should handle null preview_url in StartSongResponse', () => {
+    const mockResponse: StartSongResponse = {
+      song_id: 'song-uuid',
+      round_id: 'round-uuid',
+      room_id: 'room-uuid',
+      song_index: 1,
+      started_at: '2026-01-01T12:00:00Z',
+      ends_at: '2026-01-01T12:00:30Z',
+      preview_url: null,
+    };
+
+    service.startSong('round-uuid', 1).subscribe(res => {
+      expect(res.preview_url).toBeNull();
+    });
+
+    const req = httpMock.expectOne(
+      `${environment.apiBaseUrl}/rounds/round-uuid/songs/1/start`,
+    );
     req.flush(mockResponse);
   });
 });

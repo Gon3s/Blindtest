@@ -79,6 +79,8 @@ export interface RevealSongResponse {
   artist: string;
   player_results: PlayerRevealItem[];
   mini_leaderboard: MiniLeaderboardItem[];
+  round_finished: boolean;
+  round_leaderboard: RoundLeaderboardItem[];
 }
 
 export interface StartRoundResponse {
@@ -95,6 +97,7 @@ export interface StartSongResponse {
   song_index: number;
   started_at: string;
   ends_at: string;
+  preview_url: string | null;
 }
 
 @Injectable({ providedIn: 'root' })

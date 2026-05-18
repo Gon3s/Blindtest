@@ -2,15 +2,91 @@ import { Injectable, OnDestroy } from '@angular/core';
 import { Subject } from 'rxjs';
 import { environment } from '../../environments/environment';
 
-export interface WsEvent {
-  event: string;
-  data: unknown;
-}
-
 export interface Participant {
   participant_id: string;
   nickname: string;
   is_host: boolean;
+}
+
+export interface PlayerRevealItem {
+  participant_id: string;
+  nickname: string;
+  answer: string;
+  title_found: boolean;
+  artist_found: boolean;
+  score: number;
+}
+
+export interface MiniLeaderboardItem {
+  rank: number;
+  participant_id: string;
+  nickname: string;
+  total_points: number;
+}
+
+export interface RoundLeaderboardItem {
+  rank: number;
+  participant_id: string;
+  nickname: string;
+  round_points: number;
+}
+
+export interface RoomStateData {
+  room_id: string;
+  participants: Participant[];
+}
+
+export interface ParticipantJoinedData {
+  participant_id: string;
+  nickname: string;
+  is_host: boolean;
+}
+
+export interface RoundStartedData {
+  round_id: string;
+  theme: string;
+  song_count: number;
+}
+
+export interface SongStartedData {
+  song_id: string;
+  song_index: number;
+  round_id: string;
+  started_at: string;
+  ends_at: string;
+  preview_url: string | null;
+}
+
+export interface SongLockedData {
+  song_id: string;
+  round_id: string;
+}
+
+export interface SongRevealedData {
+  song_id: string;
+  title: string;
+  artist: string;
+  player_results: PlayerRevealItem[];
+  mini_leaderboard: MiniLeaderboardItem[];
+}
+
+export interface RoundFinishedData {
+  room_id: string;
+  round_leaderboard: RoundLeaderboardItem[];
+}
+
+export type WsEventData =
+  | { event: 'room.state'; data: RoomStateData }
+  | { event: 'participant.joined'; data: ParticipantJoinedData }
+  | { event: 'round.started'; data: RoundStartedData }
+  | { event: 'song.started'; data: SongStartedData }
+  | { event: 'song.locked'; data: SongLockedData }
+  | { event: 'song.revealed'; data: SongRevealedData }
+  | { event: 'round.finished'; data: RoundFinishedData };
+
+export interface WsEvent {
+  event: string;
+  data: unknown;
 }
 
 @Injectable({ providedIn: 'root' })
