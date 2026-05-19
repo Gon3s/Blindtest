@@ -126,6 +126,24 @@ describe('PlayPageComponent — timer', () => {
 
     expect(Number(el.querySelector('[data-testid="timer"]')?.textContent?.trim())).toBe(0);
   });
+
+  it('should display 0 when song.locked event is received before interval fires', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(BASE_NOW);
+    const { msgs } = await configureTestBed({ ends_at: BASE_ENDS.toISOString() });
+    const fixture = mountFixture();
+    const el = fixture.nativeElement as HTMLElement;
+
+    // Advance almost to the end but not past it (interval hasn't fired yet for the last tick)
+    vi.advanceTimersByTime(29_800);
+    fixture.detectChanges();
+
+    // song.locked arrives while ~200ms remain — Math.ceil(0.2) would show 1 without the fix
+    msgs.next({ event: 'song.locked', data: { song_id: 'song-uuid', round_id: 'round-uuid' } });
+    fixture.detectChanges();
+
+    expect(Number(el.querySelector('[data-testid="timer"]')?.textContent?.trim())).toBe(0);
+  });
 });
 
 // ─── Answer field ─────────────────────────────────────────────────────────────

@@ -188,6 +188,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
         }
       } else if (event.event === 'song.locked') {
         this.locked.set(true);
+        this.timeLeft.set(0);
         this.stopTimer();
         this.audioService.stop();
         if (this.isHost()) {

@@ -283,7 +283,9 @@ class RoomService:
                 f"Room must be waiting to start a round (status: {room.status!r})"
             )
 
-        config_data: dict[str, Any] = room.config if isinstance(room.config, dict) else {}
+        config_data: dict[str, Any] = (
+            room.config if isinstance(room.config, dict) else {}
+        )
         room_config = RoomConfig(
             max_songs_per_round=int(config_data.get("max_songs_per_round", 10)),
             answer_duration_seconds=int(
