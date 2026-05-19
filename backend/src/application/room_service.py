@@ -1,4 +1,5 @@
 import random
+import secrets
 import string
 from datetime import datetime, timedelta
 from typing import Any, Optional, TypedDict
@@ -11,8 +12,8 @@ from src.domain.entities import Participant, Room, RoomConfig, Round
 from src.domain.enums import RoomStatus, RoundStatus, SongStatus, ValidationStatus
 from src.domain.exceptions import (
     AnswerNotFoundError,
+    InvalidHostTokenError,
     NicknameAlreadyTakenError,
-    NotHostError,
     RoomNotFinishedRoundError,
     RoomNotFoundError,
     RoomNotJoinableError,
@@ -71,6 +72,7 @@ class CreateRoomResult(TypedDict):
     room_id: UUID
     code: str
     host_id: UUID
+    host_token: str
 
 
 class JoinRoomResult(TypedDict):
@@ -205,6 +207,7 @@ class RoomService:
             room_id=room.id,
             is_host=True,
         )
+        host_token = secrets.token_urlsafe(32)
 
         self._session.add(
             RoomModel(
@@ -212,6 +215,7 @@ class RoomService:
                 code=room.code,
                 status=RoomStatus.CREATED.value,
                 host_id=room.host_id,
+                host_token=host_token,
                 config={
                     "max_songs_per_round": config.max_songs_per_round,
                     "answer_duration_seconds": config.answer_duration_seconds,
@@ -235,6 +239,7 @@ class RoomService:
             room_id=room.id,
             code=room.code,
             host_id=participant.id,
+            host_token=host_token,
         )
 
     def join_room(self, code: str, nickname: str) -> JoinRoomResult:
@@ -273,7 +278,7 @@ class RoomService:
         return JoinRoomResult(room_id=room.id, participant_id=participant.id)
 
     def start_round(
-        self, room_id: UUID, theme: str, music_provider: MusicProvider
+        self, room_id: UUID, host_token: str, theme: str, music_provider: MusicProvider
     ) -> StartRoundResult:
         room = self._session.query(RoomModel).filter_by(id=room_id).first()
         if room is None:
@@ -282,6 +287,8 @@ class RoomService:
             raise RoomNotWaitingError(
                 f"Room must be waiting to start a round (status: {room.status!r})"
             )
+        if not secrets.compare_digest(room.host_token, host_token):
+            raise InvalidHostTokenError(f"Invalid host token for room {room_id!r}")
 
         config_data: dict[str, Any] = (
             room.config if isinstance(room.config, dict) else {}
@@ -479,7 +486,7 @@ class RoomService:
             artist_found=artist_found,
         )
 
-    def get_song_summary(self, song_id: UUID, host_id: UUID) -> SongSummaryResult:
+    def get_song_summary(self, song_id: UUID, host_token: str) -> SongSummaryResult:
         song = self._session.query(SongModel).filter_by(id=song_id).first()
         if song is None:
             raise SongNotFoundError(f"Song {song_id!r} not found")
@@ -496,8 +503,8 @@ class RoomService:
         if room is None:
             raise RoomNotFoundError(f"Room {round_.room_id!r} not found")
 
-        if room.host_id != host_id:
-            raise NotHostError(f"Participant {host_id!r} is not the host of this room")
+        if not secrets.compare_digest(room.host_token, host_token):
+            raise InvalidHostTokenError(f"Invalid host token for song {song_id!r}")
 
         raw_answers = self._session.query(AnswerModel).filter_by(song_id=song_id).all()
 
@@ -537,7 +544,7 @@ class RoomService:
         self,
         song_id: UUID,
         answer_id: UUID,
-        host_id: UUID,
+        host_token: str,
         title_accepted: bool,
         artist_accepted: bool,
     ) -> OverrideAnswerResult:
@@ -556,8 +563,8 @@ class RoomService:
         room = self._session.query(RoomModel).filter_by(id=round_.room_id).first()
         if room is None:
             raise RoomNotFoundError(f"Room {round_.room_id!r} not found")
-        if room.host_id != host_id:
-            raise NotHostError(f"Participant {host_id!r} is not the host of this room")
+        if not secrets.compare_digest(room.host_token, host_token):
+            raise InvalidHostTokenError(f"Invalid host token for song {song_id!r}")
 
         answer = (
             self._session.query(AnswerModel)
@@ -619,7 +626,7 @@ class RoomService:
             score=score,
         )
 
-    def reveal_song(self, song_id: UUID, host_id: UUID) -> RevealSongResult:
+    def reveal_song(self, song_id: UUID, host_token: str) -> RevealSongResult:
         song = self._session.query(SongModel).filter_by(id=song_id).first()
         if song is None:
             raise SongNotFoundError(f"Song {song_id!r} not found")
@@ -635,8 +642,8 @@ class RoomService:
         room = self._session.query(RoomModel).filter_by(id=round_.room_id).first()
         if room is None:
             raise RoomNotFoundError(f"Room {round_.room_id!r} not found")
-        if room.host_id != host_id:
-            raise NotHostError(f"Participant {host_id!r} is not the host of this room")
+        if not secrets.compare_digest(room.host_token, host_token):
+            raise InvalidHostTokenError(f"Invalid host token for song {song_id!r}")
 
         song.status = SongStatus.REVEALED.value
         self._session.flush()
@@ -754,7 +761,7 @@ class RoomService:
         )
 
     def restart_round(
-        self, room_id: UUID, theme: str, music_provider: MusicProvider
+        self, room_id: UUID, host_token: str, theme: str, music_provider: MusicProvider
     ) -> StartRoundResult:
         room = self._session.query(RoomModel).filter_by(id=room_id).first()
         if room is None:
@@ -763,6 +770,8 @@ class RoomService:
             raise RoomNotFinishedRoundError(
                 f"Room must be in round_finished to restart (status: {room.status!r})"
             )
+        if not secrets.compare_digest(room.host_token, host_token):
+            raise InvalidHostTokenError(f"Invalid host token for room {room_id!r}")
         room.status = RoomStatus.WAITING.value
         self._session.flush()
-        return self.start_round(room_id, theme, music_provider)
+        return self.start_round(room_id, host_token, theme, music_provider)

@@ -29,6 +29,7 @@ def room_result() -> dict:
         "room_id": uuid4(),
         "code": "ABC123",
         "host_id": uuid4(),
+        "host_token": "test-host-token-xyz",
     }
 
 

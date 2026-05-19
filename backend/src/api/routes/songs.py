@@ -20,6 +20,7 @@ from src.api.schemas.songs import (
     RevealSongRequest,
     RevealSongResponse,
     RoundLeaderboardItem,
+    SongSummaryRequest,
     SongSummaryResponse,
     StartSongResponse,
     SubmitAnswerRequest,
@@ -149,7 +150,7 @@ def override_answer(
         result = service.override_answer(
             song_id,
             answer_id,
-            body.host_id,
+            body.host_token,
             body.title_accepted,
             body.artist_accepted,
         )
@@ -171,18 +172,18 @@ def override_answer(
     )
 
 
-@router.get(
+@router.post(
     "/songs/{song_id}/summary",
     response_model=SongSummaryResponse,
     status_code=200,
 )
 def get_song_summary(
     song_id: UUID,
-    host_id: UUID,
+    body: SongSummaryRequest,
     service: RoomService = Depends(get_room_service),
 ) -> SongSummaryResponse:
     try:
-        result = service.get_song_summary(song_id, host_id)
+        result = service.get_song_summary(song_id, body.host_token)
     except SongNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except SongNotLockedError as exc:
@@ -212,7 +213,7 @@ async def reveal_song(
     manager: RoomConnectionManager = Depends(get_ws_manager),
 ) -> RevealSongResponse:
     try:
-        result = service.reveal_song(song_id, body.host_id)
+        result = service.reveal_song(song_id, body.host_token)
     except SongNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except SongNotRevealableError as exc:

@@ -22,12 +22,16 @@ class FakeMusicProvider:
         return self._tracks[:limit]
 
 
+_TEST_HOST_TOKEN = "test-host-token-restart"
+
+
 def _make_room_mock(status: str = RoomStatus.ROUND_FINISHED.value) -> MagicMock:
     from src.infrastructure.models import RoomModel
 
     room = MagicMock(spec=RoomModel)
     room.id = uuid4()
     room.status = status
+    room.host_token = _TEST_HOST_TOKEN
     room.config = {"max_songs_per_round": 10, "answer_duration_seconds": 30}
     return room
 
@@ -53,7 +57,9 @@ def service(finished_session: MagicMock) -> RoomService:
 
 
 def test_restart_round_ok(service: RoomService, room_id: UUID) -> None:
-    result = service.restart_round(room_id, "Rock 80s", FakeMusicProvider())
+    result = service.restart_round(
+        room_id, _TEST_HOST_TOKEN, "Rock 80s", FakeMusicProvider()
+    )
     assert "round_id" in result
     assert isinstance(result["round_id"], UUID)
     assert result["room_id"] == room_id
@@ -65,7 +71,7 @@ def test_restart_round_group_preserved(
     service: RoomService, finished_session: MagicMock, room_id: UUID
 ) -> None:
     """No participant must be deleted on restart."""
-    service.restart_round(room_id, "Rock 80s", FakeMusicProvider())
+    service.restart_round(room_id, _TEST_HOST_TOKEN, "Rock 80s", FakeMusicProvider())
     assert not finished_session.delete.called
 
 
@@ -73,14 +79,16 @@ def test_restart_round_global_score_preserved(
     service: RoomService, finished_session: MagicMock, room_id: UUID
 ) -> None:
     """Score entries must not be wiped on restart."""
-    service.restart_round(room_id, "Rock 80s", FakeMusicProvider())
+    service.restart_round(room_id, _TEST_HOST_TOKEN, "Rock 80s", FakeMusicProvider())
     assert not finished_session.delete.called
 
 
 def test_restart_round_uses_new_theme(
     service: RoomService, finished_session: MagicMock, room_id: UUID
 ) -> None:
-    service.restart_round(room_id, "Jazz Classics", FakeMusicProvider())
+    service.restart_round(
+        room_id, _TEST_HOST_TOKEN, "Jazz Classics", FakeMusicProvider()
+    )
     added = [call.args[0] for call in finished_session.add.call_args_list]
     rounds = [m for m in added if isinstance(m, RoundModel)]
     assert len(rounds) == 1
@@ -91,7 +99,9 @@ def test_restart_round_starts_at_song_index_zero(
     service: RoomService, finished_session: MagicMock, room_id: UUID
 ) -> None:
     """New round must have 10 songs starting at index 0."""
-    service.restart_round(room_id, "Jazz Classics", FakeMusicProvider())
+    service.restart_round(
+        room_id, _TEST_HOST_TOKEN, "Jazz Classics", FakeMusicProvider()
+    )
     added = [call.args[0] for call in finished_session.add.call_args_list]
     songs = [m for m in added if isinstance(m, SongModel)]
     assert len(songs) == 10
@@ -102,7 +112,9 @@ def test_restart_round_room_not_found_raises() -> None:
     mock = MagicMock()
     mock.query.return_value.filter_by.return_value.first.return_value = None
     with pytest.raises(RoomNotFoundError):
-        RoomService(mock).restart_round(uuid4(), "Rock 80s", FakeMusicProvider())
+        RoomService(mock).restart_round(
+            uuid4(), "any-token", "Rock 80s", FakeMusicProvider()
+        )
 
 
 def test_restart_round_room_not_finished_raises() -> None:
@@ -110,4 +122,6 @@ def test_restart_round_room_not_finished_raises() -> None:
     room = _make_room_mock(status=RoomStatus.ROUND_IN_PROGRESS.value)
     mock.query.return_value.filter_by.return_value.first.return_value = room
     with pytest.raises(RoomNotFinishedRoundError):
-        RoomService(mock).restart_round(room.id, "Rock 80s", FakeMusicProvider())
+        RoomService(mock).restart_round(
+            room.id, "any-token", "Rock 80s", FakeMusicProvider()
+        )

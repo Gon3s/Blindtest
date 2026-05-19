@@ -12,6 +12,7 @@ from src.infrastructure.ws_manager import RoomConnectionManager, get_ws_manager
 from src.main import app
 
 _FIXED_NOW = datetime(2026, 5, 16, 12, 0, 0, tzinfo=timezone.utc)
+_RESTART_BODY = {"theme": "Rock 80s", "host_token": "test-host-token"}
 
 
 class _FakeRestartService:
@@ -21,7 +22,9 @@ class _FakeRestartService:
         self._result = result
         self._exc = exc
 
-    def restart_round(self, room_id: UUID, theme: str, music_provider: object) -> dict:
+    def restart_round(
+        self, room_id: UUID, host_token: str, theme: str, music_provider: object
+    ) -> dict:
         if self._exc is not None:
             raise self._exc
         assert self._result is not None
@@ -74,7 +77,7 @@ def restart_client(restart_result: dict, mock_manager: MagicMock) -> TestClient:
 
 def test_restart_returns_201(restart_client: TestClient) -> None:
     response = restart_client.post(
-        f"/rooms/{uuid4()}/restart", json={"theme": "Rock 80s"}
+        f"/rooms/{uuid4()}/restart", json=_RESTART_BODY
     )
     assert response.status_code == 201
 
@@ -83,7 +86,7 @@ def test_restart_returns_round_id_and_song_count(
     restart_client: TestClient, restart_result: dict
 ) -> None:
     response = restart_client.post(
-        f"/rooms/{uuid4()}/restart", json={"theme": "Rock 80s"}
+        f"/rooms/{uuid4()}/restart", json=_RESTART_BODY
     )
     data = response.json()
     assert UUID(data["round_id"]) == restart_result["round_id"]
@@ -100,7 +103,7 @@ def test_restart_room_not_found_returns_404(mock_manager: MagicMock) -> None:
     app.dependency_overrides[get_db_factory] = lambda: MagicMock()
     try:
         client = TestClient(app)
-        response = client.post(f"/rooms/{uuid4()}/restart", json={"theme": "Rock 80s"})
+        response = client.post(f"/rooms/{uuid4()}/restart", json=_RESTART_BODY)
         assert response.status_code == 404
     finally:
         app.dependency_overrides.clear()
@@ -115,7 +118,7 @@ def test_restart_room_not_finished_round_returns_409(mock_manager: MagicMock) ->
     app.dependency_overrides[get_db_factory] = lambda: MagicMock()
     try:
         client = TestClient(app)
-        response = client.post(f"/rooms/{uuid4()}/restart", json={"theme": "Rock 80s"})
+        response = client.post(f"/rooms/{uuid4()}/restart", json=_RESTART_BODY)
         assert response.status_code == 409
     finally:
         app.dependency_overrides.clear()
@@ -124,7 +127,7 @@ def test_restart_room_not_finished_round_returns_409(mock_manager: MagicMock) ->
 def test_restart_broadcasts_round_started_event(
     restart_client: TestClient, restart_result: dict, mock_manager: MagicMock
 ) -> None:
-    restart_client.post(f"/rooms/{uuid4()}/restart", json={"theme": "Rock 80s"})
+    restart_client.post(f"/rooms/{uuid4()}/restart", json=_RESTART_BODY)
     events = [c.args[1]["event"] for c in mock_manager.broadcast_to_room.call_args_list]
     assert "round.started" in events
 
@@ -132,7 +135,7 @@ def test_restart_broadcasts_round_started_event(
 def test_restart_song_started_event_has_preview_url(
     restart_client: TestClient, mock_manager: MagicMock
 ) -> None:
-    restart_client.post(f"/rooms/{uuid4()}/restart", json={"theme": "Rock 80s"})
+    restart_client.post(f"/rooms/{uuid4()}/restart", json=_RESTART_BODY)
     calls = mock_manager.broadcast_to_room.call_args_list
     song_started = next(c for c in calls if c.args[1]["event"] == "song.started")
     data = song_started.args[1]["data"]

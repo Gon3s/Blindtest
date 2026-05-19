@@ -22,6 +22,7 @@ from src.api.schemas.rooms import (
 from src.application.room_service import RoomService
 from src.domain.exceptions import (
     NicknameAlreadyTakenError,
+    NotHostError,
     RoomNotFinishedRoundError,
     RoomNotFoundError,
     RoomNotJoinableError,
@@ -50,6 +51,7 @@ def create_room(
         room_id=result["room_id"],
         code=result["code"],
         host_id=result["host_id"],
+        host_token=result["host_token"],
     )
 
 
@@ -98,11 +100,15 @@ async def start_round(
     sleep_fn: SleepFn = Depends(get_sleep),
 ) -> StartRoundResponse:
     try:
-        result = service.start_round(room_id, payload.theme, music_provider)
+        result = service.start_round(
+            room_id, payload.host_token, payload.theme, music_provider
+        )
     except RoomNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except RoomNotWaitingError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
+    except NotHostError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
 
     try:
         song_result = service.start_song(result["round_id"], 0)
@@ -171,11 +177,15 @@ async def restart_round(
     sleep_fn: SleepFn = Depends(get_sleep),
 ) -> StartRoundResponse:
     try:
-        result = service.restart_round(room_id, payload.theme, music_provider)
+        result = service.restart_round(
+            room_id, payload.host_token, payload.theme, music_provider
+        )
     except RoomNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except RoomNotFinishedRoundError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
+    except NotHostError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
 
     try:
         song_result = service.start_song(result["round_id"], 0)

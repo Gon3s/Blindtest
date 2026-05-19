@@ -10,8 +10,9 @@ from src.domain.enums import ValidationStatus
 from src.domain.exceptions import NotHostError, SongNotFoundError, SongNotLockedError
 from src.main import app
 
-_HOST_ID = uuid4()
+_HOST_TOKEN = "valid-host-token-for-summary"
 _SONG_ID = uuid4()
+_SUMMARY_BODY = {"host_token": _HOST_TOKEN}
 
 
 def _make_summary(
@@ -57,7 +58,7 @@ class _FakeSummaryService:
     def submit_answer(self, *a: object, **kw: object) -> dict:
         return {}
 
-    def get_song_summary(self, song_id: UUID, host_id: UUID) -> dict:
+    def get_song_summary(self, song_id: UUID, host_token: str) -> dict:
         if self._exc is not None:
             raise self._exc
         assert self._result is not None
@@ -81,21 +82,21 @@ def summary_client(summary_result: dict) -> TestClient:
 
 
 def test_summary_returns_200(summary_client: TestClient) -> None:
-    response = summary_client.get(f"/songs/{_SONG_ID}/summary?host_id={_HOST_ID}")
+    response = summary_client.post(f"/songs/{_SONG_ID}/summary", json=_SUMMARY_BODY)
     assert response.status_code == 200
 
 
 def test_summary_contains_title_and_artist(
     summary_client: TestClient, summary_result: dict
 ) -> None:
-    response = summary_client.get(f"/songs/{_SONG_ID}/summary?host_id={_HOST_ID}")
+    response = summary_client.post(f"/songs/{_SONG_ID}/summary", json=_SUMMARY_BODY)
     data = response.json()
     assert data["title"] == summary_result["title"]
     assert data["artist"] == summary_result["artist"]
 
 
 def test_summary_contains_song_id(summary_client: TestClient) -> None:
-    response = summary_client.get(f"/songs/{_SONG_ID}/summary?host_id={_HOST_ID}")
+    response = summary_client.post(f"/songs/{_SONG_ID}/summary", json=_SUMMARY_BODY)
     data = response.json()
     assert UUID(data["song_id"]) == _SONG_ID
 
@@ -103,7 +104,7 @@ def test_summary_contains_song_id(summary_client: TestClient) -> None:
 def test_summary_contains_total_answers_and_doubtful_count(
     summary_client: TestClient,
 ) -> None:
-    response = summary_client.get(f"/songs/{_SONG_ID}/summary?host_id={_HOST_ID}")
+    response = summary_client.post(f"/songs/{_SONG_ID}/summary", json=_SUMMARY_BODY)
     data = response.json()
     assert "total_answers" in data
     assert "doubtful_count" in data
@@ -118,7 +119,7 @@ def test_summary_no_doubtful_count_is_zero() -> None:
     app.dependency_overrides[get_room_service] = lambda: fake
     try:
         client = TestClient(app)
-        response = client.get(f"/songs/{_SONG_ID}/summary?host_id={_HOST_ID}")
+        response = client.post(f"/songs/{_SONG_ID}/summary", json=_SUMMARY_BODY)
         assert response.json()["doubtful_count"] == 0
     finally:
         app.dependency_overrides.clear()
@@ -142,7 +143,7 @@ def test_summary_with_doubtful_answer_count_is_one() -> None:
     app.dependency_overrides[get_room_service] = lambda: fake
     try:
         client = TestClient(app)
-        response = client.get(f"/songs/{_SONG_ID}/summary?host_id={_HOST_ID}")
+        response = client.post(f"/songs/{_SONG_ID}/summary", json=_SUMMARY_BODY)
         data = response.json()
         assert data["doubtful_count"] == 1
         item_status = data["answers"][0]["validation_status"]
@@ -169,7 +170,7 @@ def test_summary_answer_exposes_raw_text_and_nickname() -> None:
     app.dependency_overrides[get_room_service] = lambda: fake
     try:
         client = TestClient(app)
-        response = client.get(f"/songs/{_SONG_ID}/summary?host_id={_HOST_ID}")
+        response = client.post(f"/songs/{_SONG_ID}/summary", json=_SUMMARY_BODY)
         item = response.json()["answers"][0]
         assert item["text"] == "daft punk"
         assert item["nickname"] == "Bob"
@@ -187,7 +188,7 @@ def test_summary_song_not_found_returns_404() -> None:
     app.dependency_overrides[get_room_service] = lambda: fake
     try:
         client = TestClient(app)
-        response = client.get(f"/songs/{uuid4()}/summary?host_id={_HOST_ID}")
+        response = client.post(f"/songs/{uuid4()}/summary", json=_SUMMARY_BODY)
         assert response.status_code == 404
     finally:
         app.dependency_overrides.clear()
@@ -198,7 +199,7 @@ def test_summary_song_not_locked_returns_409() -> None:
     app.dependency_overrides[get_room_service] = lambda: fake
     try:
         client = TestClient(app)
-        response = client.get(f"/songs/{_SONG_ID}/summary?host_id={_HOST_ID}")
+        response = client.post(f"/songs/{_SONG_ID}/summary", json=_SUMMARY_BODY)
         assert response.status_code == 409
     finally:
         app.dependency_overrides.clear()
@@ -209,18 +210,20 @@ def test_summary_wrong_host_returns_403() -> None:
     app.dependency_overrides[get_room_service] = lambda: fake
     try:
         client = TestClient(app)
-        response = client.get(f"/songs/{_SONG_ID}/summary?host_id={uuid4()}")
+        response = client.post(
+            f"/songs/{_SONG_ID}/summary", json={"host_token": "wrong-token"}
+        )
         assert response.status_code == 403
     finally:
         app.dependency_overrides.clear()
 
 
-def test_summary_missing_host_id_returns_422() -> None:
+def test_summary_missing_host_token_returns_422() -> None:
     fake = _FakeSummaryService(result=_make_summary())
     app.dependency_overrides[get_room_service] = lambda: fake
     try:
         client = TestClient(app)
-        response = client.get(f"/songs/{_SONG_ID}/summary")
+        response = client.post(f"/songs/{_SONG_ID}/summary", json={})
         assert response.status_code == 422
     finally:
         app.dependency_overrides.clear()

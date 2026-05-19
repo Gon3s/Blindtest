@@ -76,14 +76,16 @@ def test_insert_room(migrated_engine) -> None:  # type: ignore[no-untyped-def]
     with migrated_engine.connect() as conn:
         conn.execute(
             text(
-                "INSERT INTO rooms (id, code, status, host_id, config)"
-                " VALUES (:id, :code, :status, :host_id, CAST(:config AS JSONB))"
+                "INSERT INTO rooms (id, code, status, host_id, host_token, config)"
+                " VALUES (:id, :code, :status, :host_id, :host_token,"
+                        " CAST(:config AS JSONB))"
             ),
             {
                 "id": str(room_id),
                 "code": "ABCD1234",
                 "status": "created",
                 "host_id": str(uuid4()),
+                "host_token": "test-host-token-abc",
                 "config": "{}",
             },
         )
@@ -102,14 +104,16 @@ def test_insert_participant(migrated_engine) -> None:  # type: ignore[no-untyped
     with migrated_engine.connect() as conn:
         conn.execute(
             text(
-                "INSERT INTO rooms (id, code, status, host_id, config)"
-                " VALUES (:id, :code, :status, :host_id, CAST(:config AS JSONB))"
+                "INSERT INTO rooms (id, code, status, host_id, host_token, config)"
+                " VALUES (:id, :code, :status, :host_id, :host_token,"
+                        " CAST(:config AS JSONB))"
             ),
             {
                 "id": str(room_id),
                 "code": "XYZW5678",
                 "status": "created",
                 "host_id": str(participant_id),
+                "host_token": "test-host-token-xyz",
                 "config": "{}",
             },
         )
@@ -139,14 +143,16 @@ def test_room_code_unique_constraint(migrated_engine) -> None:  # type: ignore[n
     with migrated_engine.connect() as conn:
         conn.execute(
             text(
-                "INSERT INTO rooms (id, code, status, host_id, config)"
-                " VALUES (:id, :code, :status, :host_id, CAST(:config AS JSONB))"
+                "INSERT INTO rooms (id, code, status, host_id, host_token, config)"
+                " VALUES (:id, :code, :status, :host_id, :host_token,"
+                        " CAST(:config AS JSONB))"
             ),
             {
                 "id": str(uuid4()),
                 "code": "DUPL1234",
                 "status": "created",
                 "host_id": str(uuid4()),
+                "host_token": "test-host-token-dup1",
                 "config": "{}",
             },
         )
@@ -156,14 +162,16 @@ def test_room_code_unique_constraint(migrated_engine) -> None:  # type: ignore[n
         with pytest.raises(sqlalchemy.exc.IntegrityError):
             conn.execute(
                 text(
-                    "INSERT INTO rooms (id, code, status, host_id, config)"
-                    " VALUES (:id, :code, :status, :host_id, CAST(:config AS JSONB))"
+                    "INSERT INTO rooms (id, code, status, host_id, host_token, config)"
+                    " VALUES (:id, :code, :status, :host_id, :host_token,"
+                        " CAST(:config AS JSONB))"
                 ),
                 {
                     "id": str(uuid4()),
                     "code": "DUPL1234",
                     "status": "created",
                     "host_id": str(uuid4()),
+                    "host_token": "dup-host-token",
                     "config": "{}",
                 },
             )

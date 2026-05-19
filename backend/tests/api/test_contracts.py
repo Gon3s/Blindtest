@@ -111,15 +111,21 @@ def test_create_room_response_all_keys() -> None:
 
     class _Svc(_BaseService):
         def create_room(self, host_nickname: str) -> dict:
-            return {"room_id": room_id, "code": "ABC123", "host_id": host_id}
+            return {
+                "room_id": room_id,
+                "code": "ABC123",
+                "host_id": host_id,
+                "host_token": "test-token-abc",
+            }
 
     app.dependency_overrides[get_room_service] = lambda: _Svc()
     try:
         data = TestClient(app).post("/rooms", json={"host_nickname": "Alice"}).json()
-        assert {"room_id", "code", "host_id"} == set(data.keys())
+        assert {"room_id", "code", "host_id", "host_token"} == set(data.keys())
         assert UUID(data["room_id"]) == room_id
         assert isinstance(data["code"], str)
         assert UUID(data["host_id"]) == host_id
+        assert isinstance(data["host_token"], str)
     finally:
         app.dependency_overrides.clear()
 
@@ -189,7 +195,7 @@ def test_reveal_response_top_level_keys(mock_manager: MagicMock) -> None:
     song_id, room_id = uuid4(), uuid4()
 
     class _Svc(_BaseService):
-        def reveal_song(self, sid: UUID, host_id: UUID) -> dict:
+        def reveal_song(self, sid: UUID, host_token: str) -> dict:
             return {
                 "song_id": song_id,
                 "room_id": room_id,
@@ -205,7 +211,7 @@ def test_reveal_response_top_level_keys(mock_manager: MagicMock) -> None:
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     try:
         data = TestClient(app).post(
-            f"/songs/{song_id}/reveal", json={"host_id": str(uuid4())}
+            f"/songs/{song_id}/reveal", json={"host_token": "test-token-abc"}
         ).json()
         required = {
             "song_id",
@@ -230,7 +236,7 @@ def test_reveal_player_result_item_shape(mock_manager: MagicMock) -> None:
     pid = uuid4()
 
     class _Svc(_BaseService):
-        def reveal_song(self, sid: UUID, host_id: UUID) -> dict:
+        def reveal_song(self, sid: UUID, host_token: str) -> dict:
             return {
                 "song_id": uuid4(),
                 "room_id": uuid4(),
@@ -255,7 +261,7 @@ def test_reveal_player_result_item_shape(mock_manager: MagicMock) -> None:
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     try:
         data = TestClient(app).post(
-            f"/songs/{uuid4()}/reveal", json={"host_id": str(uuid4())}
+            f"/songs/{uuid4()}/reveal", json={"host_token": "test-token-abc"}
         ).json()
         item = data["player_results"][0]
         pr_keys = {
@@ -275,7 +281,7 @@ def test_reveal_mini_leaderboard_item_shape(mock_manager: MagicMock) -> None:
     pid = uuid4()
 
     class _Svc(_BaseService):
-        def reveal_song(self, sid: UUID, host_id: UUID) -> dict:
+        def reveal_song(self, sid: UUID, host_token: str) -> dict:
             return {
                 "song_id": uuid4(),
                 "room_id": uuid4(),
@@ -298,7 +304,7 @@ def test_reveal_mini_leaderboard_item_shape(mock_manager: MagicMock) -> None:
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     try:
         data = TestClient(app).post(
-            f"/songs/{uuid4()}/reveal", json={"host_id": str(uuid4())}
+            f"/songs/{uuid4()}/reveal", json={"host_token": "test-token-abc"}
         ).json()
         item = data["mini_leaderboard"][0]
         lb_keys = {"rank", "participant_id", "nickname", "total_points"}
@@ -314,7 +320,7 @@ def test_reveal_round_leaderboard_item_shape(mock_manager: MagicMock) -> None:
     pid = uuid4()
 
     class _Svc(_BaseService):
-        def reveal_song(self, sid: UUID, host_id: UUID) -> dict:
+        def reveal_song(self, sid: UUID, host_token: str) -> dict:
             return {
                 "song_id": uuid4(),
                 "room_id": uuid4(),
@@ -337,7 +343,7 @@ def test_reveal_round_leaderboard_item_shape(mock_manager: MagicMock) -> None:
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     try:
         data = TestClient(app).post(
-            f"/songs/{uuid4()}/reveal", json={"host_id": str(uuid4())}
+            f"/songs/{uuid4()}/reveal", json={"host_token": "test-token-abc"}
         ).json()
         assert data["round_finished"] is True
         item = data["round_leaderboard"][0]
@@ -507,7 +513,10 @@ def test_round_started_event_shape(mock_manager: MagicMock) -> None:
     app.dependency_overrides[get_db_factory] = lambda: MagicMock()
     app.dependency_overrides[get_sleep] = lambda: _instant_sleep
     try:
-        TestClient(app).post(f"/rooms/{room_id}/rounds", json={"theme": "Pop 90s"})
+        TestClient(app).post(
+            f"/rooms/{room_id}/rounds",
+            json={"theme": "Pop 90s", "host_token": "test-token-abc"},
+        )
         calls = mock_manager.broadcast_to_room.call_args_list
         call = next(c for c in calls if c.args[1]["event"] == "round.started")
         d = call.args[1]["data"]
@@ -558,7 +567,7 @@ def test_song_revealed_event_player_results_shape(mock_manager: MagicMock) -> No
     pid = uuid4()
 
     class _Svc(_BaseService):
-        def reveal_song(self, sid: UUID, host_id: UUID) -> dict:
+        def reveal_song(self, sid: UUID, host_token: str) -> dict:
             return {
                 "song_id": uuid4(),
                 "room_id": uuid4(),
@@ -589,7 +598,9 @@ def test_song_revealed_event_player_results_shape(mock_manager: MagicMock) -> No
     app.dependency_overrides[get_room_service] = lambda: _Svc()
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     try:
-        TestClient(app).post(f"/songs/{uuid4()}/reveal", json={"host_id": str(uuid4())})
+        TestClient(app).post(
+            f"/songs/{uuid4()}/reveal", json={"host_token": "test-token-abc"}
+        )
         calls = mock_manager.broadcast_to_room.call_args_list
         revealed = next(c for c in calls if c.args[1]["event"] == "song.revealed")
         d = revealed.args[1]["data"]
@@ -618,7 +629,7 @@ def test_round_finished_event_shape(mock_manager: MagicMock) -> None:
     pid, room_id = uuid4(), uuid4()
 
     class _Svc(_BaseService):
-        def reveal_song(self, sid: UUID, host_id: UUID) -> dict:
+        def reveal_song(self, sid: UUID, host_token: str) -> dict:
             return {
                 "song_id": uuid4(),
                 "room_id": room_id,
@@ -640,7 +651,9 @@ def test_round_finished_event_shape(mock_manager: MagicMock) -> None:
     app.dependency_overrides[get_room_service] = lambda: _Svc()
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     try:
-        TestClient(app).post(f"/songs/{uuid4()}/reveal", json={"host_id": str(uuid4())})
+        TestClient(app).post(
+            f"/songs/{uuid4()}/reveal", json={"host_token": "test-token-abc"}
+        )
         calls = mock_manager.broadcast_to_room.call_args_list
         finished = next(c for c in calls if c.args[1]["event"] == "round.finished")
         d = finished.args[1]["data"]

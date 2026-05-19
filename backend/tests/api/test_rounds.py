@@ -27,7 +27,9 @@ class _FakeRoundService:
     def join_room(self, code: str, nickname: str) -> dict:
         return {}
 
-    def start_round(self, room_id: UUID, theme: str, music_provider: object) -> dict:
+    def start_round(
+        self, room_id: UUID, host_token: str, theme: str, music_provider: object
+    ) -> dict:
         if self._exc is not None:
             raise self._exc
         assert self._result is not None
@@ -79,9 +81,12 @@ def round_client(round_result: dict, mock_manager: MagicMock) -> TestClient:
     app.dependency_overrides.clear()
 
 
+_ROUND_BODY = {"theme": "Pop 90s", "host_token": "test-host-token"}
+
+
 def test_start_round_returns_201(round_client: TestClient) -> None:
     room_id = uuid4()
-    response = round_client.post(f"/rooms/{room_id}/rounds", json={"theme": "Pop 90s"})
+    response = round_client.post(f"/rooms/{room_id}/rounds", json=_ROUND_BODY)
     assert response.status_code == 201
 
 
@@ -89,7 +94,7 @@ def test_start_round_returns_round_id_and_song_count(
     round_client: TestClient, round_result: dict
 ) -> None:
     room_id = uuid4()
-    response = round_client.post(f"/rooms/{room_id}/rounds", json={"theme": "Pop 90s"})
+    response = round_client.post(f"/rooms/{room_id}/rounds", json=_ROUND_BODY)
     data = response.json()
     assert UUID(data["round_id"]) == round_result["round_id"]
     assert data["song_count"] == 10
@@ -97,7 +102,13 @@ def test_start_round_returns_round_id_and_song_count(
 
 def test_start_round_missing_theme_returns_422(round_client: TestClient) -> None:
     room_id = uuid4()
-    response = round_client.post(f"/rooms/{room_id}/rounds", json={})
+    response = round_client.post(f"/rooms/{room_id}/rounds", json={"host_token": "tok"})
+    assert response.status_code == 422
+
+
+def test_start_round_missing_host_token_returns_422(round_client: TestClient) -> None:
+    room_id = uuid4()
+    response = round_client.post(f"/rooms/{room_id}/rounds", json={"theme": "Pop 90s"})
     assert response.status_code == 422
 
 
@@ -110,7 +121,7 @@ def test_start_round_room_not_found_returns_404(mock_manager: MagicMock) -> None
     app.dependency_overrides[get_db_factory] = lambda: MagicMock()
     try:
         client = TestClient(app)
-        response = client.post(f"/rooms/{uuid4()}/rounds", json={"theme": "Pop 90s"})
+        response = client.post(f"/rooms/{uuid4()}/rounds", json=_ROUND_BODY)
         assert response.status_code == 404
     finally:
         app.dependency_overrides.clear()
@@ -125,7 +136,7 @@ def test_start_round_room_not_waiting_returns_409(mock_manager: MagicMock) -> No
     app.dependency_overrides[get_db_factory] = lambda: MagicMock()
     try:
         client = TestClient(app)
-        response = client.post(f"/rooms/{uuid4()}/rounds", json={"theme": "Pop 90s"})
+        response = client.post(f"/rooms/{uuid4()}/rounds", json=_ROUND_BODY)
         assert response.status_code == 409
     finally:
         app.dependency_overrides.clear()
@@ -135,7 +146,7 @@ def test_start_round_broadcasts_round_started_event(
     round_client: TestClient, round_result: dict, mock_manager: MagicMock
 ) -> None:
     room_id = uuid4()
-    round_client.post(f"/rooms/{room_id}/rounds", json={"theme": "Pop 90s"})
+    round_client.post(f"/rooms/{room_id}/rounds", json=_ROUND_BODY)
     calls = mock_manager.broadcast_to_room.call_args_list
     assert len(calls) >= 1
     _, broadcast_msg = calls[0].args
@@ -147,7 +158,7 @@ def test_start_round_broadcasts_round_started_event(
 def test_start_round_song_started_event_has_preview_url(
     round_client: TestClient, mock_manager: MagicMock
 ) -> None:
-    round_client.post(f"/rooms/{uuid4()}/rounds", json={"theme": "Pop 90s"})
+    round_client.post(f"/rooms/{uuid4()}/rounds", json=_ROUND_BODY)
     calls = mock_manager.broadcast_to_room.call_args_list
     song_started = next(c for c in calls if c.args[1]["event"] == "song.started")
     data = song_started.args[1]["data"]

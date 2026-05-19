@@ -47,8 +47,12 @@ class SongSummaryResponse(BaseModel):
     answers: list[AnswerSummaryItem]
 
 
+class SongSummaryRequest(BaseModel):
+    host_token: str
+
+
 class OverrideAnswerRequest(BaseModel):
-    host_id: UUID
+    host_token: str
     title_accepted: bool
     artist_accepted: bool
 
@@ -62,7 +66,7 @@ class OverrideAnswerResponse(BaseModel):
 
 
 class RevealSongRequest(BaseModel):
-    host_id: UUID
+    host_token: str
 
 
 class PlayerRevealItem(BaseModel):

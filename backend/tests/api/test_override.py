@@ -12,9 +12,9 @@ from src.domain.exceptions import (
 )
 from src.main import app
 
-_HOST_ID = uuid4()
+_HOST_TOKEN = "valid-host-token-for-override"
 _VALID_BODY = {
-    "host_id": str(_HOST_ID),
+    "host_token": _HOST_TOKEN,
     "title_accepted": True,
     "artist_accepted": False,
 }
@@ -60,14 +60,14 @@ class _FakeOverrideService:
     def submit_answer(self, song_id: UUID, participant_id: UUID, text: str) -> dict:
         return {}
 
-    def get_song_summary(self, song_id: UUID, host_id: UUID) -> dict:
+    def get_song_summary(self, song_id: UUID, host_token: str) -> dict:
         return {}
 
     def override_answer(
         self,
         song_id: UUID,
         answer_id: UUID,
-        host_id: UUID,
+        host_token: str,
         title_accepted: bool,
         artist_accepted: bool,
     ) -> dict:

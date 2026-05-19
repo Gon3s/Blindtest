@@ -18,6 +18,7 @@ class CreateRoomResponse(BaseModel):
     room_id: UUID
     code: str
     host_id: UUID
+    host_token: str
 
 
 class JoinRoomRequest(BaseModel):
@@ -38,6 +39,7 @@ class JoinRoomResponse(BaseModel):
 
 class StartRoundRequest(BaseModel):
     theme: str
+    host_token: str
 
     @field_validator("theme")
     @classmethod

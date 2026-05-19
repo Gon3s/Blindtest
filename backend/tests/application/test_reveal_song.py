@@ -41,10 +41,10 @@ def _round(room_id: UUID | None = None) -> MagicMock:
     return r
 
 
-def _room(host_id: UUID, room_id: UUID | None = None) -> MagicMock:
+def _room(host_token: str, room_id: UUID | None = None) -> MagicMock:
     r = MagicMock(spec=RoomModel)
     r.id = room_id or uuid4()
-    r.host_id = host_id
+    r.host_token = host_token
     return r
 
 
@@ -149,8 +149,8 @@ def _session(
 
 
 @pytest.fixture
-def host_id() -> UUID:
-    return uuid4()
+def host_token() -> str:
+    return "reveal-host-token"
 
 
 @pytest.fixture
@@ -167,36 +167,36 @@ def locked_song() -> MagicMock:
 
 
 def test_reveal_ok_transitions_song_to_revealed(
-    host_id: UUID, room_id: UUID, locked_song: MagicMock
+    host_token: str, room_id: UUID, locked_song: MagicMock
 ) -> None:
     round_ = _round(room_id=room_id)
     locked_song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     sess = _session(locked_song, round_, room, [], [])
-    RoomService(sess).reveal_song(locked_song.id, host_id)
+    RoomService(sess).reveal_song(locked_song.id, host_token)
     assert locked_song.status == SongStatus.REVEALED.value
 
 
 def test_reveal_ok_returns_title_and_artist(
-    host_id: UUID, room_id: UUID, locked_song: MagicMock
+    host_token: str, room_id: UUID, locked_song: MagicMock
 ) -> None:
     round_ = _round(room_id=room_id)
     locked_song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     sess = _session(locked_song, round_, room, [], [])
-    result = RoomService(sess).reveal_song(locked_song.id, host_id)
+    result = RoomService(sess).reveal_song(locked_song.id, host_token)
     assert result["title"] == "One More Time"
     assert result["artist"] == "Daft Punk"
 
 
 def test_reveal_ok_returns_song_id_and_room_id(
-    host_id: UUID, room_id: UUID, locked_song: MagicMock
+    host_token: str, room_id: UUID, locked_song: MagicMock
 ) -> None:
     round_ = _round(room_id=room_id)
     locked_song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     sess = _session(locked_song, round_, room, [], [])
-    result = RoomService(sess).reveal_song(locked_song.id, host_id)
+    result = RoomService(sess).reveal_song(locked_song.id, host_token)
     assert result["song_id"] == locked_song.id
     assert result["room_id"] == room_id
 
@@ -205,48 +205,48 @@ def test_reveal_ok_returns_song_id_and_room_id(
 
 
 def test_reveal_from_playing_raises_not_revealable(
-    host_id: UUID, room_id: UUID
+    host_token: str, room_id: UUID
 ) -> None:
     song = _song(status=SongStatus.PLAYING.value)
     round_ = _round(room_id=room_id)
     song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     sess = _session(song, round_, room, [], [])
     with pytest.raises(SongNotRevealableError):
-        RoomService(sess).reveal_song(song.id, host_id)
+        RoomService(sess).reveal_song(song.id, host_token)
 
 
 def test_reveal_from_upcoming_raises_not_revealable(
-    host_id: UUID, room_id: UUID
+    host_token: str, room_id: UUID
 ) -> None:
     song = _song(status=SongStatus.UPCOMING.value)
     round_ = _round(room_id=room_id)
     song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     sess = _session(song, round_, room, [], [])
     with pytest.raises(SongNotRevealableError):
-        RoomService(sess).reveal_song(song.id, host_id)
+        RoomService(sess).reveal_song(song.id, host_token)
 
 
 def test_reveal_from_already_revealed_raises_not_revealable(
-    host_id: UUID, room_id: UUID
+    host_token: str, room_id: UUID
 ) -> None:
     song = _song(status=SongStatus.REVEALED.value)
     round_ = _round(room_id=room_id)
     song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     sess = _session(song, round_, room, [], [])
     with pytest.raises(SongNotRevealableError):
-        RoomService(sess).reveal_song(song.id, host_id)
+        RoomService(sess).reveal_song(song.id, host_token)
 
 
-def test_reveal_ok_from_validation_status(host_id: UUID, room_id: UUID) -> None:
+def test_reveal_ok_from_validation_status(host_token: str, room_id: UUID) -> None:
     song = _song(status=SongStatus.VALIDATION.value)
     round_ = _round(room_id=room_id)
     song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     sess = _session(song, round_, room, [], [])
-    result = RoomService(sess).reveal_song(song.id, host_id)
+    result = RoomService(sess).reveal_song(song.id, host_token)
     assert result["song_id"] == song.id
     assert song.status == SongStatus.REVEALED.value
 
@@ -255,17 +255,17 @@ def test_reveal_ok_from_validation_status(host_id: UUID, room_id: UUID) -> None:
 
 
 def test_reveal_player_result_contains_answer_text(
-    host_id: UUID, room_id: UUID, locked_song: MagicMock
+    host_token: str, room_id: UUID, locked_song: MagicMock
 ) -> None:
     alice_id = uuid4()
     alice = _participant(alice_id, "Alice")
     round_ = _round(room_id=room_id)
     locked_song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     ans = _answer(locked_song.id, alice_id, text="one more time", title_found=True)
     se = _score_entry(alice_id, room_id, locked_song.id, 117)
     sess = _session(locked_song, round_, room, [ans], [alice], [se], [se])
-    result = RoomService(sess).reveal_song(locked_song.id, host_id)
+    result = RoomService(sess).reveal_song(locked_song.id, host_token)
     assert len(result["player_results"]) == 1
     pr = result["player_results"][0]
     assert pr["nickname"] == "Alice"
@@ -275,31 +275,31 @@ def test_reveal_player_result_contains_answer_text(
 
 
 def test_reveal_player_result_contains_score(
-    host_id: UUID, room_id: UUID, locked_song: MagicMock
+    host_token: str, room_id: UUID, locked_song: MagicMock
 ) -> None:
     alice_id = uuid4()
     alice = _participant(alice_id, "Alice")
     round_ = _round(room_id=room_id)
     locked_song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     ans = _answer(locked_song.id, alice_id, title_found=True)
     se = _score_entry(alice_id, room_id, locked_song.id, 117)
     sess = _session(locked_song, round_, room, [ans], [alice], [se], [se])
-    result = RoomService(sess).reveal_song(locked_song.id, host_id)
+    result = RoomService(sess).reveal_song(locked_song.id, host_token)
     assert result["player_results"][0]["score"] == 117
 
 
 def test_reveal_player_result_score_zero_when_no_score_entry(
-    host_id: UUID, room_id: UUID, locked_song: MagicMock
+    host_token: str, room_id: UUID, locked_song: MagicMock
 ) -> None:
     alice_id = uuid4()
     alice = _participant(alice_id, "Alice")
     round_ = _round(room_id=room_id)
     locked_song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     ans = _answer(locked_song.id, alice_id)
     sess = _session(locked_song, round_, room, [ans], [alice], [], [])
-    result = RoomService(sess).reveal_song(locked_song.id, host_id)
+    result = RoomService(sess).reveal_song(locked_song.id, host_token)
     assert result["player_results"][0]["score"] == 0
 
 
@@ -307,7 +307,7 @@ def test_reveal_player_result_score_zero_when_no_score_entry(
 
 
 def test_reveal_mini_leaderboard_sorted_by_total_points_desc(
-    host_id: UUID, room_id: UUID, locked_song: MagicMock
+    host_token: str, room_id: UUID, locked_song: MagicMock
 ) -> None:
     alice_id = uuid4()
     bob_id = uuid4()
@@ -315,13 +315,13 @@ def test_reveal_mini_leaderboard_sorted_by_total_points_desc(
     bob = _participant(bob_id, "Bob")
     round_ = _round(room_id=room_id)
     locked_song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
 
     se_alice = _score_entry(alice_id, room_id, locked_song.id, 117)
     se_bob = _score_entry(bob_id, room_id, locked_song.id, 267)
     sess = _session(locked_song, round_, room, [], [alice, bob], [], [se_alice, se_bob])
 
-    result = RoomService(sess).reveal_song(locked_song.id, host_id)
+    result = RoomService(sess).reveal_song(locked_song.id, host_token)
     lb = result["mini_leaderboard"]
     assert lb[0]["participant_id"] == bob_id
     assert lb[0]["rank"] == 1
@@ -332,7 +332,7 @@ def test_reveal_mini_leaderboard_sorted_by_total_points_desc(
 
 
 def test_reveal_mini_leaderboard_tie_same_rank(
-    host_id: UUID, room_id: UUID, locked_song: MagicMock
+    host_token: str, room_id: UUID, locked_song: MagicMock
 ) -> None:
     alice_id = uuid4()
     bob_id = uuid4()
@@ -340,39 +340,39 @@ def test_reveal_mini_leaderboard_tie_same_rank(
     bob = _participant(bob_id, "Bob")
     round_ = _round(room_id=room_id)
     locked_song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
 
     se_alice = _score_entry(alice_id, room_id, locked_song.id, 100)
     se_bob = _score_entry(bob_id, room_id, locked_song.id, 100)
     sess = _session(locked_song, round_, room, [], [alice, bob], [], [se_alice, se_bob])
 
-    result = RoomService(sess).reveal_song(locked_song.id, host_id)
+    result = RoomService(sess).reveal_song(locked_song.id, host_token)
     lb = result["mini_leaderboard"]
     assert lb[0]["rank"] == lb[1]["rank"] == 1
 
 
 def test_reveal_mini_leaderboard_contains_nickname(
-    host_id: UUID, room_id: UUID, locked_song: MagicMock
+    host_token: str, room_id: UUID, locked_song: MagicMock
 ) -> None:
     alice_id = uuid4()
     alice = _participant(alice_id, "Alice")
     round_ = _round(room_id=room_id)
     locked_song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     se = _score_entry(alice_id, room_id, locked_song.id, 100)
     sess = _session(locked_song, round_, room, [], [alice], [], [se])
-    result = RoomService(sess).reveal_song(locked_song.id, host_id)
+    result = RoomService(sess).reveal_song(locked_song.id, host_token)
     assert result["mini_leaderboard"][0]["nickname"] == "Alice"
 
 
 def test_reveal_empty_player_results_when_no_answers(
-    host_id: UUID, room_id: UUID, locked_song: MagicMock
+    host_token: str, room_id: UUID, locked_song: MagicMock
 ) -> None:
     round_ = _round(room_id=room_id)
     locked_song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     sess = _session(locked_song, round_, room, [], [])
-    result = RoomService(sess).reveal_song(locked_song.id, host_id)
+    result = RoomService(sess).reveal_song(locked_song.id, host_token)
     assert result["player_results"] == []
     assert result["mini_leaderboard"] == []
 
@@ -388,12 +388,10 @@ def test_reveal_song_not_found_raises() -> None:
 
 
 def test_reveal_not_host_raises(room_id: UUID) -> None:
-    host_id = uuid4()
-    wrong_host_id = uuid4()
     song = _song()
     round_ = _round(room_id=room_id)
     song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token="correct-host-token", room_id=room_id)
     sess = _session(song, round_, room, [], [])
     with pytest.raises(NotHostError):
-        RoomService(sess).reveal_song(song.id, wrong_host_id)
+        RoomService(sess).reveal_song(song.id, "wrong-host-token")

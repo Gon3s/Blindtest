@@ -43,10 +43,10 @@ def _round(room_id: UUID | None = None) -> MagicMock:
     return r
 
 
-def _room(host_id: UUID, room_id: UUID | None = None) -> MagicMock:
+def _room(host_token: str, room_id: UUID | None = None) -> MagicMock:
     r = MagicMock(spec=RoomModel)
     r.id = room_id or uuid4()
-    r.host_id = host_id
+    r.host_token = host_token
     return r
 
 
@@ -114,8 +114,8 @@ def _session(
 
 
 @pytest.fixture
-def host_id() -> UUID:
-    return uuid4()
+def host_token() -> str:
+    return "summary-host-token"
 
 
 @pytest.fixture
@@ -145,14 +145,14 @@ def participant_bob() -> tuple[UUID, MagicMock]:
 
 def test_summary_no_doubtful_returns_zero_doubtful_count(
     locked_song: MagicMock,
-    host_id: UUID,
+    host_token: str,
     room_id: UUID,
     participant_alice: tuple[UUID, MagicMock],
 ) -> None:
     alice_id, alice = participant_alice
     round_ = _round(room_id=room_id)
     locked_song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     ans = _answer(
         locked_song.id,
         alice_id,
@@ -161,21 +161,21 @@ def test_summary_no_doubtful_returns_zero_doubtful_count(
         title_found=True,
     )
     sess = _session(locked_song, round_, room, [ans], [alice])
-    result = RoomService(sess).get_song_summary(locked_song.id, host_id)
+    result = RoomService(sess).get_song_summary(locked_song.id, host_token)
     assert result["doubtful_count"] == 0
     assert result["total_answers"] == 1
 
 
 def test_summary_not_found_answers_do_not_increment_doubtful(
     locked_song: MagicMock,
-    host_id: UUID,
+    host_token: str,
     room_id: UUID,
     participant_alice: tuple[UUID, MagicMock],
 ) -> None:
     alice_id, alice = participant_alice
     round_ = _round(room_id=room_id)
     locked_song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     ans = _answer(
         locked_song.id,
         alice_id,
@@ -183,7 +183,7 @@ def test_summary_not_found_answers_do_not_increment_doubtful(
         validation_status=ValidationStatus.NOT_FOUND.value,
     )
     sess = _session(locked_song, round_, room, [ans], [alice])
-    result = RoomService(sess).get_song_summary(locked_song.id, host_id)
+    result = RoomService(sess).get_song_summary(locked_song.id, host_token)
     assert result["doubtful_count"] == 0
 
 
@@ -192,7 +192,7 @@ def test_summary_not_found_answers_do_not_increment_doubtful(
 
 def test_summary_doubtful_answer_increments_doubtful_count(
     locked_song: MagicMock,
-    host_id: UUID,
+    host_token: str,
     room_id: UUID,
     participant_alice: tuple[UUID, MagicMock],
     participant_bob: tuple[UUID, MagicMock],
@@ -201,7 +201,7 @@ def test_summary_doubtful_answer_increments_doubtful_count(
     bob_id, bob = participant_bob
     round_ = _round(room_id=room_id)
     locked_song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     doubtful = _answer(
         locked_song.id,
         alice_id,
@@ -216,21 +216,21 @@ def test_summary_doubtful_answer_increments_doubtful_count(
         title_found=True,
     )
     sess = _session(locked_song, round_, room, [doubtful, found], [alice, bob])
-    result = RoomService(sess).get_song_summary(locked_song.id, host_id)
+    result = RoomService(sess).get_song_summary(locked_song.id, host_token)
     assert result["doubtful_count"] == 1
     assert result["total_answers"] == 2
 
 
 def test_summary_doubtful_answer_validation_status_in_list(
     locked_song: MagicMock,
-    host_id: UUID,
+    host_token: str,
     room_id: UUID,
     participant_alice: tuple[UUID, MagicMock],
 ) -> None:
     alice_id, alice = participant_alice
     round_ = _round(room_id=room_id)
     locked_song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     ans = _answer(
         locked_song.id,
         alice_id,
@@ -238,7 +238,7 @@ def test_summary_doubtful_answer_validation_status_in_list(
         validation_status=ValidationStatus.DOUBTFUL.value,
     )
     sess = _session(locked_song, round_, room, [ans], [alice])
-    result = RoomService(sess).get_song_summary(locked_song.id, host_id)
+    result = RoomService(sess).get_song_summary(locked_song.id, host_token)
     assert result["answers"][0]["validation_status"] == ValidationStatus.DOUBTFUL.value
 
 
@@ -246,7 +246,7 @@ def test_summary_doubtful_answer_validation_status_in_list(
 
 
 def test_summary_returns_song_title_and_artist(
-    host_id: UUID,
+    host_token: str,
     room_id: UUID,
 ) -> None:
     song = _song()
@@ -254,23 +254,23 @@ def test_summary_returns_song_title_and_artist(
     song.artist = "Daft Punk"
     round_ = _round(room_id=room_id)
     song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     sess = _session(song, round_, room, [], [])
-    result = RoomService(sess).get_song_summary(song.id, host_id)
+    result = RoomService(sess).get_song_summary(song.id, host_token)
     assert result["title"] == "Get Lucky"
     assert result["artist"] == "Daft Punk"
 
 
 def test_summary_returns_song_id(
     locked_song: MagicMock,
-    host_id: UUID,
+    host_token: str,
     room_id: UUID,
 ) -> None:
     round_ = _round(room_id=room_id)
     locked_song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     sess = _session(locked_song, round_, room, [], [])
-    result = RoomService(sess).get_song_summary(locked_song.id, host_id)
+    result = RoomService(sess).get_song_summary(locked_song.id, host_token)
     assert result["song_id"] == locked_song.id
 
 
@@ -279,17 +279,17 @@ def test_summary_returns_song_id(
 
 def test_summary_answer_contains_raw_text_and_nickname(
     locked_song: MagicMock,
-    host_id: UUID,
+    host_token: str,
     room_id: UUID,
     participant_alice: tuple[UUID, MagicMock],
 ) -> None:
     alice_id, alice = participant_alice
     round_ = _round(room_id=room_id)
     locked_song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     ans = _answer(locked_song.id, alice_id, text="daft punk")
     sess = _session(locked_song, round_, room, [ans], [alice])
-    result = RoomService(sess).get_song_summary(locked_song.id, host_id)
+    result = RoomService(sess).get_song_summary(locked_song.id, host_token)
     item = result["answers"][0]
     assert item["text"] == "daft punk"
     assert item["nickname"] == "Alice"
@@ -298,14 +298,14 @@ def test_summary_answer_contains_raw_text_and_nickname(
 
 def test_summary_answer_contains_validation_flags(
     locked_song: MagicMock,
-    host_id: UUID,
+    host_token: str,
     room_id: UUID,
     participant_alice: tuple[UUID, MagicMock],
 ) -> None:
     alice_id, alice = participant_alice
     round_ = _round(room_id=room_id)
     locked_song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     ans = _answer(
         locked_song.id,
         alice_id,
@@ -315,7 +315,7 @@ def test_summary_answer_contains_validation_flags(
         artist_found=False,
     )
     sess = _session(locked_song, round_, room, [ans], [alice])
-    result = RoomService(sess).get_song_summary(locked_song.id, host_id)
+    result = RoomService(sess).get_song_summary(locked_song.id, host_token)
     item = result["answers"][0]
     assert item["title_found"] is True
     assert item["artist_found"] is False
@@ -329,42 +329,40 @@ def test_summary_song_not_found_raises() -> None:
     mock = MagicMock()
     mock.query.return_value.filter_by.return_value.first.return_value = None
     with pytest.raises(SongNotFoundError):
-        RoomService(mock).get_song_summary(uuid4(), uuid4())
+        RoomService(mock).get_song_summary(uuid4(), "any-token")
 
 
-def test_summary_song_still_playing_raises(host_id: UUID, room_id: UUID) -> None:
+def test_summary_song_still_playing_raises(host_token: str, room_id: UUID) -> None:
     playing = _song(status=SongStatus.PLAYING.value)
     round_ = _round(room_id=room_id)
     playing.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     sess = _session(playing, round_, room, [], [])
     with pytest.raises(SongNotLockedError):
-        RoomService(sess).get_song_summary(playing.id, host_id)
+        RoomService(sess).get_song_summary(playing.id, host_token)
 
 
-def test_summary_song_upcoming_raises(host_id: UUID, room_id: UUID) -> None:
+def test_summary_song_upcoming_raises(host_token: str, room_id: UUID) -> None:
     upcoming = _song(status=SongStatus.UPCOMING.value)
     round_ = _round(room_id=room_id)
     upcoming.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token=host_token, room_id=room_id)
     sess = _session(upcoming, round_, room, [], [])
     with pytest.raises(SongNotLockedError):
-        RoomService(sess).get_song_summary(upcoming.id, host_id)
+        RoomService(sess).get_song_summary(upcoming.id, host_token)
 
 
 def test_summary_wrong_host_raises(room_id: UUID) -> None:
-    host_id = uuid4()
-    wrong_host_id = uuid4()
     song = _song()
     round_ = _round(room_id=room_id)
     song.round_id = round_.id
-    room = _room(host_id=host_id, room_id=room_id)
+    room = _room(host_token="correct-token", room_id=room_id)
     sess = _session(song, round_, room, [], [])
     with pytest.raises(NotHostError):
-        RoomService(sess).get_song_summary(song.id, wrong_host_id)
+        RoomService(sess).get_song_summary(song.id, "wrong-token")
 
 
-def test_summary_accessible_for_later_statuses(host_id: UUID, room_id: UUID) -> None:
+def test_summary_accessible_for_later_statuses(host_token: str, room_id: UUID) -> None:
     for status in (
         SongStatus.VALIDATION.value,
         SongStatus.REVEALED.value,
@@ -373,7 +371,7 @@ def test_summary_accessible_for_later_statuses(host_id: UUID, room_id: UUID) -> 
         song = _song(status=status)
         round_ = _round(room_id=room_id)
         song.round_id = round_.id
-        room = _room(host_id=host_id, room_id=room_id)
+        room = _room(host_token=host_token, room_id=room_id)
         sess = _session(song, round_, room, [], [])
-        result = RoomService(sess).get_song_summary(song.id, host_id)
+        result = RoomService(sess).get_song_summary(song.id, host_token)
         assert result["song_id"] == song.id

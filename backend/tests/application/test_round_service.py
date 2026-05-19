@@ -22,10 +22,14 @@ class FakeMusicProvider:
         return self._tracks[:limit]
 
 
+_TEST_HOST_TOKEN = "test-host-token-round"
+
+
 def _make_room_mock(status: str = RoomStatus.WAITING.value) -> MagicMock:
     room = MagicMock(spec=RoomModel)
     room.id = uuid4()
     room.status = status
+    room.host_token = _TEST_HOST_TOKEN
     room.config = {"max_songs_per_round": 10, "answer_duration_seconds": 30}
     return room
 
@@ -51,31 +55,48 @@ def service(waiting_session: MagicMock) -> RoomService:
 
 
 def test_start_round_ok(service: RoomService, room_id: UUID) -> None:
-    result = service.start_round(room_id, "Pop 90s", FakeMusicProvider())
+    result = service.start_round(
+        room_id, _TEST_HOST_TOKEN, "Pop 90s", FakeMusicProvider()
+    )
     assert "round_id" in result
     assert isinstance(result["round_id"], UUID)
     assert result["room_id"] == room_id
     assert result["theme"] == "Pop 90s"
 
 
+def test_start_round_invalid_token_raises() -> None:
+    mock = MagicMock()
+    room = _make_room_mock()
+    mock.query.return_value.filter_by.return_value.first.return_value = room
+    mock.query.return_value.filter_by.return_value.count.return_value = 0
+    from src.domain.exceptions import InvalidHostTokenError
+
+    with pytest.raises(InvalidHostTokenError):
+        RoomService(mock).start_round(
+            room.id, "wrong-token", "Pop 90s", FakeMusicProvider()
+        )
+
+
 def test_start_round_10_songs_attached(
     service: RoomService, waiting_session: MagicMock, room_id: UUID
 ) -> None:
-    service.start_round(room_id, "Pop 90s", FakeMusicProvider())
+    service.start_round(room_id, _TEST_HOST_TOKEN, "Pop 90s", FakeMusicProvider())
     added = [call.args[0] for call in waiting_session.add.call_args_list]
     songs = [m for m in added if isinstance(m, SongModel)]
     assert len(songs) == 10
 
 
 def test_start_round_song_count_in_result(service: RoomService, room_id: UUID) -> None:
-    result = service.start_round(room_id, "Pop 90s", FakeMusicProvider())
+    result = service.start_round(
+        room_id, _TEST_HOST_TOKEN, "Pop 90s", FakeMusicProvider()
+    )
     assert result["song_count"] == 10
 
 
 def test_start_round_round_model_persisted(
     service: RoomService, waiting_session: MagicMock, room_id: UUID
 ) -> None:
-    service.start_round(room_id, "Pop 90s", FakeMusicProvider())
+    service.start_round(room_id, _TEST_HOST_TOKEN, "Pop 90s", FakeMusicProvider())
     added = [call.args[0] for call in waiting_session.add.call_args_list]
     rounds = [m for m in added if isinstance(m, RoundModel)]
     assert len(rounds) == 1
@@ -85,7 +106,7 @@ def test_start_round_round_model_persisted(
 def test_start_round_room_status_updated_to_round_in_progress(
     service: RoomService, waiting_session: MagicMock, room_id: UUID
 ) -> None:
-    service.start_round(room_id, "Pop 90s", FakeMusicProvider())
+    service.start_round(room_id, _TEST_HOST_TOKEN, "Pop 90s", FakeMusicProvider())
     room = waiting_session.query.return_value.filter_by.return_value.first.return_value
     assert room.status == RoomStatus.ROUND_IN_PROGRESS.value
 
@@ -95,7 +116,7 @@ def test_start_round_room_not_found_raises() -> None:
     mock.query.return_value.filter_by.return_value.first.return_value = None
     service = RoomService(mock)
     with pytest.raises(RoomNotFoundError):
-        service.start_round(uuid4(), "Pop 90s", FakeMusicProvider())
+        service.start_round(uuid4(), "any-token", "Pop 90s", FakeMusicProvider())
 
 
 def test_start_round_room_not_waiting_raises() -> None:
@@ -104,7 +125,7 @@ def test_start_round_room_not_waiting_raises() -> None:
     mock.query.return_value.filter_by.return_value.first.return_value = room
     service = RoomService(mock)
     with pytest.raises(RoomNotWaitingError):
-        service.start_round(room.id, "Pop 90s", FakeMusicProvider())
+        service.start_round(room.id, "any-token", "Pop 90s", FakeMusicProvider())
 
 
 def test_start_round_room_created_raises() -> None:
@@ -114,12 +135,6 @@ def test_start_round_room_created_raises() -> None:
     mock.query.return_value.filter_by.return_value.first.return_value = room
     service = RoomService(mock)
     with pytest.raises(RoomNotWaitingError):
-        service.start_round(room.id, "Pop 90s", FakeMusicProvider())
+        service.start_round(room.id, "any-token", "Pop 90s", FakeMusicProvider())
 
 
-# NOTE: No auth in MVP — host permission cannot be enforced at API level.
-# Any caller who knows the room_id can start a round.
-# Enforcement will be added when authentication is introduced (post-MVP).
-def test_start_round_no_host_auth_limit_documented() -> None:
-    """Placeholder: host-only guard is intentionally absent (no auth in MVP)."""
-    assert True

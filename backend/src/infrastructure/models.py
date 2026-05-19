@@ -21,6 +21,7 @@ class RoomModel(Base):
     code: Mapped[str] = mapped_column(String(16), unique=True, nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False)
     host_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    host_token: Mapped[str] = mapped_column(String(64), nullable=False)
     config: Mapped[Any] = mapped_column(JSONB, nullable=False)
 
 

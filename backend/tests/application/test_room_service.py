@@ -31,6 +31,9 @@ def test_create_room_returns_room_id_and_code(service: RoomService) -> None:
     assert "room_id" in result
     assert "code" in result
     assert "host_id" in result
+    assert "host_token" in result
+    assert isinstance(result["host_token"], str)
+    assert len(result["host_token"]) > 0
 
 
 def test_create_room_code_is_correct_length(service: RoomService) -> None:

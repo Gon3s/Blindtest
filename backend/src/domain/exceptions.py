@@ -54,6 +54,10 @@ class NotHostError(ValueError):
     pass
 
 
+class InvalidHostTokenError(NotHostError):
+    pass
+
+
 class AnswerNotFoundError(ValueError):
     pass
 

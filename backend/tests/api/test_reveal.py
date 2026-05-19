@@ -14,7 +14,7 @@ from src.domain.exceptions import (
 from src.infrastructure.ws_manager import RoomConnectionManager, get_ws_manager
 from src.main import app
 
-_HOST_ID = uuid4()
+_HOST_TOKEN = "valid-host-token-for-reveal"
 _SONG_ID = uuid4()
 _ROOM_ID = uuid4()
 
@@ -67,7 +67,7 @@ class _FakeRevealService:
     def override_answer(self, *a: object, **kw: object) -> dict:
         return {}
 
-    def reveal_song(self, song_id: UUID, host_id: UUID) -> dict:
+    def reveal_song(self, song_id: UUID, host_token: str) -> dict:
         if self._exc is not None:
             raise self._exc
         assert self._result is not None
@@ -92,14 +92,14 @@ def reveal_client(reveal_result: dict) -> TestClient:
 
 def test_reveal_returns_200(reveal_client: TestClient) -> None:
     response = reveal_client.post(
-        f"/songs/{_SONG_ID}/reveal", json={"host_id": str(_HOST_ID)}
+        f"/songs/{_SONG_ID}/reveal", json={"host_token": _HOST_TOKEN}
     )
     assert response.status_code == 200
 
 
 def test_reveal_returns_title_and_artist(reveal_client: TestClient) -> None:
     response = reveal_client.post(
-        f"/songs/{_SONG_ID}/reveal", json={"host_id": str(_HOST_ID)}
+        f"/songs/{_SONG_ID}/reveal", json={"host_token": _HOST_TOKEN}
     )
     data = response.json()
     assert data["title"] == "One More Time"
@@ -108,7 +108,7 @@ def test_reveal_returns_title_and_artist(reveal_client: TestClient) -> None:
 
 def test_reveal_returns_song_id_and_room_id(reveal_client: TestClient) -> None:
     response = reveal_client.post(
-        f"/songs/{_SONG_ID}/reveal", json={"host_id": str(_HOST_ID)}
+        f"/songs/{_SONG_ID}/reveal", json={"host_token": _HOST_TOKEN}
     )
     data = response.json()
     assert UUID(data["song_id"]) == _SONG_ID
@@ -117,7 +117,7 @@ def test_reveal_returns_song_id_and_room_id(reveal_client: TestClient) -> None:
 
 def test_reveal_returns_player_results_list(reveal_client: TestClient) -> None:
     response = reveal_client.post(
-        f"/songs/{_SONG_ID}/reveal", json={"host_id": str(_HOST_ID)}
+        f"/songs/{_SONG_ID}/reveal", json={"host_token": _HOST_TOKEN}
     )
     data = response.json()
     assert "player_results" in data
@@ -126,7 +126,7 @@ def test_reveal_returns_player_results_list(reveal_client: TestClient) -> None:
 
 def test_reveal_returns_mini_leaderboard_list(reveal_client: TestClient) -> None:
     response = reveal_client.post(
-        f"/songs/{_SONG_ID}/reveal", json={"host_id": str(_HOST_ID)}
+        f"/songs/{_SONG_ID}/reveal", json={"host_token": _HOST_TOKEN}
     )
     data = response.json()
     assert "mini_leaderboard" in data
@@ -152,7 +152,7 @@ def test_reveal_player_result_fields() -> None:
     try:
         client = TestClient(app)
         response = client.post(
-            f"/songs/{_SONG_ID}/reveal", json={"host_id": str(_HOST_ID)}
+            f"/songs/{_SONG_ID}/reveal", json={"host_token": _HOST_TOKEN}
         )
         item = response.json()["player_results"][0]
         assert UUID(item["participant_id"]) == pid
@@ -179,7 +179,7 @@ def test_reveal_mini_leaderboard_fields() -> None:
     try:
         client = TestClient(app)
         response = client.post(
-            f"/songs/{_SONG_ID}/reveal", json={"host_id": str(_HOST_ID)}
+            f"/songs/{_SONG_ID}/reveal", json={"host_token": _HOST_TOKEN}
         )
         item = response.json()["mini_leaderboard"][0]
         assert item["rank"] == 1
@@ -204,7 +204,7 @@ def test_reveal_broadcasts_song_revealed_event(reveal_result: dict) -> None:
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     try:
         client = TestClient(app)
-        client.post(f"/songs/{_SONG_ID}/reveal", json={"host_id": str(_HOST_ID)})
+        client.post(f"/songs/{_SONG_ID}/reveal", json={"host_token": _HOST_TOKEN})
         mock_manager.broadcast_to_room.assert_called_once()
         call_args = mock_manager.broadcast_to_room.call_args.args
         payload = call_args[1]
@@ -224,7 +224,7 @@ def test_reveal_song_not_found_returns_404() -> None:
     try:
         client = TestClient(app)
         response = client.post(
-            f"/songs/{uuid4()}/reveal", json={"host_id": str(_HOST_ID)}
+            f"/songs/{uuid4()}/reveal", json={"host_token": _HOST_TOKEN}
         )
         assert response.status_code == 404
     finally:
@@ -237,7 +237,7 @@ def test_reveal_not_revealable_returns_409() -> None:
     try:
         client = TestClient(app)
         response = client.post(
-            f"/songs/{_SONG_ID}/reveal", json={"host_id": str(_HOST_ID)}
+            f"/songs/{_SONG_ID}/reveal", json={"host_token": _HOST_TOKEN}
         )
         assert response.status_code == 409
     finally:
@@ -250,14 +250,14 @@ def test_reveal_not_host_returns_403() -> None:
     try:
         client = TestClient(app)
         response = client.post(
-            f"/songs/{_SONG_ID}/reveal", json={"host_id": str(uuid4())}
+            f"/songs/{_SONG_ID}/reveal", json={"host_token": "wrong-token"}
         )
         assert response.status_code == 403
     finally:
         app.dependency_overrides.clear()
 
 
-def test_reveal_missing_host_id_returns_422() -> None:
+def test_reveal_missing_host_token_returns_422() -> None:
     fake = _FakeRevealService(result=_make_reveal_result())
     app.dependency_overrides[get_room_service] = lambda: fake
     try:

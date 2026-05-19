@@ -11,7 +11,7 @@ from src.domain.exceptions import RoundNotInProgressError
 from src.infrastructure.ws_manager import RoomConnectionManager, get_ws_manager
 from src.main import app
 
-_HOST_ID = uuid4()
+_HOST_TOKEN = "api-next-song-host-token"
 _SONG_ID = uuid4()
 _ROOM_ID = uuid4()
 _ROUND_ID = uuid4()
@@ -81,7 +81,7 @@ class _FakeService:
     def override_answer(self, *a: object, **kw: object) -> dict:
         return {}
 
-    def reveal_song(self, song_id: UUID, host_id: UUID) -> dict:
+    def reveal_song(self, song_id: UUID, host_token: str) -> dict:
         if self._reveal_exc is not None:
             raise self._reveal_exc
         assert self._reveal_result is not None
@@ -107,7 +107,7 @@ def test_reveal_non_last_song_response_includes_round_finished_false(
     try:
         client = TestClient(app)
         data = client.post(
-            f"/songs/{_SONG_ID}/reveal", json={"host_id": str(_HOST_ID)}
+            f"/songs/{_SONG_ID}/reveal", json={"host_token": _HOST_TOKEN}
         ).json()
         assert data["round_finished"] is False
         assert data["round_leaderboard"] == []
@@ -135,7 +135,7 @@ def test_reveal_last_song_response_includes_round_finished_true(
     try:
         client = TestClient(app)
         data = client.post(
-            f"/songs/{_SONG_ID}/reveal", json={"host_id": str(_HOST_ID)}
+            f"/songs/{_SONG_ID}/reveal", json={"host_token": _HOST_TOKEN}
         ).json()
         assert data["round_finished"] is True
         assert len(data["round_leaderboard"]) == 1
@@ -156,7 +156,7 @@ def test_reveal_last_song_broadcasts_round_finished_event(
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     try:
         client = TestClient(app)
-        client.post(f"/songs/{_SONG_ID}/reveal", json={"host_id": str(_HOST_ID)})
+        client.post(f"/songs/{_SONG_ID}/reveal", json={"host_token": _HOST_TOKEN})
         calls = mock_manager.broadcast_to_room.call_args_list
         events = [c.args[1]["event"] for c in calls]
         assert "round.finished" in events
@@ -175,7 +175,7 @@ def test_reveal_non_last_song_does_not_broadcast_round_finished(
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     try:
         client = TestClient(app)
-        client.post(f"/songs/{_SONG_ID}/reveal", json={"host_id": str(_HOST_ID)})
+        client.post(f"/songs/{_SONG_ID}/reveal", json={"host_token": _HOST_TOKEN})
         calls = mock_manager.broadcast_to_room.call_args_list
         events = [c.args[1]["event"] for c in calls]
         assert "round.finished" not in events

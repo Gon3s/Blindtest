@@ -28,11 +28,12 @@ from src.infrastructure.static_fixture_provider import StaticFixtureMusicProvide
 # SQLite-compatible DDL — JSONB→TEXT, UUID→TEXT; ORM bind/result processors still work.
 _SQLITE_DDL = textwrap.dedent("""\
     CREATE TABLE rooms (
-        id       TEXT PRIMARY KEY,
-        code     VARCHAR(16)  NOT NULL UNIQUE,
-        status   VARCHAR(32)  NOT NULL,
-        host_id  TEXT         NOT NULL,
-        config   TEXT         NOT NULL
+        id          TEXT PRIMARY KEY,
+        code        VARCHAR(16)  NOT NULL UNIQUE,
+        status      VARCHAR(32)  NOT NULL,
+        host_id     TEXT         NOT NULL,
+        host_token  TEXT         NOT NULL,
+        config      TEXT         NOT NULL
     );
     CREATE TABLE teams (
         id       TEXT PRIMARY KEY,
@@ -127,7 +128,7 @@ def test_mvp_loop(svc: RoomService) -> None:
     svc._session.commit()
 
     room_id: UUID = room["room_id"]
-    host_id: UUID = room["host_id"]
+    host_token: str = room["host_token"]
     code: str = room["code"]
     assert len(code) == 6
 
@@ -137,7 +138,7 @@ def test_mvp_loop(svc: RoomService) -> None:
     player_id: UUID = join["participant_id"]
 
     # ── 3. Start round — 10 songs from fixture, no Deezer ──────────────────
-    round_result = svc.start_round(room_id, "Pop 90s", _MUSIC)
+    round_result = svc.start_round(room_id, host_token, "Pop 90s", _MUSIC)
     svc._session.commit()
     round_id: UUID = round_result["round_id"]
     assert round_result["song_count"] == 10
@@ -165,21 +166,21 @@ def test_mvp_loop(svc: RoomService) -> None:
     svc._session.commit()
 
     # ── 7. Host reviews and confirms Bob's answer ───────────────────────────
-    summary = svc.get_song_summary(song_id, host_id)
+    summary = svc.get_song_summary(song_id, host_token)
     assert summary["total_answers"] == 1
     assert summary["answers"][0]["title_found"] is True
 
     svc.override_answer(
         song_id,
         summary["answers"][0]["answer_id"],
-        host_id,
+        host_token,
         title_accepted=True,
         artist_accepted=True,
     )
     svc._session.commit()
 
     # ── 8. Reveal song — mini-leaderboard shows Bob's points ────────────────
-    reveal = svc.reveal_song(song_id, host_id)
+    reveal = svc.reveal_song(song_id, host_token)
     svc._session.commit()
 
     assert reveal["title"] == song0_title
@@ -198,7 +199,7 @@ def test_mvp_loop(svc: RoomService) -> None:
         svc._session.commit()
         svc.lock_song(s["song_id"])
         svc._session.commit()
-        final = svc.reveal_song(s["song_id"], host_id)
+        final = svc.reveal_song(s["song_id"], host_token)
         svc._session.commit()
         if final["round_finished"]:
             break
@@ -210,7 +211,7 @@ def test_mvp_loop(svc: RoomService) -> None:
     assert final["round_leaderboard"][0]["round_points"] > 0
 
     # ── 10. Restart with a different theme ──────────────────────────────────
-    restart = svc.restart_round(room_id, "French", _MUSIC)
+    restart = svc.restart_round(room_id, host_token, "French", _MUSIC)
     svc._session.commit()
     assert restart["song_count"] == 10
     assert restart["theme"] == "French"
