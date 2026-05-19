@@ -226,18 +226,66 @@ Après chaque session :
 
 ---
 
-## 📞 Questions
+---
 
-**Avant de commencer T-008** :
+## 🦴 Caveman — Compression verbosité IA (~65% tokens)
+
+Caveman est un outil **global poste** (pas de dépendance applicative) qui réduit la verbosité des réponses Claude Code en langage fragmenté compressé.
+
+### Installation (une fois par machine)
+
+Prérequis : Node ≥18 (`node --version`).
+
+```bash
+npx -y "github:JuliusBrussee/caveman"
+```
+
+> Note : la commande `curl | bash` officielle est interceptée par RTK dans ce projet — utiliser `npx` directement.
+
+L'installateur est idempotent. Il installe :
+- un plugin Claude Code (via marketplace)
+- des hooks dans `~/.claude/hooks/`
+- un proxy MCP `caveman-shrink`
+
+### Désinstallation
+
+```bash
+npx -y "github:JuliusBrussee/caveman" -- --uninstall
+```
+
+### Activation
+
+- **Claude Code** : auto-activé à chaque session après installation.
+- **Autres agents** : taper `/caveman` ou "talk like caveman".
+
+Niveaux disponibles : `lite`, `full`, `ultra`, `wenyan` (du moins au plus compressé).
+
+### Désactivation
+
+Dire "**normal mode**" dans la session pour revenir au mode verbeux standard.
+
+### Quand NE PAS utiliser Caveman
+
+| Contexte | Raison |
+|----------|--------|
+| Specs TDD / critères d'acceptation | Le détail est obligatoire pour l'exactitude |
+| Décisions produit / architecture | Nuance et justification nécessaires |
+| `/new-ticket` (description Notion) | Les tickets doivent être complets et lisibles |
+| `/review` (go/no-go) | Feedback clair, pas de compression |
+| Débogage d'erreurs complexes | Les stack traces et explications doivent rester intactes |
+
+Caveman est utile pour : navigation de code, récapitulatifs rapides, confirmations simples.
+
+---
+
+## 📞 Questions
 
 - [ ] Tu comprends le workflow batch ?
 - [ ] Tu as des questions sur Haiku vs Sonnet ?
 - [ ] Tu veux tester sur 1-2 tickets d'abord ?
 
-**Dis-moi et on y va !** 🚀
-
 ---
 
 **Created** : Après Sprint 0  
-**Version** : 1.0  
+**Version** : 1.1  
 **Status** : Ready for T-008+

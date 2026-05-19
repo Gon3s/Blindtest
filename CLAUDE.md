@@ -79,70 +79,28 @@ Un ticket est **Done** ssi :
 6. ✅ Doc utile mise à jour
 7. ✅ Zéro dérive hors MVP
 
+### Workflow Ticket Notion (obligatoire)
+
+Dès qu'un ticket est pris en charge, mettre à jour son statut dans Notion via MCP :
+
+| Moment | Statut Notion |
+|--------|--------------|
+| Début de travail | **In Progress** |
+| Blocage identifié | **Blocked** + note du blocage dans le ticket |
+| check.sh vert + tests OK | **Done** |
+
 ### Principes Core
 
 - **MVP First** : Si c'est pas dans le backlog MVP validé, c'est non.
 - **TDD Strict** : Jamais de code sans test d'abord.
-- **Notion = Source de vérité** : Chaque décision → Notion update.
+- **Notion = Source de vérité** : Chaque décision → Notion update (statut ticket inclus).
 - **WebSocket Ready** : Dès Sprint 0, penser broadcast temps réel.
 - **Docker First** : Dev en Docker Compose, zéro "works on my machine".
 - **Typage strict** : Mypy `--strict`, TypeScript `strict: true`.
 
 ## 📋 Tickets
 
-### Sprint 0 — Infra ✅ Done
-
-| Ticket | Titre | Status |
-|--------|-------|--------|
-| T-001 | Initialiser le monorepo | ✅ Done |
-| T-002 | Configurer Claude Code et agents | ✅ Done |
-| T-003 | Initialiser FastAPI avec uv | ✅ Done |
-| T-004 | Initialiser Angular 21 | ✅ Done |
-| T-005 | Configurer Docker Compose local | ✅ Done |
-| T-006 | Configurer PostgreSQL + migrations | ✅ Done |
-| T-007 | Créer les scripts qualité | ✅ Done |
-
-### Sprint 1 — Domaine métier ✅ Done
-
-| Ticket | Titre | Status |
-|--------|-------|--------|
-| T-008 | Entités domaine (Room, Participant, Song) | ✅ Done |
-| T-009 | State machine Room | ✅ Done |
-| T-010 | State machine Song | ✅ Done |
-| T-011 | Normalisation de réponse | ✅ Done |
-| T-012 | Validation laxiste V0 | ✅ Done |
-| T-013 | Scoring chanson | ✅ Done |
-| T-014 | Classements | ✅ Done |
-
-### Sprint 2 — API salle/lobby ✅ Done
-
-| Ticket | Titre | Status |
-|--------|-------|--------|
-| T-015 | Créer les tables MVP | ✅ Done |
-| T-016 | API créer une salle | ✅ Done |
-| T-017 | API rejoindre une salle | ✅ Done |
-| T-018 | Front accueil / créer / rejoindre | ✅ Done |
-| T-019 | WebSocket salle et lobby | ✅ Done |
-| T-020 | Front lobby host et attente joueur | ✅ Done |
-
-### Sprint 3 — Jeu en cours ✅ Done
-
-| Ticket | Titre | Status |
-|--------|-------|--------|
-| T-025 | API et realtime chanson/timer | ✅ Done |
-| T-026 | Front écran joueur pendant chanson | ✅ Done |
-| T-028 | Front envoi réponse et feedback joueur | ✅ Done |
-| T-029 | API vue maître du jeu après timer | ✅ Done |
-| T-030 | API correction maître du jeu | ✅ Done |
-| T-031 | Front vue maître du jeu après timer | ✅ Done |
-| T-032 | API révélation chanson + mini-classement | ✅ Done |
-| T-033 | Front reveal — bonne réponse, points, mini-classement | ✅ Done |
-| T-034 | API enchaîner les 10 chansons | ✅ Done |
-| T-035 | Front classement de manche | ✅ Done |
-| T-036 | API relancer une manche | ✅ Done |
-| T-037 | Front nouvelle manche | ✅ Done |
-| T-042 | Lecture preview audio pendant la chanson | ✅ Done |
-| T-038 | Parcours E2E principal | ✅ Done |
+> Sprints 0–3 terminés. Détail complet → [Notion](https://www.notion.so/40d4d409532a4ff9b0403423eb1484b1)
 
 ### Sprint 4 — Design & UX Polish
 
