@@ -4,7 +4,15 @@ from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -85,8 +93,11 @@ class SongModel(Base):
 
 class AnswerModel(Base):
     __tablename__ = "answers"
-    # MVP: multiple submissions per (song_id, participant_id) allowed — last wins.
-    # TODO: upsert + UniqueConstraint("song_id", "participant_id") when scoring lands.
+    __table_args__ = (
+        UniqueConstraint(
+            "song_id", "participant_id", name="uq_answers_song_participant"
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
     song_id: Mapped[UUID] = mapped_column(

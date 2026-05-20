@@ -15,7 +15,7 @@ from src.domain.exceptions import (
     SongNotLockableError,
     SongNotPlayableError,
 )
-from src.infrastructure.models import RoomModel, RoundModel, SongModel
+from src.infrastructure.models import AnswerModel, RoomModel, RoundModel, SongModel
 
 
 class FakeClock:
@@ -408,7 +408,49 @@ def _make_playing_song() -> MagicMock:
 
 def _session_for_answer(song: MagicMock) -> MagicMock:
     mock = MagicMock()
-    mock.query.return_value.filter_by.return_value.first.return_value = song
+
+    def _query(model: type) -> MagicMock:
+        q = MagicMock()
+        if model is SongModel:
+            q.filter_by.return_value.first.return_value = song
+        else:
+            q.filter_by.return_value.first.return_value = None
+        return q
+
+    mock.query.side_effect = _query
+    return mock
+
+
+def _make_existing_answer(song_id: UUID, participant_id: UUID) -> MagicMock:
+    a = MagicMock(spec=AnswerModel)
+    a.id = uuid4()
+    a.song_id = song_id
+    a.participant_id = participant_id
+    a.text = "old text"
+    a.submitted_at = _FIXED_NOW - timedelta(seconds=5)
+    a.title_found = False
+    a.artist_found = False
+    a.validation_status = ValidationStatus.NOT_FOUND.value
+    a.host_override = None
+    return a
+
+
+def _session_for_answer_upsert(
+    song: MagicMock, existing: MagicMock | None
+) -> MagicMock:
+    mock = MagicMock()
+
+    def _query(model: type) -> MagicMock:
+        q = MagicMock()
+        if model is SongModel:
+            q.filter_by.return_value.first.return_value = song
+        elif model is AnswerModel:
+            q.filter_by.return_value.first.return_value = existing
+        else:
+            q.filter_by.return_value.first.return_value = None
+        return q
+
+    mock.query.side_effect = _query
     return mock
 
 
@@ -492,3 +534,79 @@ def test_submit_answer_validation_status_doubtful_on_fuzzy_artist() -> None:
     assert result["validation_status"] == ValidationStatus.DOUBTFUL.value
     assert result["title_found"] is False
     assert result["artist_found"] is False
+
+
+# ── submit_answer upsert ───────────────────────────────────────────────────────
+
+
+def test_submit_answer_first_submission_inserts_new_row() -> None:
+    song = _make_playing_song()
+    participant_id = uuid4()
+    mock = _session_for_answer_upsert(song, None)
+    service = RoomService(mock, clock=FakeClock(_FIXED_NOW))
+    result = service.submit_answer(song.id, participant_id, "daft punk")
+    mock.add.assert_called_once()
+    assert isinstance(result["answer_id"], UUID)
+
+
+def test_submit_answer_second_submission_returns_same_answer_id() -> None:
+    song = _make_playing_song()
+    participant_id = uuid4()
+    existing = _make_existing_answer(song.id, participant_id)
+    mock = _session_for_answer_upsert(song, existing)
+    service = RoomService(mock, clock=FakeClock(_FIXED_NOW))
+    result = service.submit_answer(song.id, participant_id, "daft punk")
+    assert result["answer_id"] == existing.id
+
+
+def test_submit_answer_second_submission_does_not_add_new_row() -> None:
+    song = _make_playing_song()
+    participant_id = uuid4()
+    existing = _make_existing_answer(song.id, participant_id)
+    mock = _session_for_answer_upsert(song, existing)
+    service = RoomService(mock, clock=FakeClock(_FIXED_NOW))
+    service.submit_answer(song.id, participant_id, "daft punk")
+    mock.add.assert_not_called()
+
+
+def test_submit_answer_second_submission_updates_text() -> None:
+    song = _make_playing_song()
+    participant_id = uuid4()
+    existing = _make_existing_answer(song.id, participant_id)
+    mock = _session_for_answer_upsert(song, existing)
+    service = RoomService(mock, clock=FakeClock(_FIXED_NOW))
+    service.submit_answer(song.id, participant_id, "One More Time")
+    assert existing.text == "One More Time"
+
+
+def test_submit_answer_second_submission_updates_submitted_at() -> None:
+    song = _make_playing_song()
+    participant_id = uuid4()
+    existing = _make_existing_answer(song.id, participant_id)
+    mock = _session_for_answer_upsert(song, existing)
+    service = RoomService(mock, clock=FakeClock(_FIXED_NOW))
+    service.submit_answer(song.id, participant_id, "daft punk")
+    assert existing.submitted_at == _FIXED_NOW
+
+
+def test_submit_answer_second_submission_updates_validation() -> None:
+    song = _make_playing_song()
+    participant_id = uuid4()
+    existing = _make_existing_answer(song.id, participant_id)
+    mock = _session_for_answer_upsert(song, existing)
+    service = RoomService(mock, clock=FakeClock(_FIXED_NOW))
+    result = service.submit_answer(song.id, participant_id, "daft punk")
+    assert existing.artist_found is True
+    assert existing.validation_status == ValidationStatus.FOUND.value
+    assert result["artist_found"] is True
+
+
+def test_submit_answer_second_submission_resets_host_override() -> None:
+    song = _make_playing_song()
+    participant_id = uuid4()
+    existing = _make_existing_answer(song.id, participant_id)
+    existing.host_override = ValidationStatus.FOUND.value
+    mock = _session_for_answer_upsert(song, existing)
+    service = RoomService(mock, clock=FakeClock(_FIXED_NOW))
+    service.submit_answer(song.id, participant_id, "totally wrong answer zzz")
+    assert existing.host_override is None

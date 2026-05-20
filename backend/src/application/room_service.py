@@ -485,21 +485,37 @@ class RoomService:
         else:
             overall = ValidationStatus.NOT_FOUND
 
-        answer_id = uuid4()
-        self._session.add(
-            AnswerModel(
-                id=answer_id,
-                song_id=song_id,
-                participant_id=participant_id,
-                text=text,
-                submitted_at=now,
-                title_found=title_found,
-                artist_found=artist_found,
-                validation_status=overall.value,
-                host_override=None,
-            )
+        existing = (
+            self._session.query(AnswerModel)
+            .filter_by(song_id=song_id, participant_id=participant_id)
+            .first()
         )
-        self._session.flush()
+
+        if existing is not None:
+            existing.text = text
+            existing.submitted_at = now
+            existing.title_found = title_found
+            existing.artist_found = artist_found
+            existing.validation_status = overall.value
+            existing.host_override = None
+            self._session.flush()
+            answer_id = existing.id
+        else:
+            answer_id = uuid4()
+            self._session.add(
+                AnswerModel(
+                    id=answer_id,
+                    song_id=song_id,
+                    participant_id=participant_id,
+                    text=text,
+                    submitted_at=now,
+                    title_found=title_found,
+                    artist_found=artist_found,
+                    validation_status=overall.value,
+                    host_override=None,
+                )
+            )
+            self._session.flush()
 
         return SubmitAnswerResult(
             answer_id=answer_id,
