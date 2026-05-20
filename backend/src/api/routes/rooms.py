@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy.orm import Session, sessionmaker
 
 from src.api.deps import (
@@ -23,16 +23,6 @@ from src.api.schemas.rooms import (
     StartRoundResponse,
 )
 from src.application.room_service import RoomService
-from src.domain.exceptions import (
-    NicknameAlreadyTakenError,
-    NotHostError,
-    RoomNotFinishedRoundError,
-    RoomNotFoundError,
-    RoomNotJoinableError,
-    RoomNotWaitingError,
-    SongNotFoundError,
-    SongNotPlayableError,
-)
 from src.domain.music_provider import MusicProvider
 from src.infrastructure.deezer_music_provider import DeezerMusicProvider
 from src.infrastructure.ws_manager import RoomConnectionManager, get_ws_manager
@@ -49,10 +39,7 @@ def get_room_state(
     code: str,
     service: RoomService = Depends(get_room_service),
 ) -> GetRoomStateResponse:
-    try:
-        result = service.get_room_state(code)
-    except RoomNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+    result = service.get_room_state(code)
 
     current_song = None
     if result["current_song"] is not None:
@@ -103,12 +90,7 @@ async def join_room(
     service: RoomService = Depends(get_room_service),
     manager: RoomConnectionManager = Depends(get_ws_manager),
 ) -> JoinRoomResponse:
-    try:
-        result = service.join_room(code, payload.nickname)
-    except RoomNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
-    except (RoomNotJoinableError, NicknameAlreadyTakenError) as exc:
-        raise HTTPException(status_code=409, detail=str(exc))
+    result = service.join_room(code, payload.nickname)
     await manager.broadcast_to_room(
         result["room_id"],
         {
@@ -140,21 +122,10 @@ async def start_round(
     session_factory: sessionmaker[Session] = Depends(get_db_factory),
     sleep_fn: SleepFn = Depends(get_sleep),
 ) -> StartRoundResponse:
-    try:
-        result = service.start_round(
-            room_id, payload.host_token, payload.theme, music_provider
-        )
-    except RoomNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
-    except RoomNotWaitingError as exc:
-        raise HTTPException(status_code=409, detail=str(exc))
-    except NotHostError as exc:
-        raise HTTPException(status_code=403, detail=str(exc))
-
-    try:
-        song_result = service.start_song(result["round_id"], 0)
-    except (SongNotFoundError, SongNotPlayableError) as exc:
-        raise HTTPException(status_code=409, detail=str(exc))
+    result = service.start_round(
+        room_id, payload.host_token, payload.theme, music_provider
+    )
+    song_result = service.start_song(result["round_id"], 0)
 
     db.commit()
 
@@ -217,21 +188,10 @@ async def restart_round(
     session_factory: sessionmaker[Session] = Depends(get_db_factory),
     sleep_fn: SleepFn = Depends(get_sleep),
 ) -> StartRoundResponse:
-    try:
-        result = service.restart_round(
-            room_id, payload.host_token, payload.theme, music_provider
-        )
-    except RoomNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
-    except RoomNotFinishedRoundError as exc:
-        raise HTTPException(status_code=409, detail=str(exc))
-    except NotHostError as exc:
-        raise HTTPException(status_code=403, detail=str(exc))
-
-    try:
-        song_result = service.start_song(result["round_id"], 0)
-    except (SongNotFoundError, SongNotPlayableError) as exc:
-        raise HTTPException(status_code=409, detail=str(exc))
+    result = service.restart_round(
+        room_id, payload.host_token, payload.theme, music_provider
+    )
+    song_result = service.start_song(result["round_id"], 0)
 
     db.commit()
 

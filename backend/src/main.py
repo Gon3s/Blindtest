@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from src.api.error_handlers import HANDLED_EXCEPTIONS, domain_exception_handler
 from src.api.routes.health import router as health_router
 from src.api.routes.rooms import router as rooms_router
 from src.api.routes.songs import router as songs_router
@@ -25,6 +26,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+for _exc_class in HANDLED_EXCEPTIONS:
+    app.add_exception_handler(_exc_class, domain_exception_handler)
 
 app.include_router(health_router)
 app.include_router(rooms_router)

@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy.orm import Session, sessionmaker
 
 from src.api.deps import (
@@ -27,18 +27,6 @@ from src.api.schemas.songs import (
     SubmitAnswerResponse,
 )
 from src.application.room_service import RoomService
-from src.domain.exceptions import (
-    AnswerNotFoundError,
-    NotHostError,
-    RoundNotFoundError,
-    RoundNotInProgressError,
-    SongNotAcceptingAnswersError,
-    SongNotCorrectableError,
-    SongNotFoundError,
-    SongNotLockedError,
-    SongNotPlayableError,
-    SongNotRevealableError,
-)
 from src.infrastructure.ws_manager import RoomConnectionManager, get_ws_manager
 
 router = APIRouter()
@@ -59,16 +47,7 @@ async def start_song(
     session_factory: sessionmaker[Session] = Depends(get_db_factory),
     sleep_fn: SleepFn = Depends(get_sleep),
 ) -> StartSongResponse:
-    try:
-        result = service.start_song(round_id, song_index)
-    except RoundNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
-    except RoundNotInProgressError as exc:
-        raise HTTPException(status_code=409, detail=str(exc))
-    except SongNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
-    except SongNotPlayableError as exc:
-        raise HTTPException(status_code=409, detail=str(exc))
+    result = service.start_song(round_id, song_index)
 
     db.commit()
 
@@ -119,12 +98,7 @@ async def submit_answer(
     body: SubmitAnswerRequest,
     service: RoomService = Depends(get_room_service),
 ) -> SubmitAnswerResponse:
-    try:
-        result = service.submit_answer(song_id, body.participant_id, body.text)
-    except SongNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
-    except SongNotAcceptingAnswersError as exc:
-        raise HTTPException(status_code=409, detail=str(exc))
+    result = service.submit_answer(song_id, body.participant_id, body.text)
 
     return SubmitAnswerResponse(
         answer_id=result["answer_id"],
@@ -146,22 +120,13 @@ def override_answer(
     body: OverrideAnswerRequest,
     service: RoomService = Depends(get_room_service),
 ) -> OverrideAnswerResponse:
-    try:
-        result = service.override_answer(
-            song_id,
-            answer_id,
-            body.host_token,
-            body.title_accepted,
-            body.artist_accepted,
-        )
-    except SongNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
-    except AnswerNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
-    except SongNotCorrectableError as exc:
-        raise HTTPException(status_code=409, detail=str(exc))
-    except NotHostError as exc:
-        raise HTTPException(status_code=403, detail=str(exc))
+    result = service.override_answer(
+        song_id,
+        answer_id,
+        body.host_token,
+        body.title_accepted,
+        body.artist_accepted,
+    )
 
     return OverrideAnswerResponse(
         answer_id=result["answer_id"],
@@ -182,14 +147,7 @@ def get_song_summary(
     body: SongSummaryRequest,
     service: RoomService = Depends(get_room_service),
 ) -> SongSummaryResponse:
-    try:
-        result = service.get_song_summary(song_id, body.host_token)
-    except SongNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
-    except SongNotLockedError as exc:
-        raise HTTPException(status_code=409, detail=str(exc))
-    except NotHostError as exc:
-        raise HTTPException(status_code=403, detail=str(exc))
+    result = service.get_song_summary(song_id, body.host_token)
 
     return SongSummaryResponse(
         song_id=result["song_id"],
@@ -212,14 +170,7 @@ async def reveal_song(
     service: RoomService = Depends(get_room_service),
     manager: RoomConnectionManager = Depends(get_ws_manager),
 ) -> RevealSongResponse:
-    try:
-        result = service.reveal_song(song_id, body.host_token)
-    except SongNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
-    except SongNotRevealableError as exc:
-        raise HTTPException(status_code=409, detail=str(exc))
-    except NotHostError as exc:
-        raise HTTPException(status_code=403, detail=str(exc))
+    result = service.reveal_song(song_id, body.host_token)
 
     await manager.broadcast_to_room(
         result["room_id"],

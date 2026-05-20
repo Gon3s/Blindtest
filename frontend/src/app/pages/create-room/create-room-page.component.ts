@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { ErrorService } from '../../services/error.service';
 import { RoomService } from '../../services/room.service';
 import { SessionService } from '../../services/session.service';
 
@@ -20,6 +21,7 @@ export class CreateRoomPageComponent {
   private readonly roomService = inject(RoomService);
   private readonly router = inject(Router);
   private readonly sessionService = inject(SessionService);
+  private readonly errorService = inject(ErrorService);
 
   submit(): void {
     const name = this.nickname.trim();
@@ -40,8 +42,8 @@ export class CreateRoomPageComponent {
           state: { room_id: res.room_id, host_id: res.host_id, role: 'host', nickname: name },
         });
       },
-      error: (err: { error?: { detail?: string } }) => {
-        this.error.set(err?.error?.detail ?? 'Erreur lors de la création de la salle');
+      error: (err: { error?: { code?: string; message?: string; detail?: string } }) => {
+        this.error.set(this.errorService.fromHttpError(err));
         this.loading.set(false);
       },
     });

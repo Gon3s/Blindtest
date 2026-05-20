@@ -22,12 +22,14 @@ const BASE_ENDS = new Date('2026-01-01T12:00:30.000Z'); // 30s later
 
 function createWsMock() {
   const msgs = new Subject<WsEvent>();
+  const connErrors = new Subject<string>();
   const service = {
     connect: vi.fn(),
     disconnect: vi.fn(),
     messages$: msgs.asObservable() as Observable<WsEvent>,
+    connectionError$: connErrors.asObservable() as Observable<string>,
   };
-  return { service, msgs };
+  return { service, msgs, connErrors };
 }
 
 const noopRoomService = { submitAnswer: vi.fn() };
@@ -45,7 +47,7 @@ interface SetupOpts {
 }
 
 async function configureTestBed(opts: SetupOpts = {}) {
-  const { service, msgs } = createWsMock();
+  const { service, msgs, connErrors } = createWsMock();
 
   history.replaceState(
     {
@@ -73,7 +75,7 @@ async function configureTestBed(opts: SetupOpts = {}) {
     ],
   }).compileComponents();
 
-  return { service, msgs };
+  return { service, msgs, connErrors };
 }
 
 function mountFixture(): ComponentFixture<PlayPageComponent> {
@@ -252,6 +254,18 @@ describe('PlayPageComponent — WebSocket connection', () => {
     const { service } = await configureTestBed();
     mountFixture();
     expect(service.connect).toHaveBeenCalledWith('room-uuid');
+  });
+
+  it('should set connectionError signal on WS disconnect', async () => {
+    const { connErrors } = await configureTestBed();
+    const fixture = mountFixture();
+
+    connErrors.next('Connexion perdue. Actualise la page pour rejoindre.');
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.connectionError()).toBe(
+      'Connexion perdue. Actualise la page pour rejoindre.',
+    );
   });
 
   it('should redirect to / if no room_id and no code in state', async () => {
@@ -592,7 +606,7 @@ describe('PlayPageComponent — submit errors', () => {
       .querySelector<HTMLButtonElement>('[data-testid="submit-btn"]')
       ?.click();
 
-    submitSubject.error({ status: 409 });
+    submitSubject.error({ status: 409, error: { code: 'answer_too_late', message: 'Trop tard ! La chanson est terminée.' } });
     fixture.detectChanges();
 
     const errorEl = (fixture.nativeElement as HTMLElement).querySelector(

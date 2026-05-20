@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { ErrorService } from '../../services/error.service';
 import { RoomService } from '../../services/room.service';
 import { SessionService } from '../../services/session.service';
 
@@ -21,6 +22,7 @@ export class JoinRoomPageComponent {
   private readonly roomService = inject(RoomService);
   private readonly router = inject(Router);
   private readonly sessionService = inject(SessionService);
+  private readonly errorService = inject(ErrorService);
 
   submit(): void {
     const code = this.code.trim().toUpperCase();
@@ -41,8 +43,8 @@ export class JoinRoomPageComponent {
           state: { room_id: res.room_id, participant_id: res.participant_id, role: 'player', nickname },
         });
       },
-      error: (err: { error?: { detail?: string } }) => {
-        this.error.set(err?.error?.detail ?? 'Erreur lors de la connexion à la salle');
+      error: (err: { error?: { code?: string; message?: string; detail?: string } }) => {
+        this.error.set(this.errorService.fromHttpError(err));
         this.loading.set(false);
       },
     });

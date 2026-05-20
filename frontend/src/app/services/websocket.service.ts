@@ -1,6 +1,7 @@
-import { Injectable, OnDestroy } from '@angular/core';
+import { inject, Injectable, OnDestroy } from '@angular/core';
 import { Subject } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { ErrorService } from './error.service';
 
 export interface Participant {
   participant_id: string;
@@ -93,13 +94,25 @@ export interface WsEvent {
 export class WebSocketService implements OnDestroy {
   private socket?: WebSocket;
   private readonly _messages = new Subject<WsEvent>();
+  private readonly _connectionError = new Subject<string>();
+  private readonly errorService = inject(ErrorService);
+
   readonly messages$ = this._messages.asObservable();
+  readonly connectionError$ = this._connectionError.asObservable();
 
   connect(roomId: string): void {
     this.disconnect();
     this.socket = new WebSocket(`${environment.wsBaseUrl}/ws/rooms/${roomId}`);
     this.socket.onmessage = ({ data }) => {
       this._messages.next(JSON.parse(data as string) as WsEvent);
+    };
+    this.socket.onclose = (event) => {
+      if (!event.wasClean) {
+        this._connectionError.next(this.errorService.wsDisconnected);
+      }
+    };
+    this.socket.onerror = () => {
+      this._connectionError.next(this.errorService.wsDisconnected);
     };
   }
 

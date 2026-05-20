@@ -12,6 +12,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AudioService } from '../../services/audio.service';
+import { ErrorService } from '../../services/error.service';
 import {
   AnswerSummaryItem,
   MiniLeaderboardItem,
@@ -70,6 +71,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly audioService = inject(AudioService);
+  private readonly errorService = inject(ErrorService);
 
   readonly songIndex = signal(0);
   readonly totalSongs = signal(10);
@@ -78,6 +80,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   readonly answer = signal('');
   readonly feedback = signal<FeedbackState>('none');
   readonly submitError = signal<string | null>(null);
+  readonly connectionError = signal<string | null>(null);
   readonly isHost = signal(false);
   readonly songSummary = signal<SongSummaryResponse | null>(null);
   readonly revealData = signal<SongRevealedData | null>(null);
@@ -125,6 +128,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   private participantId = '';
   private hostId = '';
   private subscription?: Subscription;
+  private wsErrorSubscription?: Subscription;
   private timerInterval?: ReturnType<typeof setInterval>;
   private endsAt = new Date();
   private roomId = '';
@@ -172,6 +176,10 @@ export class PlayPageComponent implements OnInit, OnDestroy {
     this.startTimer();
 
     this.wsService.connect(this.roomId);
+    this.wsErrorSubscription = this.wsService.connectionError$.subscribe((msg) => {
+      this.connectionError.set(msg);
+      this.cdr.markForCheck();
+    });
     this.subscription = this.wsService.messages$.subscribe((event: WsEvent) => {
       if (event.event === 'song.started') {
         const d = event.data as SongStartedData;
@@ -214,6 +222,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
     this.stopTimer();
     this.audioService.stop();
     this.subscription?.unsubscribe();
+    this.wsErrorSubscription?.unsubscribe();
     this.wsService.disconnect();
   }
 
@@ -238,8 +247,8 @@ export class PlayPageComponent implements OnInit, OnDestroy {
         }
         this.cdr.markForCheck();
       },
-      error: (err: { status?: number }) => {
-        this.submitError.set(err.status === 409 ? 'Trop tard !' : "Erreur lors de l'envoi.");
+      error: (err: { error?: { code?: string; message?: string; detail?: string } }) => {
+        this.submitError.set(this.errorService.fromHttpError(err));
         this.cdr.markForCheck();
       },
     });
