@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { RoomService } from '../../services/room.service';
+import { SessionService } from '../../services/session.service';
 
 @Component({
   selector: 'app-join-room-page',
@@ -19,6 +20,7 @@ export class JoinRoomPageComponent {
 
   private readonly roomService = inject(RoomService);
   private readonly router = inject(Router);
+  private readonly sessionService = inject(SessionService);
 
   submit(): void {
     const code = this.code.trim().toUpperCase();
@@ -28,6 +30,13 @@ export class JoinRoomPageComponent {
     this.error.set(null);
     this.roomService.joinRoom(code, nickname).subscribe({
       next: res => {
+        this.sessionService.saveSession({
+          roomCode: code,
+          roomId: res.room_id,
+          role: 'player',
+          participantId: res.participant_id,
+          nickname,
+        });
         this.router.navigate(['/lobby', code], {
           state: { room_id: res.room_id, participant_id: res.participant_id, role: 'player', nickname },
         });

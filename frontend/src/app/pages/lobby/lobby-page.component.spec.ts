@@ -1,10 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter, ActivatedRoute } from '@angular/router';
+import { provideRouter, ActivatedRoute, Router } from '@angular/router';
 import { Observable, Subject } from 'rxjs';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { LobbyPageComponent } from './lobby-page.component';
 import { AudioService } from '../../services/audio.service';
 import { RoomService } from '../../services/room.service';
+import { SessionService } from '../../services/session.service';
 import { WebSocketService, WsEvent } from '../../services/websocket.service';
 
 function createWsMock() {
@@ -230,6 +231,139 @@ describe('LobbyPageComponent — audio (T-042)', () => {
   it('should NOT call audioService.play() on component init', async () => {
     const { audioService } = await setup('player', 'Charlie');
     expect(audioService.play).not.toHaveBeenCalled();
+  });
+});
+
+describe('LobbyPageComponent — T-056 reconnection', () => {
+  const SESSION_KEY = 'blindtest_session';
+
+  function buildSession(role: 'host' | 'player') {
+    return JSON.stringify({
+      roomCode: 'ABC123',
+      roomId: 'room-uuid',
+      role,
+      participantId: role === 'host' ? 'host-uuid' : 'player-uuid',
+      nickname: 'Alice',
+    });
+  }
+
+  async function setupReconnect(
+    role: 'host' | 'player',
+    roomStatus = 'waiting',
+    currentSong: object | null = null,
+    failWith?: { status: number },
+  ) {
+    history.replaceState({}, '');
+    localStorage.setItem(SESSION_KEY, buildSession(role));
+
+    const { service: wsService, msgs } = createWsMock();
+    const audioService = createAudioMock();
+    const roomService = {
+      startRound: vi.fn().mockReturnValue(of({})),
+      getRoomState: failWith
+        ? vi.fn().mockReturnValue(throwError(() => failWith))
+        : vi.fn().mockReturnValue(
+            of({
+              room_id: 'room-uuid',
+              code: 'ABC123',
+              status: roomStatus,
+              participants: [],
+              current_song: currentSong,
+            }),
+          ),
+    };
+    const sessionService = {
+      loadSession: vi.fn().mockReturnValue(JSON.parse(buildSession(role))),
+      clearSession: vi.fn(),
+      saveSession: vi.fn(),
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [LobbyPageComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            paramMap: of({ get: (k: string) => (k === 'code' ? 'ABC123' : null) }),
+          },
+        },
+        { provide: WebSocketService, useValue: wsService },
+        { provide: AudioService, useValue: audioService },
+        { provide: RoomService, useValue: roomService },
+        { provide: SessionService, useValue: sessionService },
+      ],
+    }).compileComponents();
+
+    const fixture: ComponentFixture<LobbyPageComponent> = TestBed.createComponent(LobbyPageComponent);
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigate');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    return { fixture, wsService, msgs, router, navigateSpy, roomService, sessionService };
+  }
+
+  afterEach(() => {
+    history.replaceState(null, '');
+    localStorage.clear();
+    TestBed.resetTestingModule();
+  });
+
+  it('restores player context from localStorage when history.state has no room_id', async () => {
+    const { fixture } = await setupReconnect('player');
+    expect(fixture.componentInstance.nickname()).toBe('Alice');
+    expect(fixture.componentInstance.isHost()).toBe(false);
+  });
+
+  it('restores host context from localStorage when history.state has no room_id', async () => {
+    const { fixture } = await setupReconnect('host');
+    expect(fixture.componentInstance.nickname()).toBe('Alice');
+    expect(fixture.componentInstance.isHost()).toBe(true);
+  });
+
+  it('reconnects WebSocket from localStorage session', async () => {
+    const { wsService } = await setupReconnect('player');
+    expect(wsService.connect).toHaveBeenCalledWith('room-uuid');
+  });
+
+  it('shows error message when room not found (404)', async () => {
+    const { fixture } = await setupReconnect('player', 'waiting', null, { status: 404 });
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid="session-error"]')).not.toBeNull();
+  });
+
+  it('clears session when room returns 404', async () => {
+    const { sessionService } = await setupReconnect('player', 'waiting', null, { status: 404 });
+    expect(sessionService.clearSession).toHaveBeenCalled();
+  });
+
+  it('does not clear session on transient network error', async () => {
+    const { sessionService } = await setupReconnect('player', 'waiting', null, { status: 503 });
+    expect(sessionService.clearSession).not.toHaveBeenCalled();
+  });
+
+  it('redirects to /play/:code when round is in progress with current_song', async () => {
+    const currentSong = {
+      song_id: 'song-uuid',
+      song_index: 1,
+      round_id: 'round-uuid',
+      ends_at: '2026-05-20T21:00:00+00:00',
+      preview_url: null,
+      total_songs: 10,
+    };
+    const { navigateSpy } = await setupReconnect('player', 'round_in_progress', currentSong);
+    expect(navigateSpy).toHaveBeenCalledWith(
+      ['/play', 'ABC123'],
+      expect.objectContaining({
+        state: expect.objectContaining({
+          room_id: 'room-uuid',
+          song_id: 'song-uuid',
+          song_index: 1,
+        }),
+      }),
+    );
   });
 });
 

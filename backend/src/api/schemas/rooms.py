@@ -1,3 +1,4 @@
+from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, field_validator
@@ -54,3 +55,26 @@ class StartRoundResponse(BaseModel):
     room_id: UUID
     song_count: int
     theme: str
+
+
+class ParticipantStateItem(BaseModel):
+    participant_id: UUID
+    nickname: str
+    is_host: bool
+
+
+class CurrentSongState(BaseModel):
+    song_id: UUID
+    song_index: int
+    round_id: UUID
+    ends_at: Optional[str] = None
+    preview_url: Optional[str] = None
+    total_songs: int
+
+
+class GetRoomStateResponse(BaseModel):
+    room_id: UUID
+    code: str
+    status: str
+    participants: list[ParticipantStateItem]
+    current_song: Optional[CurrentSongState] = None

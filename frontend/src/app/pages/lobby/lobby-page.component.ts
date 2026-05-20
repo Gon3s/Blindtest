@@ -14,6 +14,7 @@ import { Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { AudioService } from '../../services/audio.service';
 import { RoomService } from '../../services/room.service';
+import { Session, SessionService } from '../../services/session.service';
 import { Participant, WebSocketService, WsEvent } from '../../services/websocket.service';
 
 @Component({
@@ -30,6 +31,7 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
   private readonly wsService = inject(WebSocketService);
   private readonly roomService = inject(RoomService);
   private readonly audioService = inject(AudioService);
+  private readonly sessionService = inject(SessionService);
 
   readonly code = toSignal(
     this.route.paramMap.pipe(map(p => p.get('code') ?? '')),
@@ -39,6 +41,7 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
   readonly isHost = signal(false);
   readonly nickname = signal('');
   readonly theme = signal('');
+  readonly sessionRestoreError = signal(false);
 
   private roomId = '';
   private participantId = '';
@@ -55,14 +58,68 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
     this.roomId = state.room_id ?? '';
 
     if (!this.roomId) {
-      void this.router.navigate(['/']);
+      const session = this.sessionService.loadSession();
+      if (session && session.roomCode === this.code()) {
+        this.restoreFromSession(session);
+      } else {
+        void this.router.navigate(['/']);
+      }
       return;
     }
 
     this.isHost.set(state.role === 'host');
     this.nickname.set(state.nickname ?? '');
     this.participantId = state.participant_id ?? state.host_id ?? '';
+    this.wsConnect();
+  }
 
+  ngOnDestroy(): void {
+    this.subscription?.unsubscribe();
+    this.wsService.disconnect();
+  }
+
+  startRound(): void {
+    this.roomService.startRound(this.roomId, this.theme().trim()).subscribe();
+  }
+
+  private restoreFromSession(session: Session): void {
+    this.roomService.getRoomState(session.roomCode).subscribe({
+      next: roomState => {
+        this.roomId = roomState.room_id;
+        this.isHost.set(session.role === 'host');
+        this.nickname.set(session.nickname);
+        this.participantId = session.participantId;
+
+        if (roomState.status === 'round_in_progress' && roomState.current_song) {
+          const cs = roomState.current_song;
+          void this.router.navigate(['/play', session.roomCode], {
+            state: {
+              room_id: roomState.room_id,
+              participant_id: session.participantId,
+              nickname: session.nickname,
+              is_host: session.role === 'host',
+              host_id: session.role === 'host' ? session.participantId : '',
+              song_id: cs.song_id,
+              song_index: cs.song_index,
+              round_id: cs.round_id,
+              total_songs: cs.total_songs,
+              ends_at: cs.ends_at,
+            },
+          });
+        } else {
+          this.wsConnect();
+        }
+      },
+      error: (err: { status?: number }) => {
+        if (err.status === 404) {
+          this.sessionService.clearSession();
+        }
+        this.sessionRestoreError.set(true);
+      },
+    });
+  }
+
+  private wsConnect(): void {
     this.wsService.connect(this.roomId);
     this.subscription = this.wsService.messages$.subscribe((event: WsEvent) => {
       if (event.event === 'room.state') {
@@ -99,14 +156,5 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
         });
       }
     });
-  }
-
-  ngOnDestroy(): void {
-    this.subscription?.unsubscribe();
-    this.wsService.disconnect();
-  }
-
-  startRound(): void {
-    this.roomService.startRound(this.roomId, this.theme().trim()).subscribe();
   }
 }

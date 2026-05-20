@@ -254,7 +254,7 @@ describe('PlayPageComponent — WebSocket connection', () => {
     expect(service.connect).toHaveBeenCalledWith('room-uuid');
   });
 
-  it('should redirect to / if no room_id in state', async () => {
+  it('should redirect to / if no room_id and no code in state', async () => {
     history.replaceState({}, '');
     const { service, msgs } = createWsMock();
 
@@ -264,7 +264,10 @@ describe('PlayPageComponent — WebSocket connection', () => {
         provideRouter([]),
         {
           provide: ActivatedRoute,
-          useValue: { paramMap: of({ get: () => null }) },
+          useValue: {
+            snapshot: { paramMap: { get: () => null } },
+            paramMap: of({ get: () => null }),
+          },
         },
         { provide: WebSocketService, useValue: service },
         { provide: RoomService, useValue: noopRoomService },
@@ -275,6 +278,37 @@ describe('PlayPageComponent — WebSocket connection', () => {
     const router = TestBed.inject(Router);
     expect(service.connect).not.toHaveBeenCalled();
     expect(router.url).toBe('/');
+
+    void msgs;
+  });
+
+  it('should redirect to /lobby/:code if no room_id but code present in route', async () => {
+    history.replaceState({}, '');
+    const { service, msgs } = createWsMock();
+
+    await TestBed.configureTestingModule({
+      imports: [PlayPageComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { paramMap: { get: (k: string) => (k === 'code' ? 'ABC123' : null) } },
+            paramMap: of({ get: (k: string) => (k === 'code' ? 'ABC123' : null) }),
+          },
+        },
+        { provide: WebSocketService, useValue: service },
+        { provide: RoomService, useValue: noopRoomService },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(PlayPageComponent);
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigate');
+    fixture.detectChanges();
+
+    expect(service.connect).not.toHaveBeenCalled();
+    expect(navigateSpy).toHaveBeenCalledWith(['/lobby', 'ABC123']);
 
     void msgs;
   });

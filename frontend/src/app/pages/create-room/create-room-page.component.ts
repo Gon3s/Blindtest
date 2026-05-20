@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { RoomService } from '../../services/room.service';
+import { SessionService } from '../../services/session.service';
 
 @Component({
   selector: 'app-create-room-page',
@@ -18,6 +19,7 @@ export class CreateRoomPageComponent {
 
   private readonly roomService = inject(RoomService);
   private readonly router = inject(Router);
+  private readonly sessionService = inject(SessionService);
 
   submit(): void {
     const name = this.nickname.trim();
@@ -26,6 +28,14 @@ export class CreateRoomPageComponent {
     this.error.set(null);
     this.roomService.createRoom(name).subscribe({
       next: res => {
+        this.sessionService.saveSession({
+          roomCode: res.code,
+          roomId: res.room_id,
+          role: 'host',
+          participantId: res.host_id,
+          hostToken: res.host_token,
+          nickname: name,
+        });
         this.router.navigate(['/lobby', res.code], {
           state: { room_id: res.room_id, host_id: res.host_id, role: 'host', nickname: name },
         });

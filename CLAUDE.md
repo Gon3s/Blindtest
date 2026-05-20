@@ -113,6 +113,10 @@ Dès qu'un ticket est pris en charge, mettre à jour son statut dans Notion via 
 | T-059 | Front — Intégrer l'identité visuelle HitRoom | 🔲 Todo |
 | T-060 | Front — Champ Thème manquant dans le Lobby (P1) | 🔲 Todo |
 | T-113 | Fix — Timer s'arrête à 1 au lieu de 0 à la fin de la chanson (P0) | 🔲 Todo |
+| T-122 | Fix — Auto-révéler après fin du timer (supprimer écran intermédiaire) (P0) | 🔲 Todo |
+| T-123 | Fix — clearSession manquant sur clic Quitter (P1) | 🔲 Todo |
+| T-124 | Fix — Validation shape session localStorage (P2) | 🔲 Todo |
+| T-125 | Fix — Reconnexion phase REVEAL atterrit sur lobby (P1) | 🔲 Todo |
 
 ### Sprint 5 — Features
 

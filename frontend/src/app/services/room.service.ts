@@ -7,6 +7,7 @@ export interface CreateRoomResponse {
   room_id: string;
   code: string;
   host_id: string;
+  host_token: string;
 }
 
 export interface JoinRoomResponse {
@@ -100,6 +101,29 @@ export interface StartSongResponse {
   preview_url: string | null;
 }
 
+export interface ParticipantInfo {
+  participant_id: string;
+  nickname: string;
+  is_host: boolean;
+}
+
+export interface CurrentSongInfo {
+  song_id: string;
+  song_index: number;
+  round_id: string;
+  ends_at: string;
+  preview_url: string | null;
+  total_songs: number;
+}
+
+export interface RoomStateResponse {
+  room_id: string;
+  code: string;
+  status: string;
+  participants: ParticipantInfo[];
+  current_song: CurrentSongInfo | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class RoomService {
   private readonly http = inject(HttpClient);
@@ -165,5 +189,9 @@ export class RoomService {
 
   restartRound(roomId: string, theme: string): Observable<StartRoundResponse> {
     return this.http.post<StartRoundResponse>(`${this.apiUrl}/rooms/${roomId}/restart`, { theme });
+  }
+
+  getRoomState(code: string): Observable<RoomStateResponse> {
+    return this.http.get<RoomStateResponse>(`${this.apiUrl}/rooms/${code}`);
   }
 }

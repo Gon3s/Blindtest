@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { OverrideAnswerResponse, RevealSongResponse, RoomService, SongSummaryResponse, StartSongResponse } from './room.service';
+import { OverrideAnswerResponse, RevealSongResponse, RoomService, RoomStateResponse, SongSummaryResponse, StartSongResponse } from './room.service';
 import { environment } from '../../environments/environment';
 
 describe('RoomService', () => {
@@ -179,6 +179,24 @@ describe('RoomService', () => {
       `${environment.apiBaseUrl}/rounds/round-uuid/songs/0/start`,
     );
     expect(req.request.method).toBe('POST');
+    req.flush(mockResponse);
+  });
+
+  it('should fetch room state via GET /rooms/:code', () => {
+    const mockResponse: RoomStateResponse = {
+      room_id: 'room-uuid',
+      code: 'ABC123',
+      status: 'waiting',
+      participants: [{ participant_id: 'p1', nickname: 'Alice', is_host: true }],
+      current_song: null,
+    };
+
+    service.getRoomState('ABC123').subscribe(res => {
+      expect(res).toEqual(mockResponse);
+    });
+
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/rooms/ABC123`);
+    expect(req.request.method).toBe('GET');
     req.flush(mockResponse);
   });
 

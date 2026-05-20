@@ -1,4 +1,9 @@
-@if (isHost()) {
+@if (sessionRestoreError()) {
+  <main class="lobby lobby--error" data-testid="session-error">
+    <p class="lobby__error-msg">Salle introuvable ou session expirée.</p>
+    <a routerLink="/" class="lobby__quit">← Retour à l'accueil</a>
+  </main>
+} @else if (isHost()) {
   <main class="lobby lobby--host">
     <div class="lobby__code-block">
       <p class="lobby__code-label">Code de la salle</p>

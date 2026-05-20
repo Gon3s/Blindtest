@@ -172,6 +172,29 @@ class RevealSongResult(TypedDict):
     round_leaderboard: list[RoundLeaderboardEntry]
 
 
+class CurrentSongStateEntry(TypedDict):
+    song_id: UUID
+    song_index: int
+    round_id: UUID
+    ends_at: Optional[str]
+    preview_url: Optional[str]
+    total_songs: int
+
+
+class ParticipantStateEntry(TypedDict):
+    participant_id: UUID
+    nickname: str
+    is_host: bool
+
+
+class GetRoomStateResult(TypedDict):
+    room_id: UUID
+    code: str
+    status: str
+    participants: list[ParticipantStateEntry]
+    current_song: Optional[CurrentSongStateEntry]
+
+
 _JOINABLE_STATUSES: frozenset[str] = frozenset(
     {RoomStatus.CREATED.value, RoomStatus.WAITING.value}
 )
@@ -758,6 +781,58 @@ class RoomService:
             mini_leaderboard=mini_leaderboard,
             round_finished=round_finished,
             round_leaderboard=round_leaderboard,
+        )
+
+    def get_room_state(self, code: str) -> GetRoomStateResult:
+        room = self._session.query(RoomModel).filter_by(code=code).first()
+        if room is None:
+            raise RoomNotFoundError(f"Room with code {code!r} not found")
+
+        participants = (
+            self._session.query(ParticipantModel).filter_by(room_id=room.id).all()
+        )
+
+        current_song: Optional[CurrentSongStateEntry] = None
+        if room.status == RoomStatus.ROUND_IN_PROGRESS.value:
+            round_ = (
+                self._session.query(RoundModel)
+                .filter_by(room_id=room.id, status=RoundStatus.IN_PROGRESS.value)
+                .first()
+            )
+            if round_ is not None:
+                song = (
+                    self._session.query(SongModel)
+                    .filter_by(round_id=round_.id, status=SongStatus.PLAYING.value)
+                    .first()
+                )
+                if song is not None:
+                    total_songs = (
+                        self._session.query(SongModel)
+                        .filter_by(round_id=round_.id)
+                        .count()
+                    )
+                    current_song = CurrentSongStateEntry(
+                        song_id=song.id,
+                        song_index=song.index,
+                        round_id=round_.id,
+                        ends_at=song.ends_at.isoformat() if song.ends_at else None,
+                        preview_url=song.preview_url,
+                        total_songs=total_songs,
+                    )
+
+        return GetRoomStateResult(
+            room_id=room.id,
+            code=room.code,
+            status=room.status,
+            participants=[
+                ParticipantStateEntry(
+                    participant_id=p.id,
+                    nickname=p.nickname,
+                    is_host=p.is_host,
+                )
+                for p in participants
+            ],
+            current_song=current_song,
         )
 
     def restart_round(

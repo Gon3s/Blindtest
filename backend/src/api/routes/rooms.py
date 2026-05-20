@@ -14,8 +14,11 @@ from src.api.deps import (
 from src.api.schemas.rooms import (
     CreateRoomRequest,
     CreateRoomResponse,
+    CurrentSongState,
+    GetRoomStateResponse,
     JoinRoomRequest,
     JoinRoomResponse,
+    ParticipantStateItem,
     StartRoundRequest,
     StartRoundResponse,
 )
@@ -39,6 +42,44 @@ router = APIRouter()
 
 def get_music_provider() -> MusicProvider:
     return DeezerMusicProvider()
+
+
+@router.get("/rooms/{code}", response_model=GetRoomStateResponse)
+def get_room_state(
+    code: str,
+    service: RoomService = Depends(get_room_service),
+) -> GetRoomStateResponse:
+    try:
+        result = service.get_room_state(code)
+    except RoomNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+    current_song = None
+    if result["current_song"] is not None:
+        cs = result["current_song"]
+        current_song = CurrentSongState(
+            song_id=cs["song_id"],
+            song_index=cs["song_index"],
+            round_id=cs["round_id"],
+            ends_at=cs["ends_at"],
+            preview_url=cs["preview_url"],
+            total_songs=cs["total_songs"],
+        )
+
+    return GetRoomStateResponse(
+        room_id=result["room_id"],
+        code=result["code"],
+        status=result["status"],
+        participants=[
+            ParticipantStateItem(
+                participant_id=p["participant_id"],
+                nickname=p["nickname"],
+                is_host=p["is_host"],
+            )
+            for p in result["participants"]
+        ],
+        current_song=current_song,
+    )
 
 
 @router.post("/rooms", response_model=CreateRoomResponse, status_code=201)

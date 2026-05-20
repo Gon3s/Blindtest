@@ -9,7 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AudioService } from '../../services/audio.service';
 import {
@@ -67,6 +67,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   private readonly wsService = inject(WebSocketService);
   private readonly roomService = inject(RoomService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly audioService = inject(AudioService);
 
@@ -151,7 +152,12 @@ export class PlayPageComponent implements OnInit, OnDestroy {
 
     this.roomId = state.room_id ?? '';
     if (!this.roomId) {
-      void this.router.navigate(['/']);
+      const code = this.route.snapshot.paramMap.get('code');
+      if (code) {
+        void this.router.navigate(['/lobby', code]);
+      } else {
+        void this.router.navigate(['/']);
+      }
       return;
     }
 
