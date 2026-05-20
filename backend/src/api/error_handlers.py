@@ -3,7 +3,6 @@ from fastapi.responses import JSONResponse
 
 from src.domain.exceptions import (
     AnswerNotFoundError,
-    InvalidHostTokenError,
     NicknameAlreadyTakenError,
     NotHostError,
     RoomNotFinishedRoundError,
