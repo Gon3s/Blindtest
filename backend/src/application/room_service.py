@@ -665,7 +665,9 @@ class RoomService:
             score=score,
         )
 
-    def reveal_song(self, song_id: UUID, host_token: str) -> RevealSongResult:
+    def _fetch_reveal_entities(
+        self, song_id: UUID
+    ) -> tuple["SongModel", "RoundModel", "RoomModel"]:
         song = self._session.query(SongModel).filter_by(id=song_id).first()
         if song is None:
             raise SongNotFoundError(f"Song {song_id!r} not found")
@@ -673,19 +675,63 @@ class RoomService:
             raise SongNotRevealableError(
                 f"Song cannot be revealed (status: {song.status!r})"
             )
-
         round_ = self._session.query(RoundModel).filter_by(id=song.round_id).first()
         if round_ is None:
             raise RoundNotFoundError(f"Round {song.round_id!r} not found")
-
         room = self._session.query(RoomModel).filter_by(id=round_.room_id).first()
         if room is None:
             raise RoomNotFoundError(f"Room {round_.room_id!r} not found")
-        if not secrets.compare_digest(room.host_token, host_token):
-            raise InvalidHostTokenError(f"Invalid host token for song {song_id!r}")
+        return song, round_, room
 
+    def _auto_score_missing_answers(
+        self,
+        song: "SongModel",
+        round_: "RoundModel",
+    ) -> None:
+        answers = self._session.query(AnswerModel).filter_by(song_id=song.id).all()
+        for ans in answers:
+            exists = (
+                self._session.query(ScoreEntryModel)
+                .filter_by(participant_id=ans.participant_id, song_id=song.id)
+                .first()
+            )
+            if exists is not None:
+                continue
+            time_remaining = 0.0
+            total_seconds = 0.0
+            if song.started_at and song.ends_at:
+                total_seconds = max(
+                    0.0, (song.ends_at - song.started_at).total_seconds()
+                )
+                time_remaining = max(
+                    0.0, (song.ends_at - ans.submitted_at).total_seconds()
+                )
+            score = compute_song_score(
+                ans.title_found, ans.artist_found, time_remaining, total_seconds
+            )
+            self._session.add(
+                ScoreEntryModel(
+                    id=uuid4(),
+                    participant_id=ans.participant_id,
+                    room_id=round_.room_id,
+                    song_id=song.id,
+                    round_id=round_.id,
+                    points=score,
+                )
+            )
+        self._session.flush()
+
+    def _do_reveal(
+        self,
+        song: "SongModel",
+        round_: "RoundModel",
+        room: "RoomModel",
+    ) -> RevealSongResult:
+        song_id = song.id
         song.status = SongStatus.REVEALED.value
         self._session.flush()
+
+        self._auto_score_missing_answers(song, round_)
 
         songs_in_round = (
             self._session.query(SongModel).filter_by(round_id=round_.id).all()
@@ -798,6 +844,16 @@ class RoomService:
             round_finished=round_finished,
             round_leaderboard=round_leaderboard,
         )
+
+    def reveal_song(self, song_id: UUID, host_token: str) -> RevealSongResult:
+        song, round_, room = self._fetch_reveal_entities(song_id)
+        if not secrets.compare_digest(room.host_token, host_token):
+            raise InvalidHostTokenError(f"Invalid host token for song {song_id!r}")
+        return self._do_reveal(song, round_, room)
+
+    def reveal_song_auto(self, song_id: UUID) -> RevealSongResult:
+        song, round_, room = self._fetch_reveal_entities(song_id)
+        return self._do_reveal(song, round_, room)
 
     def get_room_state(self, code: str) -> GetRoomStateResult:
         room = self._session.query(RoomModel).filter_by(code=code).first()

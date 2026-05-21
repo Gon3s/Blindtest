@@ -215,3 +215,43 @@ def test_mvp_loop(svc: RoomService) -> None:
     svc._session.commit()
     assert restart["song_count"] == 10
     assert restart["theme"] == "French"
+
+
+def test_mvp_auto_reveal_scores_found_answer(svc: RoomService) -> None:
+    """Auto-reveal (T-122): found answer scored without host override_answer call."""
+    room = svc.create_room("Alice")
+    svc._session.commit()
+    room_id: UUID = room["room_id"]
+    host_token: str = room["host_token"]
+    code: str = room["code"]
+
+    join = svc.join_room(code, "Bob")
+    svc._session.commit()
+    player_id: UUID = join["participant_id"]
+
+    round_result = svc.start_round(room_id, host_token, "Pop 90s", _MUSIC)
+    svc._session.commit()
+    round_id: UUID = round_result["round_id"]
+
+    song0 = svc.start_song(round_id, 0)
+    svc._session.commit()
+    song_id: UUID = song0["song_id"]
+
+    song0_model = svc._session.query(SongModelDB).filter_by(id=song_id).first()
+    assert song0_model is not None
+    song0_title: str = song0_model.title
+
+    answer = svc.submit_answer(song_id, player_id, song0_title)
+    svc._session.commit()
+    assert answer["title_found"] is True
+
+    svc.lock_song(song_id)
+    svc._session.commit()
+
+    reveal = svc.reveal_song_auto(song_id)
+    svc._session.commit()
+
+    assert len(reveal["player_results"]) == 1
+    assert reveal["player_results"][0]["score"] > 0
+    assert len(reveal["mini_leaderboard"]) == 1
+    assert reveal["mini_leaderboard"][0]["total_points"] > 0

@@ -31,6 +31,8 @@ def _song(status: str = SongStatus.LOCKED.value) -> MagicMock:
     s.title = "One More Time"
     s.artist = "Daft Punk"
     s.status = status
+    s.started_at = None
+    s.ends_at = None
     return s
 
 
@@ -395,3 +397,84 @@ def test_reveal_not_host_raises(room_id: UUID) -> None:
     sess = _session(song, round_, room, [], [])
     with pytest.raises(NotHostError):
         RoomService(sess).reveal_song(song.id, "wrong-host-token")
+
+
+# ── reveal_song_auto (T-122) ──────────────────────────────────────────────────
+
+
+def test_reveal_song_auto_transitions_to_revealed(
+    room_id: UUID, locked_song: MagicMock
+) -> None:
+    round_ = _round(room_id=room_id)
+    locked_song.round_id = round_.id
+    room = _room(host_token="any-token", room_id=room_id)
+    sess = _session(locked_song, round_, room, [], [])
+    RoomService(sess).reveal_song_auto(locked_song.id)
+    assert locked_song.status == SongStatus.REVEALED.value
+
+
+def test_reveal_song_auto_returns_title_and_artist(
+    room_id: UUID, locked_song: MagicMock
+) -> None:
+    round_ = _round(room_id=room_id)
+    locked_song.round_id = round_.id
+    room = _room(host_token="any-token", room_id=room_id)
+    sess = _session(locked_song, round_, room, [], [])
+    result = RoomService(sess).reveal_song_auto(locked_song.id)
+    assert result["title"] == "One More Time"
+    assert result["artist"] == "Daft Punk"
+
+
+def test_reveal_song_auto_skips_host_token_check(
+    room_id: UUID, locked_song: MagicMock
+) -> None:
+    round_ = _round(room_id=room_id)
+    locked_song.round_id = round_.id
+    room = _room(host_token="secret-nobody-knows", room_id=room_id)
+    sess = _session(locked_song, round_, room, [], [])
+    result = RoomService(sess).reveal_song_auto(locked_song.id)
+    assert result["title"] == "One More Time"
+
+
+# ── auto-scoring (T-122) ──────────────────────────────────────────────────────
+
+
+def test_reveal_auto_scores_found_answer_without_host_override(
+    room_id: UUID,
+) -> None:
+    alice_id = uuid4()
+    song = _song()
+    alice = _participant(alice_id, "Alice")
+    round_ = _round(room_id=room_id)
+    song.round_id = round_.id
+    room = _room(host_token="any-token", room_id=room_id)
+    ans = _answer(song.id, alice_id, title_found=True)
+    sess = _session(song, round_, room, [ans], [alice], [], [])
+
+    RoomService(sess).reveal_song_auto(song.id)
+
+    added = [call.args[0] for call in sess.add.call_args_list]
+    score_entries = [a for a in added if isinstance(a, ScoreEntryModel)]
+    assert len(score_entries) >= 1
+    entry = next(e for e in score_entries if e.participant_id == alice_id)
+    assert entry.points == 100  # title only, no speed bonus (started_at=None)
+
+
+def test_reveal_auto_scoring_skips_existing_score_entry(
+    room_id: UUID,
+) -> None:
+    alice_id = uuid4()
+    song = _song()
+    alice = _participant(alice_id, "Alice")
+    round_ = _round(room_id=room_id)
+    song.round_id = round_.id
+    room = _room(host_token="any-token", room_id=room_id)
+    ans = _answer(song.id, alice_id, title_found=True)
+    existing_se = _score_entry(alice_id, room_id, song.id, 42)
+    sess = _session(song, round_, room, [ans], [alice], [existing_se], [existing_se])
+
+    RoomService(sess).reveal_song_auto(song.id)
+
+    added = [call.args[0] for call in sess.add.call_args_list]
+    new_score_entries = [a for a in added if isinstance(a, ScoreEntryModel)]
+    assert len(new_score_entries) == 0

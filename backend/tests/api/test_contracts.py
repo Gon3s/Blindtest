@@ -528,11 +528,14 @@ def test_round_started_event_shape(mock_manager: MagicMock) -> None:
         app.dependency_overrides.clear()
 
 
-# ── 9. WS song.locked — event shape ───────────────────────────────────────────
+# ── 9. WS song.revealed — event shape from auto_lock_song (T-122) ─────────────
 
 
-def test_song_locked_event_shape(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_auto_lock_broadcasts_song_revealed_event_shape(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     song_id, round_id, room_id = uuid4(), uuid4(), uuid4()
+    pid = uuid4()
 
     class _FakeRoomService:
         def __init__(self, session: object) -> None:
@@ -540,6 +543,34 @@ def test_song_locked_event_shape(monkeypatch: pytest.MonkeyPatch) -> None:
 
         def lock_song(self, sid: UUID) -> dict:
             return {"song_id": song_id, "round_id": round_id}
+
+        def reveal_song_auto(self, sid: UUID) -> dict:
+            return {
+                "song_id": song_id,
+                "room_id": room_id,
+                "title": "One More Time",
+                "artist": "Daft Punk",
+                "player_results": [
+                    {
+                        "participant_id": pid,
+                        "nickname": "Alice",
+                        "answer": "one more time",
+                        "title_found": True,
+                        "artist_found": False,
+                        "score": 117,
+                    }
+                ],
+                "mini_leaderboard": [
+                    {
+                        "rank": 1,
+                        "participant_id": pid,
+                        "nickname": "Alice",
+                        "total_points": 117,
+                    }
+                ],
+                "round_finished": False,
+                "round_leaderboard": [],
+            }
 
     monkeypatch.setattr("src.api.deps.RoomService", _FakeRoomService)
 
@@ -552,12 +583,22 @@ def test_song_locked_event_shape(monkeypatch: pytest.MonkeyPatch) -> None:
         auto_lock_song(song_id, room_id, 0.0, mock_factory, mock_mgr, _instant_sleep)
     )
 
-    call = mock_mgr.broadcast_to_room.call_args
-    payload = call.args[1]
-    assert payload["event"] == "song.locked"
-    assert {"song_id", "round_id"} == set(payload["data"].keys())
-    assert payload["data"]["song_id"] == str(song_id)
-    assert payload["data"]["round_id"] == str(round_id)
+    calls = mock_mgr.broadcast_to_room.call_args_list
+    events = [c.args[1]["event"] for c in calls]
+    assert "song.revealed" in events
+    assert "song.locked" not in events
+    revealed = next(c for c in calls if c.args[1]["event"] == "song.revealed")
+    payload = revealed.args[1]
+    d = payload["data"]
+    assert d["song_id"] == str(song_id)
+    assert d["title"] == "One More Time"
+    assert d["artist"] == "Daft Punk"
+    pr = d["player_results"][0]
+    assert {
+        "participant_id", "nickname", "answer", "title_found", "artist_found", "score"
+    } == set(pr.keys())
+    lb = d["mini_leaderboard"][0]
+    assert {"rank", "participant_id", "nickname", "total_points"} == set(lb.keys())
 
 
 # ── 10. WS song.revealed — event shape ────────────────────────────────────────

@@ -336,12 +336,15 @@ def test_auto_lock_sleeps_for_delay_and_broadcasts() -> None:
     )
 
     assert sleep_calls == [30.0]
-    mock_manager.broadcast_to_room.assert_called_once()
-    call_args = mock_manager.broadcast_to_room.call_args.args
-    assert call_args[0] == room_id
-    msg = call_args[1]
-    assert msg["event"] == "song.locked"
-    assert msg["data"]["song_id"] == str(song_id)
+    events = [c.args[1]["event"] for c in mock_manager.broadcast_to_room.call_args_list]
+    assert "song.revealed" in events
+    assert "song.locked" not in events
+    revealed_call = next(
+        c for c in mock_manager.broadcast_to_room.call_args_list
+        if c.args[1]["event"] == "song.revealed"
+    )
+    assert revealed_call.args[0] == room_id
+    assert revealed_call.args[1]["data"]["song_id"] == str(song_id)
 
 
 def test_auto_lock_song_locked_status_after_run() -> None:
@@ -388,7 +391,103 @@ def test_auto_lock_song_locked_status_after_run() -> None:
         )
     )
 
-    assert playing_song.status == SongStatus.LOCKED.value
+    assert playing_song.status == SongStatus.REVEALED.value
+
+
+def test_auto_lock_song_broadcasts_song_revealed() -> None:
+    from unittest.mock import AsyncMock
+
+    from src.api.deps import auto_lock_song as _auto_lock_song
+
+    song_id = uuid4()
+    round_id = uuid4()
+    room_id = uuid4()
+
+    playing_song = _make_song_mock(status=SongStatus.PLAYING.value, round_id=round_id)
+    playing_song.id = song_id
+    lock_round = _make_round_mock()
+    lock_round.id = round_id
+    lock_round.room_id = room_id
+
+    mock_session = MagicMock()
+
+    def _query(model: type) -> MagicMock:
+        q = MagicMock()
+        if model is SongModel:
+            q.filter_by.return_value.first.return_value = playing_song
+        elif model is RoundModel:
+            q.filter_by.return_value.first.return_value = lock_round
+        return q
+
+    mock_session.query.side_effect = _query
+    mock_factory = MagicMock(return_value=mock_session)
+    mock_manager = MagicMock()
+    mock_manager.broadcast_to_room = AsyncMock()
+
+    async def instant(delay: float) -> None:
+        pass
+
+    asyncio.run(
+        _auto_lock_song(
+            song_id=song_id,
+            room_id=room_id,
+            delay=0.0,
+            session_factory=mock_factory,
+            manager=mock_manager,
+            sleep_fn=instant,
+        )
+    )
+
+    events = [c.args[1]["event"] for c in mock_manager.broadcast_to_room.call_args_list]
+    assert "song.revealed" in events
+
+
+def test_auto_lock_song_does_not_broadcast_song_locked() -> None:
+    from unittest.mock import AsyncMock
+
+    from src.api.deps import auto_lock_song as _auto_lock_song
+
+    song_id = uuid4()
+    round_id = uuid4()
+    room_id = uuid4()
+
+    playing_song = _make_song_mock(status=SongStatus.PLAYING.value, round_id=round_id)
+    playing_song.id = song_id
+    lock_round = _make_round_mock()
+    lock_round.id = round_id
+    lock_round.room_id = room_id
+
+    mock_session = MagicMock()
+
+    def _query(model: type) -> MagicMock:
+        q = MagicMock()
+        if model is SongModel:
+            q.filter_by.return_value.first.return_value = playing_song
+        elif model is RoundModel:
+            q.filter_by.return_value.first.return_value = lock_round
+        return q
+
+    mock_session.query.side_effect = _query
+    mock_factory = MagicMock(return_value=mock_session)
+    mock_manager = MagicMock()
+    mock_manager.broadcast_to_room = AsyncMock()
+
+    async def instant(delay: float) -> None:
+        pass
+
+    asyncio.run(
+        _auto_lock_song(
+            song_id=song_id,
+            room_id=room_id,
+            delay=0.0,
+            session_factory=mock_factory,
+            manager=mock_manager,
+            sleep_fn=instant,
+        )
+    )
+
+    events = [c.args[1]["event"] for c in mock_manager.broadcast_to_room.call_args_list]
+    assert "song.locked" not in events
 
 
 # ── submit_answer ──────────────────────────────────────────────────────────────

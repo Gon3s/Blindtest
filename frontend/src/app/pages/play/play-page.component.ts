@@ -23,7 +23,7 @@ import {
   SubmitAnswerResponse,
 } from '../../services/room.service';
 import { WebSocketService, WsEvent } from '../../services/websocket.service';
-import { AppBadgeComponent, BadgeVariant } from '../../shared/badge/app-badge.component';
+import type { BadgeVariant } from '../../shared/badge/app-badge.component';
 import { AppButtonComponent } from '../../shared/button/app-button.component';
 import { AppCardComponent } from '../../shared/card/app-card.component';
 import { AppTimerBarComponent } from '../../shared/timer-bar/app-timer-bar.component';
@@ -59,7 +59,7 @@ interface RoundLeaderboardMergedEntry extends RoundLeaderboardItem {
 @Component({
   selector: 'app-play-page',
   standalone: true,
-  imports: [FormsModule, AppButtonComponent, AppBadgeComponent, AppCardComponent, AppTimerBarComponent],
+  imports: [FormsModule, AppButtonComponent, AppCardComponent, AppTimerBarComponent],
   templateUrl: './play-page.component.html',
   styleUrl: './play-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -205,10 +205,11 @@ export class PlayPageComponent implements OnInit, OnDestroy {
         this.timeLeft.set(0);
         this.stopTimer();
         this.audioService.stop();
-        if (this.isHost()) {
-          this.fetchSongSummary();
-        }
       } else if (event.event === 'song.revealed') {
+        this.locked.set(true);
+        this.timeLeft.set(0);
+        this.stopTimer();
+        this.audioService.stop();
         this.revealData.set(event.data as SongRevealedData);
         this.cdr.markForCheck();
       } else if (event.event === 'round.finished') {

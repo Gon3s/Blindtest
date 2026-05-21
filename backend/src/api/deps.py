@@ -6,7 +6,13 @@ from fastapi import Depends
 from sqlalchemy.orm import Session, sessionmaker
 
 from src.application.room_service import RoomService
-from src.domain.exceptions import SongNotFoundError, SongNotLockableError
+from src.domain.exceptions import (
+    RoomNotFoundError,
+    RoundNotFoundError,
+    SongNotFoundError,
+    SongNotLockableError,
+    SongNotRevealableError,
+)
 from src.infrastructure.db import get_db, get_session_factory
 from src.infrastructure.ws_manager import RoomConnectionManager
 
@@ -45,9 +51,16 @@ async def auto_lock_song(
     session = session_factory()
     try:
         service = RoomService(session)
-        result = service.lock_song(song_id)
+        service.lock_song(song_id)
+        reveal_result = service.reveal_song_auto(song_id)
         session.commit()
-    except (SongNotFoundError, SongNotLockableError):
+    except (
+        SongNotFoundError,
+        SongNotLockableError,
+        SongNotRevealableError,
+        RoundNotFoundError,
+        RoomNotFoundError,
+    ):
         session.rollback()
         return
     except Exception:
@@ -58,10 +71,50 @@ async def auto_lock_song(
     await manager.broadcast_to_room(
         room_id,
         {
-            "event": "song.locked",
+            "event": "song.revealed",
             "data": {
-                "song_id": str(result["song_id"]),
-                "round_id": str(result["round_id"]),
+                "song_id": str(reveal_result["song_id"]),
+                "title": reveal_result["title"],
+                "artist": reveal_result["artist"],
+                "player_results": [
+                    {
+                        "participant_id": str(pr["participant_id"]),
+                        "nickname": pr["nickname"],
+                        "answer": pr["answer"],
+                        "title_found": pr["title_found"],
+                        "artist_found": pr["artist_found"],
+                        "score": pr["score"],
+                    }
+                    for pr in reveal_result["player_results"]
+                ],
+                "mini_leaderboard": [
+                    {
+                        "rank": lb["rank"],
+                        "participant_id": str(lb["participant_id"]),
+                        "nickname": lb["nickname"],
+                        "total_points": lb["total_points"],
+                    }
+                    for lb in reveal_result["mini_leaderboard"]
+                ],
             },
         },
     )
+    if reveal_result["round_finished"]:
+        await manager.broadcast_to_room(
+            room_id,
+            {
+                "event": "round.finished",
+                "data": {
+                    "room_id": str(room_id),
+                    "round_leaderboard": [
+                        {
+                            "rank": lb["rank"],
+                            "participant_id": str(lb["participant_id"]),
+                            "nickname": lb["nickname"],
+                            "round_points": lb["round_points"],
+                        }
+                        for lb in reveal_result["round_leaderboard"]
+                    ],
+                },
+            },
+        )
