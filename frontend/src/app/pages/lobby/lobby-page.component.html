@@ -1,3 +1,13 @@
+@if (connectionStatus() === 'reconnecting' || connectionStatus() === 'error') {
+  <div class="lobby__connection-banner" data-testid="connection-banner" role="status">
+    @if (connectionStatus() === 'reconnecting') {
+      <span>Reconnexion en cours…</span>
+    } @else {
+      <span>Connexion perdue. Actualise la page.</span>
+    }
+  </div>
+}
+
 @if (sessionRestoreError()) {
   <main class="lobby lobby--error" data-testid="session-error">
     <p class="lobby__error-msg">Salle introuvable ou session expirée.</p>

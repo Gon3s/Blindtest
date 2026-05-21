@@ -1,9 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, provideRouter } from '@angular/router';
-import { Observable, Subject } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { of } from 'rxjs';
 import { PlayPageComponent } from './play-page.component';
-import { WebSocketService, WsEvent } from '../../services/websocket.service';
+import { ConnectionStatus, WebSocketService, WsEvent } from '../../services/websocket.service';
 import { AudioService } from '../../services/audio.service';
 import {
   MiniLeaderboardItem,
@@ -22,13 +22,15 @@ const BASE_ENDS = new Date('2026-01-01T12:00:30.000Z'); // 30s later
 function createWsMock() {
   const msgs = new Subject<WsEvent>();
   const connErrors = new Subject<string>();
+  const connStatus = new BehaviorSubject<ConnectionStatus>('connected');
   const service = {
     connect: vi.fn(),
     disconnect: vi.fn(),
     messages$: msgs.asObservable() as Observable<WsEvent>,
     connectionError$: connErrors.asObservable() as Observable<string>,
+    connectionStatus$: connStatus.asObservable() as Observable<ConnectionStatus>,
   };
-  return { service, msgs, connErrors };
+  return { service, msgs, connErrors, connStatus };
 }
 
 const noopRoomService = { submitAnswer: vi.fn() };

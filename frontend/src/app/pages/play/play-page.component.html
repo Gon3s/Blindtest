@@ -1,4 +1,14 @@
 <main class="play">
+  @if (connectionStatus() === 'reconnecting' || connectionStatus() === 'error') {
+    <div class="play__connection-banner" data-testid="connection-banner" role="status">
+      @if (connectionStatus() === 'reconnecting') {
+        <span>Reconnexion en cours…</span>
+      } @else {
+        <span>Connexion perdue. Actualise la page.</span>
+      }
+    </div>
+  }
+
   <header class="play__header">
     <span data-testid="song-number" class="play__song-number">
       {{ songIndex() + 1 }}&nbsp;/&nbsp;{{ totalSongs() }}

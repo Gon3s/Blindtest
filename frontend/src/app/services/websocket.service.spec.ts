@@ -1,24 +1,32 @@
 import { TestBed } from '@angular/core/testing';
-import { WebSocketService, WsEvent } from './websocket.service';
+import { ConnectionStatus, WebSocketService, WsEvent } from './websocket.service';
 import { environment } from '../../environments/environment';
 
 interface MockSocket {
   url: string;
+  onopen: (() => void) | null;
   onmessage: ((event: MessageEvent) => void) | null;
+  onclose: ((event: Partial<CloseEvent>) => void) | null;
+  onerror: (() => void) | null;
   close: ReturnType<typeof vi.fn>;
+}
+
+function createMockSocket(url: string): MockSocket {
+  return { url, onopen: null, onmessage: null, onclose: null, onerror: null, close: vi.fn() };
 }
 
 describe('WebSocketService', () => {
   let service: WebSocketService;
-  let mockSocket: MockSocket;
+  let sockets: MockSocket[];
   let originalWebSocket: typeof WebSocket;
 
   beforeEach(() => {
-    mockSocket = { url: '', onmessage: null, close: vi.fn() };
+    sockets = [];
     originalWebSocket = window.WebSocket;
     (window as unknown as Record<string, unknown>)['WebSocket'] = function (url: string) {
-      mockSocket.url = url;
-      return mockSocket;
+      const socket = createMockSocket(url);
+      sockets.push(socket);
+      return socket;
     };
 
     TestBed.configureTestingModule({});
@@ -27,6 +35,7 @@ describe('WebSocketService', () => {
 
   afterEach(() => {
     (window as unknown as Record<string, unknown>)['WebSocket'] = originalWebSocket;
+    vi.useRealTimers();
   });
 
   it('should be created', () => {
@@ -35,7 +44,7 @@ describe('WebSocketService', () => {
 
   it('should connect with correct WebSocket URL', () => {
     service.connect('my-room-id');
-    expect(mockSocket.url).toBe(`${environment.wsBaseUrl}/ws/rooms/my-room-id`);
+    expect(sockets[0].url).toBe(`${environment.wsBaseUrl}/ws/rooms/my-room-id`);
   });
 
   it('should emit messages from the WebSocket', async () => {
@@ -45,7 +54,7 @@ describe('WebSocketService', () => {
       service.messages$.subscribe(resolve);
     });
 
-    mockSocket.onmessage!(
+    sockets[0].onmessage!(
       { data: JSON.stringify({ event: 'room.state', data: {} }) } as MessageEvent,
     );
 
@@ -56,6 +65,135 @@ describe('WebSocketService', () => {
   it('should close the socket on disconnect', () => {
     service.connect('my-room-id');
     service.disconnect();
-    expect(mockSocket.close).toHaveBeenCalled();
+    expect(sockets[0].close).toHaveBeenCalled();
+  });
+
+  // ---- Connection status ----
+
+  describe('connection status', () => {
+    it('starts as disconnected', () => {
+      const statuses: ConnectionStatus[] = [];
+      service.connectionStatus$.subscribe(s => statuses.push(s));
+      expect(statuses[0]).toBe('disconnected');
+    });
+
+    it('becomes connecting on connect()', () => {
+      const statuses: ConnectionStatus[] = [];
+      service.connectionStatus$.subscribe(s => statuses.push(s));
+      service.connect('room-1');
+      expect(statuses).toContain('connecting');
+    });
+
+    it('becomes connected on onopen', () => {
+      const statuses: ConnectionStatus[] = [];
+      service.connectionStatus$.subscribe(s => statuses.push(s));
+      service.connect('room-1');
+      sockets[0].onopen!();
+      expect(statuses[statuses.length - 1]).toBe('connected');
+    });
+
+    it('becomes disconnected on intentional disconnect()', () => {
+      const statuses: ConnectionStatus[] = [];
+      service.connectionStatus$.subscribe(s => statuses.push(s));
+      service.connect('room-1');
+      sockets[0].onopen!();
+      service.disconnect();
+      expect(statuses[statuses.length - 1]).toBe('disconnected');
+    });
+  });
+
+  // ---- Reconnection ----
+
+  describe('reconnection', () => {
+    it('becomes reconnecting on unexpected close', () => {
+      const statuses: ConnectionStatus[] = [];
+      service.connectionStatus$.subscribe(s => statuses.push(s));
+      service.connect('room-1');
+      sockets[0].onopen!();
+      sockets[0].onclose!({ wasClean: false });
+      expect(statuses[statuses.length - 1]).toBe('reconnecting');
+    });
+
+    it('attempts reconnect after delay', () => {
+      vi.useFakeTimers();
+      service.connect('room-1');
+      sockets[0].onopen!();
+      sockets[0].onclose!({ wasClean: false });
+      expect(sockets.length).toBe(1);
+      vi.advanceTimersByTime(2000);
+      expect(sockets.length).toBe(2);
+    });
+
+    it('resets attempt counter on successful reconnect', () => {
+      vi.useFakeTimers();
+      service.connect('room-1');
+      sockets[0].onopen!();
+      sockets[0].onclose!({ wasClean: false });
+      vi.advanceTimersByTime(2000);
+      sockets[1].onopen!();
+      sockets[1].onclose!({ wasClean: false });
+      vi.advanceTimersByTime(2000);
+      expect(sockets.length).toBe(3);
+    });
+
+    it('does not reconnect on clean close', () => {
+      vi.useFakeTimers();
+      const statuses: ConnectionStatus[] = [];
+      service.connectionStatus$.subscribe(s => statuses.push(s));
+      service.connect('room-1');
+      sockets[0].onopen!();
+      sockets[0].onclose!({ wasClean: true });
+      vi.advanceTimersByTime(5000);
+      expect(sockets.length).toBe(1);
+      expect(statuses[statuses.length - 1]).toBe('disconnected');
+    });
+
+    it('does not reconnect after intentional disconnect()', () => {
+      vi.useFakeTimers();
+      service.connect('room-1');
+      sockets[0].onopen!();
+      service.disconnect();
+      vi.advanceTimersByTime(5000);
+      expect(sockets.length).toBe(1);
+    });
+
+    it('becomes error after max reconnection attempts', () => {
+      vi.useFakeTimers();
+      const statuses: ConnectionStatus[] = [];
+      service.connectionStatus$.subscribe(s => statuses.push(s));
+      service.connect('room-1');
+      for (let i = 0; i < 5; i++) {
+        sockets[i].onclose!({ wasClean: false });
+        vi.advanceTimersByTime(2000);
+      }
+      sockets[5].onclose!({ wasClean: false });
+      expect(statuses[statuses.length - 1]).toBe('error');
+    });
+  });
+
+  // ---- JSON protection ----
+
+  describe('json parse protection', () => {
+    it('ignores invalid JSON without throwing', () => {
+      service.connect('room-1');
+      const messages: WsEvent[] = [];
+      service.messages$.subscribe(m => messages.push(m));
+      expect(() => {
+        sockets[0].onmessage!({ data: 'not-valid-json{{' } as MessageEvent);
+      }).not.toThrow();
+      expect(messages.length).toBe(0);
+    });
+
+    it('emits valid messages after invalid JSON', () => {
+      service.connect('room-1');
+      const messages: WsEvent[] = [];
+      service.messages$.subscribe(m => messages.push(m));
+      sockets[0].onmessage!({ data: 'invalid' } as MessageEvent);
+      sockets[0].onmessage!(
+        { data: JSON.stringify({ event: 'room.state', data: {} }) } as MessageEvent,
+      );
+      expect(messages.length).toBe(1);
+      expect(messages[0].event).toBe('room.state');
+    });
   });
 });

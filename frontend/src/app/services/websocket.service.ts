@@ -1,5 +1,5 @@
 import { inject, Injectable, OnDestroy } from '@angular/core';
-import { Subject } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ErrorService } from './error.service';
 
@@ -90,38 +90,98 @@ export interface WsEvent {
   data: unknown;
 }
 
+export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'reconnecting' | 'error';
+
 @Injectable({ providedIn: 'root' })
 export class WebSocketService implements OnDestroy {
+  private static readonly MAX_RECONNECT_ATTEMPTS = 5;
+  private static readonly RECONNECT_DELAY_MS = 2000;
+
   private socket?: WebSocket;
   private readonly _messages = new Subject<WsEvent>();
   private readonly _connectionError = new Subject<string>();
+  private readonly _connectionStatus = new BehaviorSubject<ConnectionStatus>('disconnected');
   private readonly errorService = inject(ErrorService);
+
+  private _intentionalClose = false;
+  private _reconnectAttempts = 0;
+  private _reconnectTimeout?: ReturnType<typeof setTimeout>;
+  private _roomId = '';
 
   readonly messages$ = this._messages.asObservable();
   readonly connectionError$ = this._connectionError.asObservable();
+  readonly connectionStatus$ = this._connectionStatus.asObservable();
 
   connect(roomId: string): void {
+    this._intentionalClose = false;
+    this._reconnectAttempts = 0;
+    this._roomId = roomId;
+    this._closeSocket();
+    this._doConnect(roomId);
+  }
+
+  disconnect(): void {
+    this._intentionalClose = true;
+    this._closeSocket();
+    this._connectionStatus.next('disconnected');
+  }
+
+  ngOnDestroy(): void {
     this.disconnect();
+  }
+
+  private _doConnect(roomId: string): void {
+    this._connectionStatus.next('connecting');
     this.socket = new WebSocket(`${environment.wsBaseUrl}/ws/rooms/${roomId}`);
-    this.socket.onmessage = ({ data }) => {
-      this._messages.next(JSON.parse(data as string) as WsEvent);
+
+    this.socket.onopen = () => {
+      this._reconnectAttempts = 0;
+      this._connectionStatus.next('connected');
     };
-    this.socket.onclose = (event) => {
-      if (!event.wasClean) {
-        this._connectionError.next(this.errorService.wsDisconnected);
+
+    this.socket.onmessage = ({ data }) => {
+      try {
+        this._messages.next(JSON.parse(data as string) as WsEvent);
+      } catch {
+        // ignore malformed JSON
       }
     };
+
+    this.socket.onclose = (event) => {
+      if (this._intentionalClose || event.wasClean) {
+        this._connectionStatus.next('disconnected');
+        return;
+      }
+      this._scheduleReconnect();
+    };
+
     this.socket.onerror = () => {
       this._connectionError.next(this.errorService.wsDisconnected);
     };
   }
 
-  disconnect(): void {
-    this.socket?.close();
-    this.socket = undefined;
+  private _scheduleReconnect(): void {
+    if (this._reconnectAttempts >= WebSocketService.MAX_RECONNECT_ATTEMPTS) {
+      this._connectionStatus.next('error');
+      this._connectionError.next(this.errorService.wsDisconnected);
+      return;
+    }
+    this._reconnectAttempts++;
+    this._connectionStatus.next('reconnecting');
+    this._reconnectTimeout = setTimeout(() => {
+      this._doConnect(this._roomId);
+    }, WebSocketService.RECONNECT_DELAY_MS);
   }
 
-  ngOnDestroy(): void {
-    this.disconnect();
+  private _closeSocket(): void {
+    clearTimeout(this._reconnectTimeout);
+    if (this.socket) {
+      this.socket.onopen = null;
+      this.socket.onmessage = null;
+      this.socket.onclose = null;
+      this.socket.onerror = null;
+      this.socket.close();
+      this.socket = undefined;
+    }
   }
 }

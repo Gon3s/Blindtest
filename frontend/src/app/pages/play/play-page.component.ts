@@ -22,7 +22,7 @@ import {
   SongSummaryResponse,
   SubmitAnswerResponse,
 } from '../../services/room.service';
-import { WebSocketService, WsEvent } from '../../services/websocket.service';
+import { ConnectionStatus, WebSocketService, WsEvent } from '../../services/websocket.service';
 import type { BadgeVariant } from '../../shared/badge/app-badge.component';
 import { AppButtonComponent } from '../../shared/button/app-button.component';
 import { AppCardComponent } from '../../shared/card/app-card.component';
@@ -81,6 +81,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   readonly feedback = signal<FeedbackState>('none');
   readonly submitError = signal<string | null>(null);
   readonly connectionError = signal<string | null>(null);
+  readonly connectionStatus = signal<ConnectionStatus>('disconnected');
   readonly isHost = signal(false);
   readonly songSummary = signal<SongSummaryResponse | null>(null);
   readonly revealData = signal<SongRevealedData | null>(null);
@@ -129,6 +130,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   private hostId = '';
   private subscription?: Subscription;
   private wsErrorSubscription?: Subscription;
+  private wsStatusSubscription?: Subscription;
   private timerInterval?: ReturnType<typeof setInterval>;
   private endsAt = new Date();
   private roomId = '';
@@ -180,6 +182,10 @@ export class PlayPageComponent implements OnInit, OnDestroy {
       this.connectionError.set(msg);
       this.cdr.markForCheck();
     });
+    this.wsStatusSubscription = this.wsService.connectionStatus$.subscribe(status => {
+      this.connectionStatus.set(status);
+      this.cdr.markForCheck();
+    });
     this.subscription = this.wsService.messages$.subscribe((event: WsEvent) => {
       if (event.event === 'song.started') {
         const d = event.data as SongStartedData;
@@ -224,6 +230,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
     this.audioService.stop();
     this.subscription?.unsubscribe();
     this.wsErrorSubscription?.unsubscribe();
+    this.wsStatusSubscription?.unsubscribe();
     this.wsService.disconnect();
   }
 

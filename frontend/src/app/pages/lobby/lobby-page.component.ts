@@ -15,7 +15,7 @@ import { map } from 'rxjs/operators';
 import { AudioService } from '../../services/audio.service';
 import { RoomService } from '../../services/room.service';
 import { Session, SessionService } from '../../services/session.service';
-import { Participant, WebSocketService, WsEvent } from '../../services/websocket.service';
+import { ConnectionStatus, Participant, WebSocketService, WsEvent } from '../../services/websocket.service';
 
 @Component({
   selector: 'app-lobby-page',
@@ -42,11 +42,13 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
   readonly nickname = signal('');
   readonly theme = signal('');
   readonly sessionRestoreError = signal(false);
+  readonly connectionStatus = signal<ConnectionStatus>('disconnected');
 
   private roomId = '';
   private participantId = '';
   private hostToken = '';
   private subscription?: Subscription;
+  private wsStatusSubscription?: Subscription;
 
   ngOnInit(): void {
     const state = history.state as {
@@ -78,6 +80,7 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subscription?.unsubscribe();
+    this.wsStatusSubscription?.unsubscribe();
     this.wsService.disconnect();
   }
 
@@ -125,6 +128,9 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
 
   private wsConnect(): void {
     this.wsService.connect(this.roomId);
+    this.wsStatusSubscription = this.wsService.connectionStatus$.subscribe(status => {
+      this.connectionStatus.set(status);
+    });
     this.subscription = this.wsService.messages$.subscribe((event: WsEvent) => {
       if (event.event === 'room.state') {
         const d = event.data as { participants: Participant[] };

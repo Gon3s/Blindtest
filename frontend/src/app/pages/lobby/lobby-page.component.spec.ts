@@ -1,21 +1,23 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, ActivatedRoute, Router } from '@angular/router';
-import { Observable, Subject } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { of, throwError } from 'rxjs';
 import { LobbyPageComponent } from './lobby-page.component';
 import { AudioService } from '../../services/audio.service';
 import { RoomService } from '../../services/room.service';
 import { SessionService } from '../../services/session.service';
-import { WebSocketService, WsEvent } from '../../services/websocket.service';
+import { ConnectionStatus, WebSocketService, WsEvent } from '../../services/websocket.service';
 
 function createWsMock() {
   const msgs = new Subject<WsEvent>();
+  const connStatus = new BehaviorSubject<ConnectionStatus>('connected');
   const service = {
     connect: vi.fn(),
     disconnect: vi.fn(),
     messages$: msgs.asObservable() as Observable<WsEvent>,
+    connectionStatus$: connStatus.asObservable() as Observable<ConnectionStatus>,
   };
-  return { service, msgs };
+  return { service, msgs, connStatus };
 }
 
 function createAudioMock() {
