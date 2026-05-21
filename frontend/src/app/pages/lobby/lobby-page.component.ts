@@ -45,6 +45,7 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
 
   private roomId = '';
   private participantId = '';
+  private hostToken = '';
   private subscription?: Subscription;
 
   ngOnInit(): void {
@@ -70,6 +71,8 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
     this.isHost.set(state.role === 'host');
     this.nickname.set(state.nickname ?? '');
     this.participantId = state.participant_id ?? state.host_id ?? '';
+    const session = this.sessionService.loadSession();
+    this.hostToken = session?.hostToken ?? '';
     this.wsConnect();
   }
 
@@ -79,10 +82,11 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
   }
 
   startRound(): void {
-    this.roomService.startRound(this.roomId, this.theme().trim()).subscribe();
+    this.roomService.startRound(this.roomId, this.theme().trim(), this.hostToken).subscribe();
   }
 
   private restoreFromSession(session: Session): void {
+    this.hostToken = session.hostToken ?? '';
     this.roomService.getRoomState(session.roomCode).subscribe({
       next: roomState => {
         this.roomId = roomState.room_id;

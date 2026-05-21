@@ -30,6 +30,15 @@ async function setup(role: 'host' | 'player', nickname = 'Alice') {
   const { service, msgs } = createWsMock();
   const audioService = createAudioMock();
   const roomService = createRoomServiceMock();
+  const sessionService = {
+    loadSession: vi.fn().mockReturnValue(
+      role === 'host'
+        ? { roomCode: 'ABC123', roomId: 'room-uuid', role: 'host', participantId: 'host-uuid', hostToken: 'host-token-abc', nickname }
+        : null,
+    ),
+    saveSession: vi.fn(),
+    clearSession: vi.fn(),
+  };
 
   history.replaceState({ room_id: 'room-uuid', role, nickname }, '');
 
@@ -46,6 +55,7 @@ async function setup(role: 'host' | 'player', nickname = 'Alice') {
       { provide: WebSocketService, useValue: service },
       { provide: AudioService, useValue: audioService },
       { provide: RoomService, useValue: roomService },
+      { provide: SessionService, useValue: sessionService },
     ],
   }).compileComponents();
 
@@ -243,6 +253,7 @@ describe('LobbyPageComponent — T-056 reconnection', () => {
       roomId: 'room-uuid',
       role,
       participantId: role === 'host' ? 'host-uuid' : 'player-uuid',
+      hostToken: role === 'host' ? 'host-token-abc' : undefined,
       nickname: 'Alice',
     });
   }
@@ -409,6 +420,6 @@ describe('LobbyPageComponent — T-060 theme field', () => {
 
     fixture.componentInstance.startRound();
 
-    expect(roomService.startRound).toHaveBeenCalledWith('room-uuid', 'Pop');
+    expect(roomService.startRound).toHaveBeenCalledWith('room-uuid', 'Pop', 'host-token-abc');
   });
 });

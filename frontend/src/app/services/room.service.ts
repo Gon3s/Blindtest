@@ -139,8 +139,8 @@ export class RoomService {
     return this.http.post<JoinRoomResponse>(`${this.apiUrl}/rooms/${code}/join`, { nickname });
   }
 
-  startRound(roomId: string, theme = 'Général'): Observable<StartRoundResponse> {
-    return this.http.post<StartRoundResponse>(`${this.apiUrl}/rooms/${roomId}/rounds`, { theme });
+  startRound(roomId: string, theme = 'Général', hostToken = ''): Observable<StartRoundResponse> {
+    return this.http.post<StartRoundResponse>(`${this.apiUrl}/rooms/${roomId}/rounds`, { theme, host_token: hostToken });
   }
 
   startSong(roundId: string, songIndex: number): Observable<StartSongResponse> {
