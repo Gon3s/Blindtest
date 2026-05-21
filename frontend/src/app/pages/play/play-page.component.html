@@ -16,6 +16,18 @@
     <app-timer-bar [progress]="timerProgress()" [timeLeft]="timeLeft()" />
   </header>
 
+  @if (isHost()) {
+    <div class="play__host-step" data-testid="host-step-indicator">
+      <span class="play__host-step-item" [class.play__host-step-item--active]="!locked()">Répondre</span>
+      <span class="play__host-step-sep">→</span>
+      <span class="play__host-step-item" [class.play__host-step-item--active]="locked() && !revealData() && !roundFinishedData()">Corriger</span>
+      <span class="play__host-step-sep">→</span>
+      <span class="play__host-step-item" [class.play__host-step-item--active]="!!revealData() && !roundFinishedData()">Révéler</span>
+      <span class="play__host-step-sep">→</span>
+      <span class="play__host-step-item" [class.play__host-step-item--active]="!!roundFinishedData()">Classer</span>
+    </div>
+  }
+
   @if (roundFinishedData(); as roundData) {
     <section class="play__round-leaderboard" data-testid="round-leaderboard-section">
       <h2 class="play__round-leaderboard-title">Classement de la manche</h2>
@@ -123,6 +135,12 @@
       }
     </section>
   } @else if (!locked()) {
+    @if (isHost()) {
+      <p class="play__host-banner" data-testid="host-play-banner">
+        Tu joues aussi — réponds avant la fin du timer !
+      </p>
+    }
+
     <section class="play__answer-block">
       <label for="answer-input" class="play__answer-label">Ta réponse</label>
       <input
@@ -168,6 +186,51 @@
             <span data-testid="feedback-both-found">Bravo ! Tout trouvé !</span>
           }
         }
+      </div>
+    }
+  } @else {
+    @if (isHost()) {
+      <section class="play__host-correction" data-testid="host-correction-section">
+        <h2 class="play__host-correction-title">Mode correction</h2>
+
+        @if (summaryLoading()) {
+          <p class="play__summary-loading" data-testid="summary-loading">Chargement du résumé…</p>
+        } @else if (summaryError()) {
+          <p class="play__summary-error" data-testid="summary-error">{{ summaryError() }}</p>
+        } @else if (sortedAnswers().length > 0) {
+          <ul class="play__summary-list" data-testid="summary-list">
+            @for (ans of sortedAnswers(); track ans.answer_id) {
+              <li class="play__summary-item" data-testid="summary-item">
+                <span class="play__summary-nickname">{{ ans.nickname }}</span>
+                <span class="play__summary-text">{{ ans.text }}</span>
+                <app-badge [variant]="badgeVariantFor(ans.validation_status)" [text]="ans.validation_status" />
+                @if (ans.validation_status === 'doubtful') {
+                  <app-button
+                    variant="secondary"
+                    data-testid="accept-answer-btn"
+                    (clicked)="acceptAnswer(ans)"
+                  >✓</app-button>
+                }
+              </li>
+            }
+          </ul>
+        } @else if (songSummary()) {
+          <p class="play__summary-empty" data-testid="summary-empty">Aucune réponse pour cette chanson.</p>
+        }
+
+        <div class="play__host-correction-actions">
+          <app-button
+            variant="primary"
+            data-testid="reveal-btn"
+            (clicked)="revealSong()"
+          >
+            Révéler la chanson
+          </app-button>
+        </div>
+      </section>
+    } @else {
+      <div class="play__locked-waiting" data-testid="locked-waiting">
+        En attente du maître du jeu…
       </div>
     }
   }

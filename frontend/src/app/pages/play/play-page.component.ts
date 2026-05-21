@@ -24,6 +24,7 @@ import {
 } from '../../services/room.service';
 import { ConnectionStatus, WebSocketService, WsEvent } from '../../services/websocket.service';
 import { PREDEFINED_THEMES } from '../../shared/predefined-themes';
+import { AppBadgeComponent } from '../../shared/badge/app-badge.component';
 import type { BadgeVariant } from '../../shared/badge/app-badge.component';
 import { AppButtonComponent } from '../../shared/button/app-button.component';
 import { AppCardComponent } from '../../shared/card/app-card.component';
@@ -60,7 +61,7 @@ interface RoundLeaderboardMergedEntry extends RoundLeaderboardItem {
 @Component({
   selector: 'app-play-page',
   standalone: true,
-  imports: [FormsModule, AppButtonComponent, AppCardComponent, AppTimerBarComponent],
+  imports: [FormsModule, AppBadgeComponent, AppButtonComponent, AppCardComponent, AppTimerBarComponent],
   templateUrl: './play-page.component.html',
   styleUrl: './play-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -85,6 +86,8 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   readonly connectionStatus = signal<ConnectionStatus>('disconnected');
   readonly isHost = signal(false);
   readonly songSummary = signal<SongSummaryResponse | null>(null);
+  readonly summaryLoading = signal(false);
+  readonly summaryError = signal<string | null>(null);
   readonly revealData = signal<SongRevealedData | null>(null);
   readonly roundFinishedData = signal<RoundFinishedData | null>(null);
   readonly newRoundTheme = signal('Général');
@@ -133,6 +136,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   private subscription?: Subscription;
   private wsErrorSubscription?: Subscription;
   private wsStatusSubscription?: Subscription;
+  private summarySubscription?: Subscription;
   private timerInterval?: ReturnType<typeof setInterval>;
   private endsAt = new Date();
   private roomId = '';
@@ -202,6 +206,8 @@ export class PlayPageComponent implements OnInit, OnDestroy {
         this.feedback.set('none');
         this.submitError.set(null);
         this.songSummary.set(null);
+        this.summaryLoading.set(false);
+        this.summaryError.set(null);
         this.revealData.set(null);
         this.roundFinishedData.set(null);
         this.restartTimer();
@@ -213,6 +219,9 @@ export class PlayPageComponent implements OnInit, OnDestroy {
         this.timeLeft.set(0);
         this.stopTimer();
         this.audioService.stop();
+        if (this.isHost()) {
+          this.fetchSongSummary();
+        }
       } else if (event.event === 'song.revealed') {
         this.locked.set(true);
         this.timeLeft.set(0);
@@ -233,6 +242,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
     this.subscription?.unsubscribe();
     this.wsErrorSubscription?.unsubscribe();
     this.wsStatusSubscription?.unsubscribe();
+    this.summarySubscription?.unsubscribe();
     this.wsService.disconnect();
   }
 
@@ -312,9 +322,18 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   }
 
   private fetchSongSummary(): void {
-    this.roomService.getSongSummary(this.songId, this.hostId).subscribe({
+    this.summarySubscription?.unsubscribe();
+    this.summaryLoading.set(true);
+    this.summaryError.set(null);
+    this.summarySubscription = this.roomService.getSongSummary(this.songId, this.hostId).subscribe({
       next: res => {
         this.songSummary.set(res);
+        this.summaryLoading.set(false);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.summaryLoading.set(false);
+        this.summaryError.set('Impossible de charger le résumé.');
         this.cdr.markForCheck();
       },
     });

@@ -1267,3 +1267,212 @@ describe('PlayPageComponent — audio (T-042)', () => {
     expect(audioService.play).not.toHaveBeenCalled();
   });
 });
+
+// ─── T-113 Host UX ───────────────────────────────────────────────────────────
+
+async function configureHostUxTestBed(opts: { isHost?: boolean } = {}) {
+  const { service: wsService, msgs } = createWsMock();
+  const summarySubject = new Subject<SongSummaryResponse>();
+  const roomService = {
+    submitAnswer: vi.fn(),
+    getSongSummary: vi.fn().mockReturnValue(summarySubject.asObservable()),
+    overrideAnswer: vi.fn(),
+    startSong: vi.fn(),
+    revealSong: vi.fn().mockReturnValue(new Subject().asObservable()),
+    restartRound: vi.fn().mockReturnValue(new Subject().asObservable()),
+  };
+
+  history.replaceState(
+    {
+      room_id: 'room-uuid',
+      song_id: 'song-uuid',
+      participant_id: 'p1',
+      is_host: opts.isHost ?? false,
+      host_id: 'host-uuid',
+      round_id: 'round-uuid',
+      song_index: 0,
+      total_songs: 10,
+      ends_at: BASE_ENDS.toISOString(),
+    },
+    '',
+  );
+
+  await TestBed.configureTestingModule({
+    imports: [PlayPageComponent],
+    providers: [
+      provideRouter([]),
+      { provide: ActivatedRoute, useValue: { paramMap: of({ get: () => null }) } },
+      { provide: WebSocketService, useValue: wsService },
+      { provide: RoomService, useValue: roomService },
+    ],
+  }).compileComponents();
+
+  return { msgs, roomService, summarySubject };
+}
+
+describe('PlayPageComponent — T-113 Host UX', () => {
+  afterEach(() => {
+    history.replaceState(null, '');
+    TestBed.resetTestingModule();
+  });
+
+  it('host voit bannière "Tu joues aussi" pendant la chanson', async () => {
+    await configureHostUxTestBed({ isHost: true });
+    const fixture = mountFixture();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="host-play-banner"]'),
+    ).not.toBeNull();
+  });
+
+  it('host voit formulaire de réponse avant verrouillage', async () => {
+    await configureHostUxTestBed({ isHost: true });
+    const fixture = mountFixture();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="answer-input"]'),
+    ).not.toBeNull();
+  });
+
+  it('joueur normal ne voit pas la bannière host pendant la chanson', async () => {
+    await configureHostUxTestBed({ isHost: false });
+    const fixture = mountFixture();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="host-play-banner"]'),
+    ).toBeNull();
+  });
+
+  it('après verrouillage, host voit le mode correction', async () => {
+    const { msgs } = await configureHostUxTestBed({ isHost: true });
+    const fixture = mountFixture();
+    msgs.next({ event: 'song.locked', data: { song_id: 'song-uuid', round_id: 'round-uuid' } });
+    fixture.detectChanges();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="host-correction-section"]'),
+    ).not.toBeNull();
+  });
+
+  it("après verrouillage, joueur normal voit le message d'attente", async () => {
+    const { msgs } = await configureHostUxTestBed({ isHost: false });
+    const fixture = mountFixture();
+    msgs.next({ event: 'song.locked', data: { song_id: 'song-uuid', round_id: 'round-uuid' } });
+    fixture.detectChanges();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="locked-waiting"]'),
+    ).not.toBeNull();
+  });
+
+  it('host voit état de chargement du résumé après verrouillage', async () => {
+    const { msgs } = await configureHostUxTestBed({ isHost: true });
+    const fixture = mountFixture();
+    msgs.next({ event: 'song.locked', data: { song_id: 'song-uuid', round_id: 'round-uuid' } });
+    fixture.detectChanges();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="summary-loading"]'),
+    ).not.toBeNull();
+  });
+
+  it('host voit erreur si getSongSummary échoue', async () => {
+    const { msgs, summarySubject } = await configureHostUxTestBed({ isHost: true });
+    const fixture = mountFixture();
+    msgs.next({ event: 'song.locked', data: { song_id: 'song-uuid', round_id: 'round-uuid' } });
+    summarySubject.error(new Error('Network error'));
+    fixture.detectChanges();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="summary-error"]'),
+    ).not.toBeNull();
+  });
+
+  it('host voit bouton Révéler dans le mode correction', async () => {
+    const { msgs } = await configureHostUxTestBed({ isHost: true });
+    const fixture = mountFixture();
+    msgs.next({ event: 'song.locked', data: { song_id: 'song-uuid', round_id: 'round-uuid' } });
+    fixture.detectChanges();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="reveal-btn"]'),
+    ).not.toBeNull();
+  });
+
+  it('joueur normal ne voit pas le bouton Révéler après verrouillage', async () => {
+    const { msgs } = await configureHostUxTestBed({ isHost: false });
+    const fixture = mountFixture();
+    msgs.next({ event: 'song.locked', data: { song_id: 'song-uuid', round_id: 'round-uuid' } });
+    fixture.detectChanges();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="reveal-btn"]'),
+    ).toBeNull();
+  });
+
+  it("host voit indicateur d'étapes", async () => {
+    await configureHostUxTestBed({ isHost: true });
+    const fixture = mountFixture();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="host-step-indicator"]'),
+    ).not.toBeNull();
+  });
+
+  it("joueur normal ne voit pas l'indicateur d'étapes host", async () => {
+    await configureHostUxTestBed({ isHost: false });
+    const fixture = mountFixture();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="host-step-indicator"]'),
+    ).toBeNull();
+  });
+
+  it('host voit la liste des réponses après chargement du résumé', async () => {
+    const { msgs, summarySubject } = await configureHostUxTestBed({ isHost: true });
+    const fixture = mountFixture();
+    msgs.next({ event: 'song.locked', data: { song_id: 'song-uuid', round_id: 'round-uuid' } });
+    summarySubject.next({
+      song_id: 'song-uuid',
+      title: 'Get Lucky',
+      artist: 'Daft Punk',
+      total_answers: 2,
+      doubtful_count: 0,
+      answers: [
+        {
+          answer_id: 'a1',
+          participant_id: 'p1',
+          nickname: 'Alice',
+          text: 'get lucky',
+          validation_status: 'found',
+          title_found: true,
+          artist_found: false,
+        },
+        {
+          answer_id: 'a2',
+          participant_id: 'p2',
+          nickname: 'Bob',
+          text: 'daft punk',
+          validation_status: 'not_found',
+          title_found: false,
+          artist_found: false,
+        },
+      ],
+    });
+    fixture.detectChanges();
+    const items = (fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="summary-item"]');
+    expect(items.length).toBe(2);
+    expect(items[0].querySelector('.play__summary-nickname')?.textContent?.trim()).toBe('Alice');
+    expect(items[1].querySelector('.play__summary-nickname')?.textContent?.trim()).toBe('Bob');
+  });
+
+  it('host voit message vide si résumé chargé sans réponses', async () => {
+    const { msgs, summarySubject } = await configureHostUxTestBed({ isHost: true });
+    const fixture = mountFixture();
+    msgs.next({ event: 'song.locked', data: { song_id: 'song-uuid', round_id: 'round-uuid' } });
+    summarySubject.next({
+      song_id: 'song-uuid',
+      title: 'Get Lucky',
+      artist: 'Daft Punk',
+      total_answers: 0,
+      doubtful_count: 0,
+      answers: [],
+    });
+    fixture.detectChanges();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="summary-empty"]'),
+    ).not.toBeNull();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="summary-list"]'),
+    ).toBeNull();
+  });
+});
