@@ -15,7 +15,13 @@ from src.domain.exceptions import (
     SongNotLockableError,
     SongNotPlayableError,
 )
-from src.infrastructure.models import AnswerModel, RoomModel, RoundModel, SongModel
+from src.infrastructure.models import (
+    AnswerModel,
+    ParticipantModel,
+    RoomModel,
+    RoundModel,
+    SongModel,
+)
 
 
 class FakeClock:
@@ -507,11 +513,21 @@ def _make_playing_song() -> MagicMock:
 
 def _session_for_answer(song: MagicMock) -> MagicMock:
     mock = MagicMock()
+    room_id = uuid4()
+    round_ = MagicMock(spec=RoundModel)
+    round_.id = song.round_id
+    round_.room_id = room_id
+    participant = MagicMock(spec=ParticipantModel)
+    participant.room_id = room_id
 
     def _query(model: type) -> MagicMock:
         q = MagicMock()
         if model is SongModel:
             q.filter_by.return_value.first.return_value = song
+        elif model is RoundModel:
+            q.filter_by.return_value.first.return_value = round_
+        elif model is ParticipantModel:
+            q.filter_by.return_value.first.return_value = participant
         else:
             q.filter_by.return_value.first.return_value = None
         return q
@@ -538,11 +554,21 @@ def _session_for_answer_upsert(
     song: MagicMock, existing: MagicMock | None
 ) -> MagicMock:
     mock = MagicMock()
+    room_id = uuid4()
+    round_ = MagicMock(spec=RoundModel)
+    round_.id = song.round_id
+    round_.room_id = room_id
+    participant = MagicMock(spec=ParticipantModel)
+    participant.room_id = room_id
 
     def _query(model: type) -> MagicMock:
         q = MagicMock()
         if model is SongModel:
             q.filter_by.return_value.first.return_value = song
+        elif model is RoundModel:
+            q.filter_by.return_value.first.return_value = round_
+        elif model is ParticipantModel:
+            q.filter_by.return_value.first.return_value = participant
         elif model is AnswerModel:
             q.filter_by.return_value.first.return_value = existing
         else:

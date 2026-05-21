@@ -72,3 +72,7 @@ class SongNotRevealableError(ValueError):
 
 class RoomNotFinishedRoundError(ValueError):
     pass
+
+
+class ParticipantNotInRoomError(ValueError):
+    pass

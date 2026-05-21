@@ -5,6 +5,7 @@ from src.domain.exceptions import (
     AnswerNotFoundError,
     NicknameAlreadyTakenError,
     NotHostError,
+    ParticipantNotInRoomError,
     RoomNotFinishedRoundError,
     RoomNotFoundError,
     RoomNotJoinableError,
@@ -60,6 +61,11 @@ _ERROR_MAP: dict[type[Exception], tuple[int, str, str]] = {
         409, "song_not_revealable", "La chanson ne peut pas encore être révélée."
     ),
     NotHostError: (403, "not_host", "Action réservée à l'hôte."),
+    ParticipantNotInRoomError: (
+        403,
+        "participant_not_in_room",
+        "Tu n'es pas dans cette salle.",
+    ),
     AnswerNotFoundError: (404, "answer_not_found", "Réponse introuvable."),
     RoomTransitionError: (
         409, "room_transition_error", "Transition d'état impossible pour la salle."

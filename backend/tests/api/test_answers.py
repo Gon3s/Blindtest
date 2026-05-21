@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from src.api.routes.rooms import get_room_service
 from src.domain.exceptions import (
+    ParticipantNotInRoomError,
     SongNotAcceptingAnswersError,
     SongNotFoundError,
 )
@@ -128,3 +129,25 @@ def test_submit_answer_validation_fields_present(
     assert "title_found" in data
     assert "artist_found" in data
     assert "validation_status" in data
+
+
+def test_submit_answer_wrong_participant_returns_403() -> None:
+    fake = _FakeAnswerService(exc=ParticipantNotInRoomError("not in room"))
+    app.dependency_overrides[get_room_service] = lambda: fake
+    try:
+        client = TestClient(app)
+        response = client.post(f"/songs/{uuid4()}/answers", json=_VALID_BODY)
+        assert response.status_code == 403
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_submit_answer_wrong_participant_returns_error_code() -> None:
+    fake = _FakeAnswerService(exc=ParticipantNotInRoomError("not in room"))
+    app.dependency_overrides[get_room_service] = lambda: fake
+    try:
+        client = TestClient(app)
+        response = client.post(f"/songs/{uuid4()}/answers", json=_VALID_BODY)
+        assert response.json()["code"] == "participant_not_in_room"
+    finally:
+        app.dependency_overrides.clear()

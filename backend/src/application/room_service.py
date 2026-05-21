@@ -14,6 +14,7 @@ from src.domain.exceptions import (
     AnswerNotFoundError,
     InvalidHostTokenError,
     NicknameAlreadyTakenError,
+    ParticipantNotInRoomError,
     RoomNotFinishedRoundError,
     RoomNotFoundError,
     RoomNotJoinableError,
@@ -462,6 +463,18 @@ class RoomService:
         if song.status != SongStatus.PLAYING.value:
             raise SongNotAcceptingAnswersError(
                 f"Song is not accepting answers (status: {song.status!r})"
+            )
+
+        round_ = self._session.query(RoundModel).filter_by(id=song.round_id).first()
+        if round_ is None:
+            raise RoundNotFoundError(f"Round {song.round_id!r} not found")
+
+        participant = (
+            self._session.query(ParticipantModel).filter_by(id=participant_id).first()
+        )
+        if participant is None or participant.room_id != round_.room_id:
+            raise ParticipantNotInRoomError(
+                f"Participant {participant_id!r} not in room {round_.room_id!r}"
             )
 
         now = self._clock.now()
