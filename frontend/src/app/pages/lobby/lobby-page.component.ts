@@ -16,6 +16,7 @@ import { AudioService } from '../../services/audio.service';
 import { RoomService } from '../../services/room.service';
 import { Session, SessionService } from '../../services/session.service';
 import { ConnectionStatus, Participant, WebSocketService, WsEvent } from '../../services/websocket.service';
+import { PREDEFINED_THEMES } from '../../shared/predefined-themes';
 
 @Component({
   selector: 'app-lobby-page',
@@ -42,6 +43,7 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
   readonly nickname = signal('');
   readonly theme = signal('');
   readonly sessionRestoreError = signal(false);
+  readonly predefinedThemes = PREDEFINED_THEMES;
   readonly connectionStatus = signal<ConnectionStatus>('disconnected');
 
   private roomId = '';

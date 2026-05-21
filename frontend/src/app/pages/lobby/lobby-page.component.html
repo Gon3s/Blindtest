@@ -47,12 +47,23 @@
 
     <div class="lobby__theme">
       <label for="theme-input" class="lobby__theme-label">Thème</label>
+      <div class="lobby__theme-presets" data-testid="theme-presets">
+        @for (t of predefinedThemes; track t) {
+          <button
+            type="button"
+            class="lobby__theme-chip"
+            [class.lobby__theme-chip--selected]="theme() === t"
+            data-testid="theme-chip"
+            (click)="theme.set(t)"
+          >{{ t }}</button>
+        }
+      </div>
       <input
         id="theme-input"
         data-testid="theme-input"
         class="lobby__theme-input"
         type="text"
-        placeholder="Ex : Pop, Rock, Années 80…"
+        placeholder="Ou saisis un thème libre…"
         [ngModel]="theme()"
         (ngModelChange)="theme.set($event)"
       />

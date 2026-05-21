@@ -1109,6 +1109,62 @@ describe('PlayPageComponent — new round (T-037)', () => {
   });
 });
 
+// ─── Thèmes prédéfinis nouvelle manche (T-112) ───────────────────────────────
+
+describe('PlayPageComponent — T-112 thèmes prédéfinis nouvelle manche', () => {
+  afterEach(() => {
+    history.replaceState(null, '');
+    TestBed.resetTestingModule();
+  });
+
+  it('affiche 10 puces de thèmes dans la section nouvelle manche pour le host', async () => {
+    const { msgs } = await configureNewRoundTestBed({ isHost: true });
+    const fixture = mountFixture();
+    msgs.next(mockLastRevealEvent);
+    msgs.next(mockRoundFinishedEvent);
+    fixture.detectChanges();
+    const chips = (fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="new-round-theme-chip"]');
+    expect(chips.length).toBe(10);
+  });
+
+  it('ne montre pas de puces de thèmes pour un joueur', async () => {
+    const { msgs } = await configureNewRoundTestBed({ isHost: false });
+    const fixture = mountFixture();
+    msgs.next(mockLastRevealEvent);
+    msgs.next(mockRoundFinishedEvent);
+    fixture.detectChanges();
+    const chips = (fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="new-round-theme-chip"]');
+    expect(chips.length).toBe(0);
+  });
+
+  it('clic sur la première puce met à jour newRoundTheme à "Pop 90s"', async () => {
+    const { msgs } = await configureNewRoundTestBed({ isHost: true });
+    const fixture = mountFixture();
+    msgs.next(mockLastRevealEvent);
+    msgs.next(mockRoundFinishedEvent);
+    fixture.detectChanges();
+    const chip = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('[data-testid="new-round-theme-chip"]');
+    chip?.click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.newRoundTheme()).toBe('Pop 90s');
+  });
+
+  it('restartRound utilise le thème sélectionné via puce', async () => {
+    const { msgs, roomService } = await configureNewRoundTestBed({ isHost: true });
+    const fixture = mountFixture();
+    msgs.next(mockLastRevealEvent);
+    msgs.next(mockRoundFinishedEvent);
+    fixture.detectChanges();
+    const chip = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('[data-testid="new-round-theme-chip"]');
+    chip?.click();
+    fixture.detectChanges();
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('[data-testid="new-round-btn"]')
+      ?.click();
+    expect(roomService.restartRound).toHaveBeenCalledWith('room-uuid', 'Pop 90s');
+  });
+});
+
 // ─── Audio (T-042) ────────────────────────────────────────────────────────────
 
 async function configureAudioTestBed() {

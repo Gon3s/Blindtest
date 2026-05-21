@@ -425,3 +425,49 @@ describe('LobbyPageComponent — T-060 theme field', () => {
     expect(roomService.startRound).toHaveBeenCalledWith('room-uuid', 'Pop', 'host-token-abc');
   });
 });
+
+describe('LobbyPageComponent — T-112 thèmes prédéfinis', () => {
+  const twoParticipants = [
+    { participant_id: 'p1', nickname: 'Alice', is_host: true },
+    { participant_id: 'p2', nickname: 'Bob', is_host: false },
+  ];
+
+  afterEach(() => {
+    history.replaceState(null, '');
+    TestBed.resetTestingModule();
+  });
+
+  it('affiche 10 puces de thèmes pour le host', async () => {
+    const { fixture } = await setup('host');
+    fixture.detectChanges();
+    const chips = (fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="theme-chip"]');
+    expect(chips.length).toBe(10);
+  });
+
+  it('ne montre pas de puces de thèmes pour un joueur', async () => {
+    const { fixture } = await setup('player');
+    fixture.detectChanges();
+    const chips = (fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="theme-chip"]');
+    expect(chips.length).toBe(0);
+  });
+
+  it('clic sur la première puce met à jour le signal theme à "Pop 90s"', async () => {
+    const { fixture } = await setup('host');
+    fixture.detectChanges();
+    const chip = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('[data-testid="theme-chip"]');
+    chip?.click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.theme()).toBe('Pop 90s');
+  });
+
+  it('startRound utilise le thème sélectionné via puce', async () => {
+    const { fixture, msgs, roomService } = await setup('host');
+    msgs.next({ event: 'room.state', data: { room_id: 'room-uuid', participants: twoParticipants } });
+    fixture.detectChanges();
+    const chip = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('[data-testid="theme-chip"]');
+    chip?.click();
+    fixture.detectChanges();
+    fixture.componentInstance.startRound();
+    expect(roomService.startRound).toHaveBeenCalledWith('room-uuid', 'Pop 90s', 'host-token-abc');
+  });
+});

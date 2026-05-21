@@ -23,6 +23,7 @@ import {
   SubmitAnswerResponse,
 } from '../../services/room.service';
 import { ConnectionStatus, WebSocketService, WsEvent } from '../../services/websocket.service';
+import { PREDEFINED_THEMES } from '../../shared/predefined-themes';
 import type { BadgeVariant } from '../../shared/badge/app-badge.component';
 import { AppButtonComponent } from '../../shared/button/app-button.component';
 import { AppCardComponent } from '../../shared/card/app-card.component';
@@ -88,6 +89,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   readonly roundFinishedData = signal<RoundFinishedData | null>(null);
   readonly newRoundTheme = signal('Général');
   readonly totalDuration = signal(30);
+  readonly predefinedThemes = PREDEFINED_THEMES;
 
   readonly timerProgress = computed(() => {
     const total = this.totalDuration();

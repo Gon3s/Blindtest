@@ -47,6 +47,17 @@
       @if (isHost()) {
         <div class="play__round-cta">
           <label for="new-round-theme" class="play__new-round-label">Thème</label>
+          <div class="play__new-round-theme-presets">
+            @for (t of predefinedThemes; track t) {
+              <button
+                type="button"
+                class="play__new-round-theme-chip"
+                [class.play__new-round-theme-chip--selected]="newRoundTheme() === t"
+                data-testid="new-round-theme-chip"
+                (click)="newRoundTheme.set(t)"
+              >{{ t }}</button>
+            }
+          </div>
           <input
             id="new-round-theme"
             type="text"
