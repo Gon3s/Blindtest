@@ -5,6 +5,17 @@
   padding: 2rem 1rem;
   text-align: center;
 
+  .home-brand {
+    margin: 0 0 var(--space-4);
+    line-height: 0;
+  }
+
+  .home-logo {
+    display: block;
+    width: 200px;
+    height: auto;
+  }
+
   .actions {
     display: flex;
     flex-direction: column;

@@ -18,9 +18,17 @@ describe('HomePageComponent', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('should display app title', () => {
+  it('should display HitRoom branding', () => {
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('h1')?.textContent).toContain('Blindtest');
+    const logo = el.querySelector('img[alt="HitRoom"]');
+    expect(logo).toBeTruthy();
+  });
+
+  it('should have an accessible heading with HitRoom label', () => {
+    const el = fixture.nativeElement as HTMLElement;
+    const h1 = el.querySelector('h1');
+    const img = h1?.querySelector('img');
+    expect(img?.getAttribute('alt')).toContain('HitRoom');
   });
 
   it('should have a link to create a room', () => {
