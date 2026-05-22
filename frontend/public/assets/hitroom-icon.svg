@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="HitRoom">
+  <defs>
+    <linearGradient id="pillar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+  </defs>
+  <!-- Left pillar of H -->
+  <rect x="2" y="4" width="17" height="56" rx="4" fill="url(#pillar)"/>
+  <!-- Right pillar of H -->
+  <rect x="45" y="4" width="17" height="56" rx="4" fill="url(#pillar)"/>
+  <!-- Equalizer bars (crossbar): 5 bars, center tallest -->
+  <rect x="19"   y="25" width="4" height="14" rx="2" fill="#f2f0ff" opacity="0.88"/>
+  <rect x="24.5" y="21" width="4" height="22" rx="2" fill="#f2f0ff" opacity="0.88"/>
+  <rect x="30"   y="14" width="4" height="36" rx="2" fill="#f2f0ff" opacity="0.88"/>
+  <rect x="35.5" y="21" width="4" height="22" rx="2" fill="#f2f0ff" opacity="0.88"/>
+  <rect x="41"   y="25" width="4" height="14" rx="2" fill="#f2f0ff" opacity="0.88"/>
+</svg>

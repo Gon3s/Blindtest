@@ -60,6 +60,7 @@ services:
       API_URL: http://backend:8000
     volumes:
       - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
     depends_on:
       - backend
     networks:
