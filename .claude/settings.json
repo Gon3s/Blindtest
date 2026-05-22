@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport sys, json, re\ntry:\n    data = json.load(sys.stdin)\n    prompt = data.get('prompt', '') + ' ' + data.get('message', '')\n    m = re.search(r'T-\\\\d{3}', prompt)\n    if m:\n        ctx = 'RAPPEL NOTION OBLIGATOIRE: Ticket ' + m.group() + ' mentionné. Workflow: (1) Début travail → statut In Progress via MCP Notion, (2) check.sh vert → statut Done via MCP Notion.'\n        print(json.dumps({'hookSpecificOutput': {'hookEventName': 'UserPromptSubmit', 'additionalContext': ctx}}))\nexcept:\n    pass\n\" 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
