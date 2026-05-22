@@ -65,6 +65,7 @@ yarn-error.log*
 .LSOverride
 Thumbs.db
 ehthumbs.db
+*:Zone.Identifier
 
 # Docker
 .dockerignore
