@@ -64,6 +64,7 @@ _SQLITE_DDL = textwrap.dedent("""\
         aliases_title   TEXT         NOT NULL,
         aliases_artist  TEXT         NOT NULL,
         preview_url     TEXT,
+        cover_url       TEXT,
         status          VARCHAR(32)  NOT NULL,
         started_at      DATETIME,
         ends_at         DATETIME

@@ -128,6 +128,14 @@
     <section class="play__reveal" data-testid="reveal-section">
       <app-card class="play__reveal-answer">
         <p class="play__reveal-label">La réponse était</p>
+        @if (reveal.cover_url) {
+          <img
+            class="play__reveal-cover"
+            data-testid="revealed-cover"
+            [src]="reveal.cover_url"
+            alt="pochette"
+          />
+        }
         <p class="play__reveal-song-title" data-testid="revealed-title">{{ reveal.title }}</p>
         <p class="play__reveal-song-artist" data-testid="revealed-artist">{{ reveal.artist }}</p>
       </app-card>

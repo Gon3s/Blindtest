@@ -67,6 +67,7 @@ export interface SongRevealedData {
   song_id: string;
   title: string;
   artist: string;
+  cover_url: string | null;
   player_results: PlayerRevealItem[];
   mini_leaderboard: MiniLeaderboardItem[];
 }

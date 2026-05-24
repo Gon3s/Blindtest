@@ -106,6 +106,7 @@ class Song:
     aliases_title: list[str] = field(default_factory=list)
     aliases_artist: list[str] = field(default_factory=list)
     preview_url: Optional[str] = None
+    cover_url: Optional[str] = None
     status: SongStatus = SongStatus.UPCOMING
     started_at: Optional[datetime] = None
     ends_at: Optional[datetime] = None

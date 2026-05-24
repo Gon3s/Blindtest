@@ -208,6 +208,7 @@ def test_reveal_response_top_level_keys(mock_manager: MagicMock) -> None:
                 "room_id": room_id,
                 "title": "One More Time",
                 "artist": "Daft Punk",
+                "cover_url": None,
                 "player_results": [],
                 "mini_leaderboard": [],
                 "round_finished": False,
@@ -227,6 +228,7 @@ def test_reveal_response_top_level_keys(mock_manager: MagicMock) -> None:
             "room_id",
             "title",
             "artist",
+            "cover_url",
             "player_results",
             "mini_leaderboard",
             "round_finished",
@@ -251,6 +253,7 @@ def test_reveal_player_result_item_shape(mock_manager: MagicMock) -> None:
                 "room_id": uuid4(),
                 "title": "Get Lucky",
                 "artist": "Daft Punk",
+                "cover_url": None,
                 "player_results": [
                     {
                         "participant_id": str(pid),
@@ -302,6 +305,7 @@ def test_reveal_mini_leaderboard_item_shape(mock_manager: MagicMock) -> None:
                 "room_id": uuid4(),
                 "title": "Get Lucky",
                 "artist": "Daft Punk",
+                "cover_url": None,
                 "player_results": [],
                 "mini_leaderboard": [
                     {
@@ -343,6 +347,7 @@ def test_reveal_round_leaderboard_item_shape(mock_manager: MagicMock) -> None:
                 "room_id": uuid4(),
                 "title": "Get Lucky",
                 "artist": "Daft Punk",
+                "cover_url": None,
                 "player_results": [],
                 "mini_leaderboard": [],
                 "round_finished": True,
@@ -575,6 +580,7 @@ def test_auto_lock_broadcasts_song_revealed_event_shape(
                 "room_id": room_id,
                 "title": "One More Time",
                 "artist": "Daft Punk",
+                "cover_url": None,
                 "player_results": [
                     {
                         "participant_id": pid,
@@ -644,6 +650,7 @@ def test_song_revealed_event_player_results_shape(mock_manager: MagicMock) -> No
                 "room_id": uuid4(),
                 "title": "One More Time",
                 "artist": "Daft Punk",
+                "cover_url": None,
                 "player_results": [
                     {
                         "participant_id": str(pid),
@@ -675,7 +682,10 @@ def test_song_revealed_event_player_results_shape(mock_manager: MagicMock) -> No
         calls = mock_manager.broadcast_to_room.call_args_list
         revealed = next(c for c in calls if c.args[1]["event"] == "song.revealed")
         d = revealed.args[1]["data"]
-        rev_keys = {"song_id", "title", "artist", "player_results", "mini_leaderboard"}
+        rev_keys = {
+            "song_id", "title", "artist", "cover_url",
+            "player_results", "mini_leaderboard",
+        }
         assert rev_keys == set(d.keys())
         pr = d["player_results"][0]
         pr_keys = {
@@ -710,6 +720,7 @@ def test_round_finished_event_shape(mock_manager: MagicMock) -> None:
                 "room_id": room_id,
                 "title": "Get Lucky",
                 "artist": "Daft Punk",
+                "cover_url": None,
                 "player_results": [],
                 "mini_leaderboard": [],
                 "round_finished": True,

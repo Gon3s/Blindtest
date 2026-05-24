@@ -36,8 +36,11 @@ class DeezerMusicProvider:
     @staticmethod
     def _map_track(item: dict[str, Any]) -> TrackInfo:
         raw_preview: str = item.get("preview", "") or ""
+        album: dict[str, Any] = item.get("album") or {}
+        raw_cover: str = album.get("cover_medium") or ""
         return TrackInfo(
             title=item["title"],
             artist=item["artist"]["name"],
             preview_url=raw_preview if raw_preview else None,
+            cover_url=raw_cover if raw_cover else None,
         )

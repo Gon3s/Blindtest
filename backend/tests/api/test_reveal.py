@@ -23,6 +23,7 @@ def _make_reveal_result(
     *,
     player_results: list[dict] | None = None,
     mini_leaderboard: list[dict] | None = None,
+    cover_url: str | None = None,
 ) -> dict:
     return {
         "song_id": _SONG_ID,
@@ -33,6 +34,7 @@ def _make_reveal_result(
         "mini_leaderboard": mini_leaderboard or [],
         "round_finished": False,
         "round_leaderboard": [],
+        "cover_url": cover_url,
     }
 
 
@@ -211,6 +213,51 @@ def test_reveal_broadcasts_song_revealed_event(reveal_result: dict) -> None:
         assert payload["event"] == "song.revealed"
         assert str(_SONG_ID) == payload["data"]["song_id"]
         assert payload["data"]["title"] == "One More Time"
+    finally:
+        app.dependency_overrides.clear()
+
+
+# ── cover_url ────────────────────────────────────────────────────────────────
+
+
+def test_reveal_returns_cover_url_null_when_absent(reveal_client: TestClient) -> None:
+    response = reveal_client.post(
+        f"/songs/{_SONG_ID}/reveal", json={"host_token": _HOST_TOKEN}
+    )
+    data = response.json()
+    assert "cover_url" in data
+    assert data["cover_url"] is None
+
+
+def test_reveal_returns_cover_url_when_present() -> None:
+    result = _make_reveal_result(cover_url="https://cdn.deezer.com/cover.jpg")
+    fake = _FakeRevealService(result=result)
+    app.dependency_overrides[get_room_service] = lambda: fake
+    try:
+        client = TestClient(app)
+        response = client.post(
+            f"/songs/{_SONG_ID}/reveal", json={"host_token": _HOST_TOKEN}
+        )
+        assert response.json()["cover_url"] == "https://cdn.deezer.com/cover.jpg"
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_reveal_broadcasts_cover_url() -> None:
+    from unittest.mock import AsyncMock, MagicMock
+
+    result = _make_reveal_result(cover_url="https://cdn.deezer.com/cover.jpg")
+    fake = _FakeRevealService(result=result)
+    mock_manager = MagicMock(spec=RoomConnectionManager)
+    mock_manager.broadcast_to_room = AsyncMock()
+    app.dependency_overrides[get_room_service] = lambda: fake
+    app.dependency_overrides[get_ws_manager] = lambda: mock_manager
+    try:
+        client = TestClient(app)
+        client.post(f"/songs/{_SONG_ID}/reveal", json={"host_token": _HOST_TOKEN})
+        call_args = mock_manager.broadcast_to_room.call_args_list[0].args
+        payload = call_args[1]
+        assert payload["data"]["cover_url"] == "https://cdn.deezer.com/cover.jpg"
     finally:
         app.dependency_overrides.clear()
 

@@ -77,6 +77,18 @@ class TestTrackInfo:
         assert track.aliases_title == []
         assert track.aliases_artist == []
 
+    def test_track_info_cover_url_default_none(self) -> None:
+        track = TrackInfo(title="Song", artist="Artist")
+        assert track.cover_url is None
+
+    def test_track_info_with_cover_url(self) -> None:
+        track = TrackInfo(
+            title="Song",
+            artist="Artist",
+            cover_url="https://cdn.deezer.com/images/cover.jpg",
+        )
+        assert track.cover_url == "https://cdn.deezer.com/images/cover.jpg"
+
     def test_track_info_with_aliases(self) -> None:
         track = TrackInfo(
             title="One More Time",
@@ -126,6 +138,20 @@ class TestTrackToSong:
         song = track_to_song(track, round_id=uuid4(), index=1)
         assert song.aliases_title == ["1 More Time"]
         assert song.aliases_artist == ["DP"]
+
+    def test_mapping_propagates_cover_url(self) -> None:
+        track = TrackInfo(
+            title="Song",
+            artist="Artist",
+            cover_url="https://cdn.deezer.com/images/cover.jpg",
+        )
+        song = track_to_song(track, round_id=uuid4(), index=0)
+        assert song.cover_url == "https://cdn.deezer.com/images/cover.jpg"
+
+    def test_mapping_cover_url_none_when_absent(self) -> None:
+        track = TrackInfo(title="Song", artist="Artist")
+        song = track_to_song(track, round_id=uuid4(), index=0)
+        assert song.cover_url is None
 
     def test_mapping_returns_song_instance(self) -> None:
         track = TrackInfo(title="Instant Crush", artist="Daft Punk")

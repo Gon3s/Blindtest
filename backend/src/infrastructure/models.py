@@ -85,6 +85,7 @@ class SongModel(Base):
     aliases_title: Mapped[Any] = mapped_column(JSONB, nullable=False)
     aliases_artist: Mapped[Any] = mapped_column(JSONB, nullable=False)
     preview_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    cover_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False)
     started_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True

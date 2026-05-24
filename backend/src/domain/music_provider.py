@@ -10,6 +10,7 @@ class TrackInfo:
     title: str
     artist: str
     preview_url: Optional[str] = None
+    cover_url: Optional[str] = None
     aliases_title: list[str] = field(default_factory=list)
     aliases_artist: list[str] = field(default_factory=list)
 
@@ -25,6 +26,7 @@ def track_to_song(track: TrackInfo, round_id: UUID, index: int) -> Song:
         round_id=round_id,
         index=index,
         preview_url=track.preview_url,
+        cover_url=track.cover_url,
         aliases_title=list(track.aliases_title),
         aliases_artist=list(track.aliases_artist),
     )

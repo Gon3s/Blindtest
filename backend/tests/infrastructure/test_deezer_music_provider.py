@@ -21,6 +21,11 @@ _DEEZER_TRACK_NO_PREVIEW: dict[str, Any] = {
     "preview": "",
 }
 
+_DEEZER_TRACK_WITH_ALBUM: dict[str, Any] = {
+    **_DEEZER_TRACK,
+    "album": {"cover_medium": "https://cdn.deezer.com/images/cover/medium.jpg"},
+}
+
 
 def _make_deezer_response(tracks: list[dict[str, Any]]) -> dict[str, Any]:
     return {"data": tracks, "total": len(tracks)}
@@ -72,6 +77,16 @@ class TestDeezerTrackMapping:
         provider = DeezerMusicProvider(client=_mock_client({"data": []}))
         track = provider._map_track(_DEEZER_TRACK)
         assert isinstance(track, TrackInfo)
+
+    def test_maps_cover_url_from_album_cover_medium(self) -> None:
+        provider = DeezerMusicProvider(client=_mock_client({"data": []}))
+        track = provider._map_track(_DEEZER_TRACK_WITH_ALBUM)
+        assert track.cover_url == "https://cdn.deezer.com/images/cover/medium.jpg"
+
+    def test_cover_url_is_none_when_album_absent(self) -> None:
+        provider = DeezerMusicProvider(client=_mock_client({"data": []}))
+        track = provider._map_track(_DEEZER_TRACK)
+        assert track.cover_url is None
 
 
 class TestDeezerMusicProviderSearch:

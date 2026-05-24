@@ -78,6 +78,7 @@ export interface RevealSongResponse {
   room_id: string;
   title: string;
   artist: string;
+  cover_url: string | null;
   player_results: PlayerRevealItem[];
   mini_leaderboard: MiniLeaderboardItem[];
   round_finished: boolean;

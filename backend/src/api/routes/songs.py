@@ -180,6 +180,7 @@ async def reveal_song(
                 "song_id": str(result["song_id"]),
                 "title": result["title"],
                 "artist": result["artist"],
+                "cover_url": result["cover_url"],
                 "player_results": [
                     {
                         "participant_id": str(pr["participant_id"]),
@@ -232,6 +233,7 @@ async def reveal_song(
         room_id=result["room_id"],
         title=result["title"],
         artist=result["artist"],
+        cover_url=result["cover_url"],
         player_results=[PlayerRevealItem(**pr) for pr in result["player_results"]],
         mini_leaderboard=[
             MiniLeaderboardItem(**lb) for lb in result["mini_leaderboard"]

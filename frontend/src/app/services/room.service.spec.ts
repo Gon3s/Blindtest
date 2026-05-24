@@ -134,6 +134,7 @@ describe('RoomService', () => {
       room_id: 'room-uuid',
       title: 'Get Lucky',
       artist: 'Daft Punk',
+      cover_url: null,
       player_results: [
         {
           participant_id: 'p1',

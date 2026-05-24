@@ -775,6 +775,52 @@ describe('PlayPageComponent — reveal (T-033)', () => {
       (fixture.nativeElement as HTMLElement).querySelector('[data-testid="next-song-btn"]'),
     ).not.toBeNull();
   });
+
+  it('should show cover image when cover_url is present', async () => {
+    const { msgs } = await configureRevealTestBed({ isHost: false });
+    const fixture = mountFixture();
+
+    msgs.next({
+      event: 'song.revealed',
+      data: {
+        song_id: 'song-uuid',
+        title: 'Get Lucky',
+        artist: 'Daft Punk',
+        player_results: [] as PlayerRevealItem[],
+        mini_leaderboard: [] as MiniLeaderboardItem[],
+        cover_url: 'https://cdn.deezer.com/images/cover/medium.jpg',
+      },
+    });
+    fixture.detectChanges();
+
+    const img = (fixture.nativeElement as HTMLElement).querySelector<HTMLImageElement>(
+      '[data-testid="revealed-cover"]',
+    );
+    expect(img).not.toBeNull();
+    expect(img?.src).toBe('https://cdn.deezer.com/images/cover/medium.jpg');
+  });
+
+  it('should hide cover image when cover_url is null', async () => {
+    const { msgs } = await configureRevealTestBed({ isHost: false });
+    const fixture = mountFixture();
+
+    msgs.next({
+      event: 'song.revealed',
+      data: {
+        song_id: 'song-uuid',
+        title: 'Get Lucky',
+        artist: 'Daft Punk',
+        player_results: [] as PlayerRevealItem[],
+        mini_leaderboard: [] as MiniLeaderboardItem[],
+        cover_url: null,
+      },
+    });
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="revealed-cover"]'),
+    ).toBeNull();
+  });
 });
 
 // ─── Round Leaderboard (T-035) ────────────────────────────────────────────────

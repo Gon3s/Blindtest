@@ -27,6 +27,7 @@ def _make_reveal_result(
         "room_id": _ROOM_ID,
         "title": "One More Time",
         "artist": "Daft Punk",
+        "cover_url": None,
         "player_results": [],
         "mini_leaderboard": [],
         "round_finished": round_finished,

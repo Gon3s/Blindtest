@@ -174,6 +174,7 @@ class RevealSongResult(TypedDict):
     room_id: UUID
     title: str
     artist: str
+    cover_url: Optional[str]
     player_results: list[PlayerRevealEntry]
     mini_leaderboard: list[MiniLeaderboardEntry]
     round_finished: bool
@@ -388,6 +389,7 @@ class RoomService:
                     aliases_title=song.aliases_title,
                     aliases_artist=song.aliases_artist,
                     preview_url=song.preview_url,
+                    cover_url=song.cover_url,
                     status=song.status.value,
                     started_at=song.started_at,
                     ends_at=song.ends_at,
@@ -890,6 +892,7 @@ class RoomService:
             room_id=round_.room_id,
             title=song.title,
             artist=song.artist,
+            cover_url=song.cover_url,
             player_results=player_results,
             mini_leaderboard=mini_leaderboard,
             round_finished=round_finished,

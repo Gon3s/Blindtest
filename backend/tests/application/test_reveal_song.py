@@ -33,6 +33,7 @@ def _song(status: str = SongStatus.LOCKED.value) -> MagicMock:
     s.status = status
     s.started_at = None
     s.ends_at = None
+    s.cover_url = None
     return s
 
 
@@ -177,6 +178,31 @@ def test_reveal_ok_transitions_song_to_revealed(
     sess = _session(locked_song, round_, room, [], [])
     RoomService(sess).reveal_song(locked_song.id, host_token)
     assert locked_song.status == SongStatus.REVEALED.value
+
+
+def test_reveal_ok_returns_cover_url(
+    host_token: str, room_id: UUID, locked_song: MagicMock
+) -> None:
+    locked_song.cover_url = "https://cdn.deezer.com/cover.jpg"
+    round_ = _round(room_id=room_id)
+    locked_song.round_id = round_.id
+    room = _room(host_token=host_token, room_id=room_id)
+    sess = _session(locked_song, round_, room, [], [])
+    result = RoomService(sess).reveal_song(locked_song.id, host_token)
+    assert "cover_url" in result
+    assert result["cover_url"] == "https://cdn.deezer.com/cover.jpg"
+
+
+def test_reveal_ok_returns_cover_url_none_when_absent(
+    host_token: str, room_id: UUID, locked_song: MagicMock
+) -> None:
+    round_ = _round(room_id=room_id)
+    locked_song.round_id = round_.id
+    room = _room(host_token=host_token, room_id=room_id)
+    sess = _session(locked_song, round_, room, [], [])
+    result = RoomService(sess).reveal_song(locked_song.id, host_token)
+    assert "cover_url" in result
+    assert result["cover_url"] is None
 
 
 def test_reveal_ok_returns_title_and_artist(

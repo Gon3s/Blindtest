@@ -97,6 +97,7 @@ class RevealSongResponse(BaseModel):
     room_id: UUID
     title: str
     artist: str
+    cover_url: Optional[str] = None
     player_results: list[PlayerRevealItem]
     mini_leaderboard: list[MiniLeaderboardItem]
     round_finished: bool = False

@@ -66,6 +66,7 @@ class _FakeHostService:
             "room_id": uuid4(),
             "title": "Test Song",
             "artist": "Test Artist",
+            "cover_url": None,
             "player_results": [],
             "mini_leaderboard": [],
             "round_finished": False,
