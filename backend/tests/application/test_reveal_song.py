@@ -232,7 +232,7 @@ def test_reveal_ok_returns_song_id_and_room_id(
 # ── 2. reveal impossible avant locked ────────────────────────────────────────
 
 
-def test_reveal_from_playing_raises_not_revealable(
+def test_reveal_from_playing_succeeds_early_reveal(
     host_token: str, room_id: UUID
 ) -> None:
     song = _song(status=SongStatus.PLAYING.value)
@@ -240,8 +240,8 @@ def test_reveal_from_playing_raises_not_revealable(
     song.round_id = round_.id
     room = _room(host_token=host_token, room_id=room_id)
     sess = _session(song, round_, room, [], [])
-    with pytest.raises(SongNotRevealableError):
-        RoomService(sess).reveal_song(song.id, host_token)
+    RoomService(sess).reveal_song(song.id, host_token)
+    assert song.status == SongStatus.REVEALED.value
 
 
 def test_reveal_from_upcoming_raises_not_revealable(

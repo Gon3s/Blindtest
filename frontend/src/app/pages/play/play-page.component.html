@@ -11,7 +11,7 @@
 
   <header class="play__header">
     <button type="button" class="play__quit" data-testid="quit-btn" (click)="quit()">
-      ← Quitter
+      ✕ Quitter
     </button>
     <span data-testid="song-number" class="play__song-number">
       {{ songIndex() + 1 }}&nbsp;/&nbsp;{{ totalSongs() }}
@@ -217,6 +217,19 @@
 
     @if (submitError()) {
       <p class="play__error" data-testid="submit-error">{{ submitError() }}</p>
+    }
+
+    @if (isHost()) {
+      <div class="play__host-early-reveal">
+        <app-button
+          variant="secondary"
+          class="play__early-reveal-btn"
+          data-testid="early-reveal-btn"
+          (clicked)="revealSong()"
+        >
+          Révéler maintenant
+        </app-button>
+      </div>
     }
 
     @if (feedback() !== 'none') {

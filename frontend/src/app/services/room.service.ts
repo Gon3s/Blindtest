@@ -180,9 +180,15 @@ export class RoomService {
     );
   }
 
-  revealSong(songId: string, hostId: string): Observable<RevealSongResponse> {
+  revealSong(songId: string, hostToken: string): Observable<RevealSongResponse> {
     return this.http.post<RevealSongResponse>(`${this.apiUrl}/songs/${songId}/reveal`, {
-      host_id: hostId,
+      host_token: hostToken,
+    });
+  }
+
+  closeRoom(roomId: string, hostToken: string): Observable<{ room_id: string }> {
+    return this.http.post<{ room_id: string }>(`${this.apiUrl}/rooms/${roomId}/close`, {
+      host_token: hostToken,
     });
   }
 

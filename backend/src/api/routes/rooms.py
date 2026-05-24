@@ -12,6 +12,8 @@ from src.api.deps import (
     get_sleep,
 )
 from src.api.schemas.rooms import (
+    CloseRoomRequest,
+    CloseRoomResponse,
     CreateRoomRequest,
     CreateRoomResponse,
     CurrentSongState,
@@ -251,3 +253,24 @@ async def restart_round(
         theme=result["theme"],
         answer_mode=result["answer_mode"],
     )
+
+
+@router.post(
+    "/rooms/{room_id}/close", response_model=CloseRoomResponse, status_code=200
+)
+async def close_room(
+    room_id: UUID,
+    body: CloseRoomRequest,
+    db: Session = Depends(get_session),
+    service: RoomService = Depends(get_room_service),
+    manager: RoomConnectionManager = Depends(get_ws_manager),
+) -> CloseRoomResponse:
+    result = service.close_room(room_id, body.host_token)
+    db.commit()
+
+    await manager.broadcast_to_room(
+        result["room_id"],
+        {"event": "room.closed", "data": {"room_id": str(result["room_id"])}},
+    )
+
+    return CloseRoomResponse(room_id=result["room_id"])

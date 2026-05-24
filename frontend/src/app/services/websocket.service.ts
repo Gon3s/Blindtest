@@ -79,6 +79,7 @@ export interface RoundFinishedData {
 
 export type WsEventData =
   | { event: 'room.state'; data: RoomStateData }
+  | { event: 'room.closed'; data: { room_id: string } }
   | { event: 'participant.joined'; data: ParticipantJoinedData }
   | { event: 'round.started'; data: RoundStartedData }
   | { event: 'song.started'; data: SongStartedData }

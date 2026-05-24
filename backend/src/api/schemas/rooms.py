@@ -89,3 +89,11 @@ class GetRoomStateResponse(BaseModel):
     status: str
     participants: list[ParticipantStateItem]
     current_song: Optional[CurrentSongState] = None
+
+
+class CloseRoomRequest(BaseModel):
+    host_token: str
+
+
+class CloseRoomResponse(BaseModel):
+    room_id: UUID

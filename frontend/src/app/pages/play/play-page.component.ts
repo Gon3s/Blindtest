@@ -147,7 +147,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   private songId = '';
   private roundId = '';
   private participantId = '';
-  private hostId = '';
+  private hostToken = '';
   private subscription?: Subscription;
   private wsErrorSubscription?: Subscription;
   private wsStatusSubscription?: Subscription;
@@ -191,8 +191,9 @@ export class PlayPageComponent implements OnInit, OnDestroy {
     this.songId = state.song_id ?? '';
     this.roundId = state.round_id ?? '';
     this.participantId = state.participant_id ?? '';
-    this.hostId = state.host_id ?? '';
     this.isHost.set(state.is_host ?? false);
+    const session = this.sessionService.loadSession();
+    this.hostToken = session?.hostToken ?? '';
     this.songIndex.set(state.song_index ?? 0);
     this.totalSongs.set(state.total_songs ?? 10);
     this.endsAt = new Date(state.ends_at ?? Date.now());
@@ -250,6 +251,9 @@ export class PlayPageComponent implements OnInit, OnDestroy {
       } else if (event.event === 'round.finished') {
         this.roundFinishedData.set(event.data as RoundFinishedData);
         this.cdr.markForCheck();
+      } else if (event.event === 'room.closed') {
+        this.sessionService.clearSession();
+        void this.router.navigate(['/']);
       }
     });
   }
@@ -265,8 +269,21 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   }
 
   quit(): void {
-    this.sessionService.clearSession();
-    void this.router.navigate(['/']);
+    if (this.isHost() && this.roomId && this.hostToken) {
+      this.roomService.closeRoom(this.roomId, this.hostToken).subscribe({
+        next: () => {
+          this.sessionService.clearSession();
+          void this.router.navigate(['/']);
+        },
+        error: () => {
+          this.sessionService.clearSession();
+          void this.router.navigate(['/']);
+        },
+      });
+    } else {
+      this.sessionService.clearSession();
+      void this.router.navigate(['/']);
+    }
   }
 
   submitAnswer(): void {
@@ -298,7 +315,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   }
 
   revealSong(): void {
-    this.roomService.revealSong(this.songId, this.hostId).subscribe();
+    this.roomService.revealSong(this.songId, this.hostToken).subscribe();
   }
 
   startNewRound(): void {

@@ -67,7 +67,7 @@ _CORRECTABLE_STATUSES: frozenset[str] = frozenset(
 )
 
 _REVEALABLE_STATUSES: frozenset[str] = frozenset(
-    {SongStatus.LOCKED.value, SongStatus.VALIDATION.value}
+    {SongStatus.PLAYING.value, SongStatus.LOCKED.value, SongStatus.VALIDATION.value}
 )
 
 CODE_CHARS: str = string.ascii_uppercase + string.digits
@@ -80,6 +80,10 @@ class CreateRoomResult(TypedDict):
     code: str
     host_id: UUID
     host_token: str
+
+
+class CloseRoomResult(TypedDict):
+    room_id: UUID
 
 
 class JoinRoomResult(TypedDict):
@@ -981,3 +985,13 @@ class RoomService:
         room.status = RoomStatus.WAITING.value
         self._session.flush()
         return self.start_round(room_id, host_token, theme, music_provider, answer_mode)
+
+    def close_room(self, room_id: UUID, host_token: str) -> CloseRoomResult:
+        room = self._session.query(RoomModel).filter_by(id=room_id).first()
+        if room is None:
+            raise RoomNotFoundError(f"Room {room_id!r} not found")
+        if not secrets.compare_digest(room.host_token, host_token):
+            raise InvalidHostTokenError(f"Invalid host token for room {room_id!r}")
+        room.status = RoomStatus.FINISHED.value
+        self._session.flush()
+        return CloseRoomResult(room_id=room.id)

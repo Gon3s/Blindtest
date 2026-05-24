@@ -98,8 +98,21 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
   }
 
   quit(): void {
-    this.sessionService.clearSession();
-    void this.router.navigate(['/']);
+    if (this.isHost() && this.roomId && this.hostToken) {
+      this.roomService.closeRoom(this.roomId, this.hostToken).subscribe({
+        next: () => {
+          this.sessionService.clearSession();
+          void this.router.navigate(['/']);
+        },
+        error: () => {
+          this.sessionService.clearSession();
+          void this.router.navigate(['/']);
+        },
+      });
+    } else {
+      this.sessionService.clearSession();
+      void this.router.navigate(['/']);
+    }
   }
 
   private restoreFromSession(session: Session): void {
@@ -152,6 +165,9 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
       } else if (event.event === 'participant.joined') {
         const p = event.data as Participant;
         this.participants.update((list) => [...list, p]);
+      } else if (event.event === 'room.closed') {
+        this.sessionService.clearSession();
+        void this.router.navigate(['/']);
       } else if (event.event === 'song.started') {
         const d = event.data as {
           song_id: string;
