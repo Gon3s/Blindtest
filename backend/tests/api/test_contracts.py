@@ -142,9 +142,9 @@ def test_join_room_response_all_keys() -> None:
 
     app.dependency_overrides[get_room_service] = lambda: _Svc()
     try:
-        data = TestClient(app).post(
-            "/rooms/ABC123/join", json={"nickname": "Bob"}
-        ).json()
+        data = (
+            TestClient(app).post("/rooms/ABC123/join", json={"nickname": "Bob"}).json()
+        )
         assert {"room_id", "participant_id"} == set(data.keys())
         assert UUID(data["room_id"]) == room_id
         assert UUID(data["participant_id"]) == participant_id
@@ -170,13 +170,20 @@ def test_submit_answer_response_all_keys() -> None:
 
     app.dependency_overrides[get_room_service] = lambda: _Svc()
     try:
-        data = TestClient(app).post(
-            f"/songs/{uuid4()}/answers",
-            json={"participant_id": str(uuid4()), "text": "Daft Punk"},
-        ).json()
+        data = (
+            TestClient(app)
+            .post(
+                f"/songs/{uuid4()}/answers",
+                json={"participant_id": str(uuid4()), "text": "Daft Punk"},
+            )
+            .json()
+        )
         expected = {
-            "answer_id", "submitted_at", "validation_status",
-            "title_found", "artist_found",
+            "answer_id",
+            "submitted_at",
+            "validation_status",
+            "title_found",
+            "artist_found",
         }
         assert expected == set(data.keys())
         assert UUID(data["answer_id"]) == answer_id
@@ -210,9 +217,11 @@ def test_reveal_response_top_level_keys(mock_manager: MagicMock) -> None:
     app.dependency_overrides[get_room_service] = lambda: _Svc()
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     try:
-        data = TestClient(app).post(
-            f"/songs/{song_id}/reveal", json={"host_token": "test-token-abc"}
-        ).json()
+        data = (
+            TestClient(app)
+            .post(f"/songs/{song_id}/reveal", json={"host_token": "test-token-abc"})
+            .json()
+        )
         required = {
             "song_id",
             "room_id",
@@ -260,13 +269,19 @@ def test_reveal_player_result_item_shape(mock_manager: MagicMock) -> None:
     app.dependency_overrides[get_room_service] = lambda: _Svc()
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     try:
-        data = TestClient(app).post(
-            f"/songs/{uuid4()}/reveal", json={"host_token": "test-token-abc"}
-        ).json()
+        data = (
+            TestClient(app)
+            .post(f"/songs/{uuid4()}/reveal", json={"host_token": "test-token-abc"})
+            .json()
+        )
         item = data["player_results"][0]
         pr_keys = {
-            "participant_id", "nickname", "answer",
-            "title_found", "artist_found", "score",
+            "participant_id",
+            "nickname",
+            "answer",
+            "title_found",
+            "artist_found",
+            "score",
         }
         assert pr_keys == set(item.keys())
         assert UUID(item["participant_id"]) == pid
@@ -303,9 +318,11 @@ def test_reveal_mini_leaderboard_item_shape(mock_manager: MagicMock) -> None:
     app.dependency_overrides[get_room_service] = lambda: _Svc()
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     try:
-        data = TestClient(app).post(
-            f"/songs/{uuid4()}/reveal", json={"host_token": "test-token-abc"}
-        ).json()
+        data = (
+            TestClient(app)
+            .post(f"/songs/{uuid4()}/reveal", json={"host_token": "test-token-abc"})
+            .json()
+        )
         item = data["mini_leaderboard"][0]
         lb_keys = {"rank", "participant_id", "nickname", "total_points"}
         assert lb_keys == set(item.keys())
@@ -342,9 +359,11 @@ def test_reveal_round_leaderboard_item_shape(mock_manager: MagicMock) -> None:
     app.dependency_overrides[get_room_service] = lambda: _Svc()
     app.dependency_overrides[get_ws_manager] = lambda: mock_manager
     try:
-        data = TestClient(app).post(
-            f"/songs/{uuid4()}/reveal", json={"host_token": "test-token-abc"}
-        ).json()
+        data = (
+            TestClient(app)
+            .post(f"/songs/{uuid4()}/reveal", json={"host_token": "test-token-abc"})
+            .json()
+        )
         assert data["round_finished"] is True
         item = data["round_leaderboard"][0]
         rl_keys = {"rank", "participant_id", "nickname", "round_points"}
@@ -438,7 +457,12 @@ def test_song_started_event_shape(mock_manager: MagicMock) -> None:
         call = next(c for c in calls if c.args[1]["event"] == "song.started")
         d = call.args[1]["data"]
         song_keys = {
-            "song_id", "song_index", "round_id", "started_at", "ends_at", "preview_url"
+            "song_id",
+            "song_index",
+            "round_id",
+            "started_at",
+            "ends_at",
+            "preview_url",
         }
         assert song_keys == set(d.keys())
         assert UUID(d["song_id"]) == song_id
@@ -493,6 +517,7 @@ def test_round_started_event_shape(mock_manager: MagicMock) -> None:
                 "room_id": room_id,
                 "song_count": 10,
                 "theme": "Pop 90s",
+                "answer_mode": "both",
             }
 
         def start_song(self, *a: object, **kw: object) -> dict:
@@ -520,7 +545,7 @@ def test_round_started_event_shape(mock_manager: MagicMock) -> None:
         calls = mock_manager.broadcast_to_room.call_args_list
         call = next(c for c in calls if c.args[1]["event"] == "round.started")
         d = call.args[1]["data"]
-        assert {"round_id", "theme", "song_count"} == set(d.keys())
+        assert {"round_id", "theme", "song_count", "answer_mode"} == set(d.keys())
         assert UUID(d["round_id"]) == round_id
         assert d["theme"] == "Pop 90s"
         assert isinstance(d["song_count"], int)
@@ -595,7 +620,12 @@ def test_auto_lock_broadcasts_song_revealed_event_shape(
     assert d["artist"] == "Daft Punk"
     pr = d["player_results"][0]
     assert {
-        "participant_id", "nickname", "answer", "title_found", "artist_found", "score"
+        "participant_id",
+        "nickname",
+        "answer",
+        "title_found",
+        "artist_found",
+        "score",
     } == set(pr.keys())
     lb = d["mini_leaderboard"][0]
     assert {"rank", "participant_id", "nickname", "total_points"} == set(lb.keys())
@@ -649,8 +679,12 @@ def test_song_revealed_event_player_results_shape(mock_manager: MagicMock) -> No
         assert rev_keys == set(d.keys())
         pr = d["player_results"][0]
         pr_keys = {
-            "participant_id", "nickname", "answer",
-            "title_found", "artist_found", "score",
+            "participant_id",
+            "nickname",
+            "answer",
+            "title_found",
+            "artist_found",
+            "score",
         }
         assert pr_keys == set(pr.keys())
         assert isinstance(pr["title_found"], bool)

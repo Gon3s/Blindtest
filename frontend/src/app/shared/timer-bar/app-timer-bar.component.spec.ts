@@ -3,7 +3,8 @@ import { AppTimerBarComponent } from './app-timer-bar.component';
 
 async function setup() {
   await TestBed.configureTestingModule({ imports: [AppTimerBarComponent] }).compileComponents();
-  const fixture: ComponentFixture<AppTimerBarComponent> = TestBed.createComponent(AppTimerBarComponent);
+  const fixture: ComponentFixture<AppTimerBarComponent> =
+    TestBed.createComponent(AppTimerBarComponent);
   // detectChanges is called after each test sets inputs to avoid NG0100
   const el = fixture.nativeElement as HTMLElement;
   return { fixture, el };

@@ -34,7 +34,11 @@ def _select(
     seed: int = 0,
 ) -> list[TrackInfo]:
     return select_round_tracks(  # type: ignore[arg-type]
-        theme, config, primary, fallback, rng=random.Random(seed)  # type: ignore[arg-type]
+        theme,
+        config,
+        primary,
+        fallback,
+        rng=random.Random(seed),  # type: ignore[arg-type]
     )
 
 

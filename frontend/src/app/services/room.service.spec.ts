@@ -1,7 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { OverrideAnswerResponse, RevealSongResponse, RoomService, RoomStateResponse, SongSummaryResponse, StartSongResponse } from './room.service';
+import {
+  OverrideAnswerResponse,
+  RevealSongResponse,
+  RoomService,
+  RoomStateResponse,
+  SongSummaryResponse,
+  StartSongResponse,
+} from './room.service';
 import { environment } from '../../environments/environment';
 
 describe('RoomService', () => {
@@ -25,7 +32,7 @@ describe('RoomService', () => {
   it('should create a room via POST /rooms', () => {
     const mockResponse = { room_id: 'uuid-room', code: 'ABC123', host_id: 'uuid-host' };
 
-    service.createRoom('Alice').subscribe(res => {
+    service.createRoom('Alice').subscribe((res) => {
       expect(res).toEqual(mockResponse);
     });
 
@@ -38,7 +45,7 @@ describe('RoomService', () => {
   it('should join a room via POST /rooms/:code/join', () => {
     const mockResponse = { room_id: 'uuid-room', participant_id: 'uuid-participant' };
 
-    service.joinRoom('ABC123', 'Bob').subscribe(res => {
+    service.joinRoom('ABC123', 'Bob').subscribe((res) => {
       expect(res).toEqual(mockResponse);
     });
 
@@ -57,7 +64,7 @@ describe('RoomService', () => {
       artist_found: false,
     };
 
-    service.submitAnswer('song-uuid', 'participant-uuid', 'Daft Punk').subscribe(res => {
+    service.submitAnswer('song-uuid', 'participant-uuid', 'Daft Punk').subscribe((res) => {
       expect(res).toEqual(mockResponse);
     });
 
@@ -87,7 +94,7 @@ describe('RoomService', () => {
       ],
     };
 
-    service.getSongSummary('song-uuid', 'host-uuid').subscribe(res => {
+    service.getSongSummary('song-uuid', 'host-uuid').subscribe((res) => {
       expect(res).toEqual(mockResponse);
     });
 
@@ -107,15 +114,11 @@ describe('RoomService', () => {
       score: 2,
     };
 
-    service
-      .overrideAnswer('song-uuid', 'ans-uuid', 'host-uuid', true, true)
-      .subscribe(res => {
-        expect(res).toEqual(mockResponse);
-      });
+    service.overrideAnswer('song-uuid', 'ans-uuid', 'host-uuid', true, true).subscribe((res) => {
+      expect(res).toEqual(mockResponse);
+    });
 
-    const req = httpMock.expectOne(
-      `${environment.apiBaseUrl}/songs/song-uuid/answers/ans-uuid`,
-    );
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/songs/song-uuid/answers/ans-uuid`);
     expect(req.request.method).toBe('PATCH');
     expect(req.request.body).toEqual({
       host_id: 'host-uuid',
@@ -141,16 +144,12 @@ describe('RoomService', () => {
           score: 200,
         },
       ],
-      mini_leaderboard: [
-        { rank: 1, participant_id: 'p1', nickname: 'Alice', total_points: 200 },
-      ],
+      mini_leaderboard: [{ rank: 1, participant_id: 'p1', nickname: 'Alice', total_points: 200 }],
       round_finished: true,
-      round_leaderboard: [
-        { rank: 1, participant_id: 'p1', nickname: 'Alice', round_points: 200 },
-      ],
+      round_leaderboard: [{ rank: 1, participant_id: 'p1', nickname: 'Alice', round_points: 200 }],
     };
 
-    service.revealSong('song-uuid', 'host-uuid').subscribe(res => {
+    service.revealSong('song-uuid', 'host-uuid').subscribe((res) => {
       expect(res).toEqual(mockResponse);
     });
 
@@ -171,13 +170,11 @@ describe('RoomService', () => {
       preview_url: 'https://cdn.deezer.com/preview.mp3',
     };
 
-    service.startSong('round-uuid', 0).subscribe(res => {
+    service.startSong('round-uuid', 0).subscribe((res) => {
       expect(res).toEqual(mockResponse);
     });
 
-    const req = httpMock.expectOne(
-      `${environment.apiBaseUrl}/rounds/round-uuid/songs/0/start`,
-    );
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/rounds/round-uuid/songs/0/start`);
     expect(req.request.method).toBe('POST');
     req.flush(mockResponse);
   });
@@ -191,7 +188,7 @@ describe('RoomService', () => {
       current_song: null,
     };
 
-    service.getRoomState('ABC123').subscribe(res => {
+    service.getRoomState('ABC123').subscribe((res) => {
       expect(res).toEqual(mockResponse);
     });
 
@@ -211,13 +208,11 @@ describe('RoomService', () => {
       preview_url: null,
     };
 
-    service.startSong('round-uuid', 1).subscribe(res => {
+    service.startSong('round-uuid', 1).subscribe((res) => {
       expect(res.preview_url).toBeNull();
     });
 
-    const req = httpMock.expectOne(
-      `${environment.apiBaseUrl}/rounds/round-uuid/songs/1/start`,
-    );
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/rounds/round-uuid/songs/1/start`);
     req.flush(mockResponse);
   });
 });

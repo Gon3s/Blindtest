@@ -67,6 +67,9 @@ class RoundModel(Base):
     index: Mapped[int] = mapped_column(Integer, nullable=False)
     theme: Mapped[str] = mapped_column(String(200), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False)
+    answer_mode: Mapped[str] = mapped_column(
+        String(32), nullable=False, server_default="both"
+    )
 
 
 class SongModel(Base):

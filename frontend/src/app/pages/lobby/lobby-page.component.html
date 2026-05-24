@@ -55,7 +55,9 @@
             [class.lobby__theme-chip--selected]="theme() === t"
             data-testid="theme-chip"
             (click)="theme.set(t)"
-          >{{ t }}</button>
+          >
+            {{ t }}
+          </button>
         }
       </div>
       <input
@@ -69,6 +71,21 @@
       />
     </div>
 
+    <div class="lobby__answer-mode">
+      <label for="answer-mode-select" class="lobby__answer-mode-label">Mode de réponse</label>
+      <select
+        id="answer-mode-select"
+        data-testid="answer-mode-select"
+        class="lobby__answer-mode-select"
+        [ngModel]="answerMode()"
+        (ngModelChange)="answerMode.set($event)"
+      >
+        <option value="both">Titre + Artiste</option>
+        <option value="title_only">Titre seulement</option>
+        <option value="artist_only">Artiste seulement</option>
+      </select>
+    </div>
+
     <app-button
       data-testid="start-round"
       variant="primary"
@@ -79,7 +96,7 @@
       Lancer la manche
     </app-button>
 
-    <a routerLink="/" class="lobby__quit">← Quitter</a>
+    <button type="button" class="lobby__quit" (click)="quit()">← Quitter</button>
   </main>
 } @else {
   <main class="lobby lobby--player">
@@ -93,7 +110,9 @@
       <p class="lobby__waiting-msg">En attente du lancement par le maître du jeu...</p>
     </div>
 
-    <p class="lobby__room-info">Salle : <strong>{{ code() }}</strong></p>
+    <p class="lobby__room-info">
+      Salle : <strong>{{ code() }}</strong>
+    </p>
 
     @if (participants().length > 0) {
       <ul class="lobby__list lobby__list--compact">
@@ -108,6 +127,6 @@
       </ul>
     }
 
-    <a routerLink="/" class="lobby__quit">← Quitter</a>
+    <button type="button" class="lobby__quit" (click)="quit()">← Quitter</button>
   </main>
 }

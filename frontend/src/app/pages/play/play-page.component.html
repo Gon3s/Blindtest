@@ -10,6 +10,9 @@
   }
 
   <header class="play__header">
+    <button type="button" class="play__quit" data-testid="quit-btn" (click)="quit()">
+      ← Quitter
+    </button>
     <span data-testid="song-number" class="play__song-number">
       {{ songIndex() + 1 }}&nbsp;/&nbsp;{{ totalSongs() }}
     </span>
@@ -18,13 +21,27 @@
 
   @if (isHost()) {
     <div class="play__host-step" data-testid="host-step-indicator">
-      <span class="play__host-step-item" [class.play__host-step-item--active]="!locked()">Répondre</span>
+      <span class="play__host-step-item" [class.play__host-step-item--active]="!locked()"
+        >Répondre</span
+      >
       <span class="play__host-step-sep">→</span>
-      <span class="play__host-step-item" [class.play__host-step-item--active]="locked() && !revealData() && !roundFinishedData()">Corriger</span>
+      <span
+        class="play__host-step-item"
+        [class.play__host-step-item--active]="locked() && !revealData() && !roundFinishedData()"
+        >Corriger</span
+      >
       <span class="play__host-step-sep">→</span>
-      <span class="play__host-step-item" [class.play__host-step-item--active]="!!revealData() && !roundFinishedData()">Révéler</span>
+      <span
+        class="play__host-step-item"
+        [class.play__host-step-item--active]="!!revealData() && !roundFinishedData()"
+        >Révéler</span
+      >
       <span class="play__host-step-sep">→</span>
-      <span class="play__host-step-item" [class.play__host-step-item--active]="!!roundFinishedData()">Classer</span>
+      <span
+        class="play__host-step-item"
+        [class.play__host-step-item--active]="!!roundFinishedData()"
+        >Classer</span
+      >
     </div>
   }
 
@@ -39,7 +56,9 @@
             [attr.data-testid]="'podium-entry-' + entry.rank"
           >
             <span class="play__podium-rank">#{{ entry.rank }}</span>
-            <span class="play__podium-nickname" data-testid="podium-nickname">{{ entry.nickname }}</span>
+            <span class="play__podium-nickname" data-testid="podium-nickname">{{
+              entry.nickname
+            }}</span>
             <span class="play__podium-points">{{ entry.round_points }} pts</span>
           </div>
         }
@@ -48,10 +67,24 @@
       <ul class="play__round-leaderboard-list" data-testid="round-leaderboard-list">
         @for (entry of roundLeaderboardMerged(); track entry.participant_id) {
           <li class="play__round-leaderboard-row" data-testid="round-leaderboard-row">
-            <span class="play__round-leaderboard-rank" data-testid="round-leaderboard-rank">{{ entry.rank }}</span>
-            <span class="play__round-leaderboard-nickname" data-testid="round-leaderboard-nickname">{{ entry.nickname }}</span>
-            <span class="play__round-leaderboard-round-points" data-testid="round-leaderboard-round-points">{{ entry.round_points }} pts manche</span>
-            <span class="play__round-leaderboard-total-points" data-testid="round-leaderboard-total-points">{{ entry.total_points }} pts total</span>
+            <span class="play__round-leaderboard-rank" data-testid="round-leaderboard-rank">{{
+              entry.rank
+            }}</span>
+            <span
+              class="play__round-leaderboard-nickname"
+              data-testid="round-leaderboard-nickname"
+              >{{ entry.nickname }}</span
+            >
+            <span
+              class="play__round-leaderboard-round-points"
+              data-testid="round-leaderboard-round-points"
+              >{{ entry.round_points }} pts manche</span
+            >
+            <span
+              class="play__round-leaderboard-total-points"
+              data-testid="round-leaderboard-total-points"
+              >{{ entry.total_points }} pts total</span
+            >
           </li>
         }
       </ul>
@@ -67,7 +100,9 @@
                 [class.play__new-round-theme-chip--selected]="newRoundTheme() === t"
                 data-testid="new-round-theme-chip"
                 (click)="newRoundTheme.set(t)"
-              >{{ t }}</button>
+              >
+                {{ t }}
+              </button>
             }
           </div>
           <input
@@ -109,9 +144,15 @@
         <ul class="play__leaderboard-list" data-testid="mini-leaderboard">
           @for (entry of reveal.mini_leaderboard; track entry.participant_id) {
             <li class="play__leaderboard-row" data-testid="leaderboard-row">
-              <span class="play__leaderboard-rank" data-testid="leaderboard-rank">{{ entry.rank }}</span>
-              <span class="play__leaderboard-nickname" data-testid="leaderboard-nickname">{{ entry.nickname }}</span>
-              <span class="play__leaderboard-points" data-testid="leaderboard-points">{{ entry.total_points }} pts</span>
+              <span class="play__leaderboard-rank" data-testid="leaderboard-rank">{{
+                entry.rank
+              }}</span>
+              <span class="play__leaderboard-nickname" data-testid="leaderboard-nickname">{{
+                entry.nickname
+              }}</span>
+              <span class="play__leaderboard-points" data-testid="leaderboard-points"
+                >{{ entry.total_points }} pts</span
+              >
             </li>
           }
         </ul>
@@ -203,27 +244,29 @@
               <li class="play__summary-item" data-testid="summary-item">
                 <span class="play__summary-nickname">{{ ans.nickname }}</span>
                 <span class="play__summary-text">{{ ans.text }}</span>
-                <app-badge [variant]="badgeVariantFor(ans.validation_status)" [text]="ans.validation_status" />
+                <app-badge
+                  [variant]="badgeVariantFor(ans.validation_status)"
+                  [text]="ans.validation_status"
+                />
                 @if (ans.validation_status === 'doubtful') {
                   <app-button
                     variant="secondary"
                     data-testid="accept-answer-btn"
                     (clicked)="acceptAnswer(ans)"
-                  >✓</app-button>
+                    >✓</app-button
+                  >
                 }
               </li>
             }
           </ul>
         } @else if (songSummary()) {
-          <p class="play__summary-empty" data-testid="summary-empty">Aucune réponse pour cette chanson.</p>
+          <p class="play__summary-empty" data-testid="summary-empty">
+            Aucune réponse pour cette chanson.
+          </p>
         }
 
         <div class="play__host-correction-actions">
-          <app-button
-            variant="primary"
-            data-testid="reveal-btn"
-            (clicked)="revealSong()"
-          >
+          <app-button variant="primary" data-testid="reveal-btn" (clicked)="revealSong()">
             Révéler la chanson
           </app-button>
         </div>

@@ -31,7 +31,7 @@ export class JoinRoomPageComponent {
     this.loading.set(true);
     this.error.set(null);
     this.roomService.joinRoom(code, nickname).subscribe({
-      next: res => {
+      next: (res) => {
         this.sessionService.saveSession({
           roomCode: code,
           roomId: res.room_id,
@@ -40,7 +40,12 @@ export class JoinRoomPageComponent {
           nickname,
         });
         this.router.navigate(['/lobby', code], {
-          state: { room_id: res.room_id, participant_id: res.participant_id, role: 'player', nickname },
+          state: {
+            room_id: res.room_id,
+            participant_id: res.participant_id,
+            role: 'player',
+            nickname,
+          },
         });
       },
       error: (err: { error?: { code?: string; message?: string; detail?: string } }) => {

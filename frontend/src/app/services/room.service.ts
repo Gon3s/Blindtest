@@ -89,6 +89,7 @@ export interface StartRoundResponse {
   room_id: string;
   song_count: number;
   theme: string;
+  answer_mode?: 'both' | 'title_only' | 'artist_only';
 }
 
 export interface StartSongResponse {
@@ -139,8 +140,17 @@ export class RoomService {
     return this.http.post<JoinRoomResponse>(`${this.apiUrl}/rooms/${code}/join`, { nickname });
   }
 
-  startRound(roomId: string, theme = 'Général', hostToken = ''): Observable<StartRoundResponse> {
-    return this.http.post<StartRoundResponse>(`${this.apiUrl}/rooms/${roomId}/rounds`, { theme, host_token: hostToken });
+  startRound(
+    roomId: string,
+    theme = 'Général',
+    hostToken = '',
+    answerMode: 'both' | 'title_only' | 'artist_only' = 'both',
+  ): Observable<StartRoundResponse> {
+    return this.http.post<StartRoundResponse>(`${this.apiUrl}/rooms/${roomId}/rounds`, {
+      theme,
+      host_token: hostToken,
+      answer_mode: answerMode,
+    });
   }
 
   startSong(roundId: string, songIndex: number): Observable<StartSongResponse> {
@@ -151,10 +161,9 @@ export class RoomService {
   }
 
   getSongSummary(songId: string, hostId: string): Observable<SongSummaryResponse> {
-    return this.http.get<SongSummaryResponse>(
-      `${this.apiUrl}/songs/${songId}/summary`,
-      { params: { host_id: hostId } },
-    );
+    return this.http.get<SongSummaryResponse>(`${this.apiUrl}/songs/${songId}/summary`, {
+      params: { host_id: hostId },
+    });
   }
 
   overrideAnswer(
@@ -187,8 +196,15 @@ export class RoomService {
     });
   }
 
-  restartRound(roomId: string, theme: string): Observable<StartRoundResponse> {
-    return this.http.post<StartRoundResponse>(`${this.apiUrl}/rooms/${roomId}/restart`, { theme });
+  restartRound(
+    roomId: string,
+    theme: string,
+    answerMode: 'both' | 'title_only' | 'artist_only' = 'both',
+  ): Observable<StartRoundResponse> {
+    return this.http.post<StartRoundResponse>(`${this.apiUrl}/rooms/${roomId}/restart`, {
+      theme,
+      answer_mode: answerMode,
+    });
   }
 
   getRoomState(code: string): Observable<RoomStateResponse> {

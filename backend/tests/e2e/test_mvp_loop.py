@@ -48,11 +48,12 @@ _SQLITE_DDL = textwrap.dedent("""\
         is_host   BOOLEAN      NOT NULL DEFAULT 0
     );
     CREATE TABLE rounds (
-        id       TEXT PRIMARY KEY,
-        room_id  TEXT         NOT NULL REFERENCES rooms(id),
-        "index"  INTEGER      NOT NULL,
-        theme    VARCHAR(200) NOT NULL,
-        status   VARCHAR(32)  NOT NULL
+        id           TEXT PRIMARY KEY,
+        room_id      TEXT         NOT NULL REFERENCES rooms(id),
+        "index"      INTEGER      NOT NULL,
+        theme        VARCHAR(200) NOT NULL,
+        status       VARCHAR(32)  NOT NULL,
+        answer_mode  VARCHAR(32)  NOT NULL DEFAULT 'both'
     );
     CREATE TABLE songs (
         id              TEXT PRIMARY KEY,

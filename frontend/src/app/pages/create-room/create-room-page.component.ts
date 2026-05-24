@@ -29,7 +29,7 @@ export class CreateRoomPageComponent {
     this.loading.set(true);
     this.error.set(null);
     this.roomService.createRoom(name).subscribe({
-      next: res => {
+      next: (res) => {
         this.sessionService.saveSession({
           roomCode: res.code,
           roomId: res.room_id,

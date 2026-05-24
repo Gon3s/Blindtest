@@ -111,12 +111,18 @@ Dès qu'un ticket est pris en charge, mettre à jour son statut dans Notion via 
 | T-045 | Responsive Design — Desktop & Tablet | 🔲 Todo |
 | T-046 | Page Spectateurs / Mode TV (/spectate/:code) | 🔲 Todo |
 | T-059 | Front — Intégrer l'identité visuelle HitRoom | 🔲 Todo |
-| T-060 | Front — Champ Thème manquant dans le Lobby (P1) | 🔲 Todo |
-| T-113 | Fix — Timer s'arrête à 1 au lieu de 0 à la fin de la chanson (P0) | 🔲 Todo |
-| T-122 | Fix — Auto-révéler après fin du timer (supprimer écran intermédiaire) (P0) | 🔲 Todo |
-| T-123 | Fix — clearSession manquant sur clic Quitter (P1) | 🔲 Todo |
+| T-060 | Front — Champ Thème manquant dans le Lobby (P0) | 🔲 Todo |
+| T-123 | Fix — clearSession manquant sur clic Quitter (P0) | 🔲 Todo |
 | T-124 | Fix — Validation shape session localStorage (P2) | 🔲 Todo |
-| T-125 | Fix — Reconnexion phase REVEAL atterrit sur lobby (P1) | 🔲 Todo |
+| T-125 | Fix — Reconnexion phase REVEAL atterrit sur lobby (P0) | 🔲 Todo |
+| T-126 | Front/Back — Afficher l'image de l'album au reveal (P0) | 🔲 Todo |
+
+#### 🗄️ Archive P0 — Sprint 4
+
+| Ticket | Titre | Status |
+|--------|-------|--------|
+| T-114 | Fix — Timer s'arrête à 1 au lieu de 0 à la fin de la chanson | ✅ Done |
+| T-122 | Fix — Auto-révéler après fin du timer (supprimer écran intermédiaire) | ✅ Done |
 
 ### Sprint 5 — Features
 

@@ -136,5 +136,3 @@ def test_start_round_room_created_raises() -> None:
     service = RoomService(mock)
     with pytest.raises(RoomNotWaitingError):
         service.start_round(room.id, "any-token", "Pop 90s", FakeMusicProvider())
-
-

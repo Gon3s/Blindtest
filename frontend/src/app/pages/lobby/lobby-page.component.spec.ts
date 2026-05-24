@@ -33,11 +33,20 @@ async function setup(role: 'host' | 'player', nickname = 'Alice') {
   const audioService = createAudioMock();
   const roomService = createRoomServiceMock();
   const sessionService = {
-    loadSession: vi.fn().mockReturnValue(
-      role === 'host'
-        ? { roomCode: 'ABC123', roomId: 'room-uuid', role: 'host', participantId: 'host-uuid', hostToken: 'host-token-abc', nickname }
-        : null,
-    ),
+    loadSession: vi
+      .fn()
+      .mockReturnValue(
+        role === 'host'
+          ? {
+              roomCode: 'ABC123',
+              roomId: 'room-uuid',
+              role: 'host',
+              participantId: 'host-uuid',
+              hostToken: 'host-token-abc',
+              nickname,
+            }
+          : null,
+      ),
     saveSession: vi.fn(),
     clearSession: vi.fn(),
   };
@@ -308,7 +317,8 @@ describe('LobbyPageComponent — T-056 reconnection', () => {
       ],
     }).compileComponents();
 
-    const fixture: ComponentFixture<LobbyPageComponent> = TestBed.createComponent(LobbyPageComponent);
+    const fixture: ComponentFixture<LobbyPageComponent> =
+      TestBed.createComponent(LobbyPageComponent);
     const router = TestBed.inject(Router);
     const navigateSpy = vi.spyOn(router, 'navigate');
     fixture.detectChanges();
@@ -393,7 +403,10 @@ describe('LobbyPageComponent — T-060 theme field', () => {
 
   it('désactive le bouton si thème vide', async () => {
     const { fixture, msgs } = await setup('host');
-    msgs.next({ event: 'room.state', data: { room_id: 'room-uuid', participants: twoParticipants } });
+    msgs.next({
+      event: 'room.state',
+      data: { room_id: 'room-uuid', participants: twoParticipants },
+    });
     fixture.detectChanges();
 
     const btn = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="start-round"]');
@@ -402,7 +415,10 @@ describe('LobbyPageComponent — T-060 theme field', () => {
 
   it('active le bouton si thème non vide et participants >= 2', async () => {
     const { fixture, msgs } = await setup('host');
-    msgs.next({ event: 'room.state', data: { room_id: 'room-uuid', participants: twoParticipants } });
+    msgs.next({
+      event: 'room.state',
+      data: { room_id: 'room-uuid', participants: twoParticipants },
+    });
     fixture.detectChanges();
 
     fixture.componentInstance.theme.set('Pop');
@@ -414,7 +430,10 @@ describe('LobbyPageComponent — T-060 theme field', () => {
 
   it('passe le thème saisi à startRound', async () => {
     const { fixture, msgs, roomService } = await setup('host');
-    msgs.next({ event: 'room.state', data: { room_id: 'room-uuid', participants: twoParticipants } });
+    msgs.next({
+      event: 'room.state',
+      data: { room_id: 'room-uuid', participants: twoParticipants },
+    });
     fixture.detectChanges();
 
     fixture.componentInstance.theme.set('Pop');
@@ -422,7 +441,108 @@ describe('LobbyPageComponent — T-060 theme field', () => {
 
     fixture.componentInstance.startRound();
 
-    expect(roomService.startRound).toHaveBeenCalledWith('room-uuid', 'Pop', 'host-token-abc');
+    expect(roomService.startRound).toHaveBeenCalledWith(
+      'room-uuid',
+      'Pop',
+      'host-token-abc',
+      'both',
+    );
+  });
+});
+
+describe('LobbyPageComponent — T-115 mode de réponse', () => {
+  const twoParticipants = [
+    { participant_id: 'p1', nickname: 'Alice', is_host: true },
+    { participant_id: 'p2', nickname: 'Bob', is_host: false },
+  ];
+
+  afterEach(() => {
+    history.replaceState(null, '');
+    TestBed.resetTestingModule();
+  });
+
+  it('affiche le sélecteur answer-mode-select pour le host', async () => {
+    const { fixture } = await setup('host');
+    const sel = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="answer-mode-select"]',
+    );
+    expect(sel).not.toBeNull();
+  });
+
+  it('ne montre pas le sélecteur answer-mode-select pour un joueur', async () => {
+    const { fixture } = await setup('player');
+    const sel = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="answer-mode-select"]',
+    );
+    expect(sel).toBeNull();
+  });
+
+  it('signal answerMode vaut "both" par défaut', async () => {
+    const { fixture } = await setup('host');
+    expect(fixture.componentInstance.answerMode()).toBe('both');
+  });
+
+  it('startRound passe answer_mode "title_only" quand sélectionné', async () => {
+    const { fixture, msgs, roomService } = await setup('host');
+    msgs.next({
+      event: 'room.state',
+      data: { room_id: 'room-uuid', participants: twoParticipants },
+    });
+    fixture.detectChanges();
+
+    fixture.componentInstance.theme.set('Pop');
+    fixture.componentInstance.answerMode.set('title_only');
+    fixture.detectChanges();
+
+    fixture.componentInstance.startRound();
+    expect(roomService.startRound).toHaveBeenCalledWith(
+      'room-uuid',
+      'Pop',
+      'host-token-abc',
+      'title_only',
+    );
+  });
+
+  it('startRound passe answer_mode "artist_only" quand sélectionné', async () => {
+    const { fixture, msgs, roomService } = await setup('host');
+    msgs.next({
+      event: 'room.state',
+      data: { room_id: 'room-uuid', participants: twoParticipants },
+    });
+    fixture.detectChanges();
+
+    fixture.componentInstance.theme.set('Pop');
+    fixture.componentInstance.answerMode.set('artist_only');
+    fixture.detectChanges();
+
+    fixture.componentInstance.startRound();
+    expect(roomService.startRound).toHaveBeenCalledWith(
+      'room-uuid',
+      'Pop',
+      'host-token-abc',
+      'artist_only',
+    );
+  });
+});
+
+describe('LobbyPageComponent — T-123 clearSession on quit', () => {
+  afterEach(() => {
+    history.replaceState(null, '');
+    TestBed.resetTestingModule();
+  });
+
+  it('clears session when user clicks Quitter from lobby', async () => {
+    const { fixture } = await setup('host');
+    const sessionService = TestBed.inject(SessionService);
+    fixture.componentInstance.quit();
+    expect(sessionService.clearSession).toHaveBeenCalled();
+  });
+
+  it('navigates to / after quit from lobby', async () => {
+    const { fixture, router } = await setup('host');
+    const navigateSpy = vi.spyOn(router, 'navigate');
+    fixture.componentInstance.quit();
+    expect(navigateSpy).toHaveBeenCalledWith(['/']);
   });
 });
 
@@ -440,21 +560,27 @@ describe('LobbyPageComponent — T-112 thèmes prédéfinis', () => {
   it('affiche 10 puces de thèmes pour le host', async () => {
     const { fixture } = await setup('host');
     fixture.detectChanges();
-    const chips = (fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="theme-chip"]');
+    const chips = (fixture.nativeElement as HTMLElement).querySelectorAll(
+      '[data-testid="theme-chip"]',
+    );
     expect(chips.length).toBe(10);
   });
 
   it('ne montre pas de puces de thèmes pour un joueur', async () => {
     const { fixture } = await setup('player');
     fixture.detectChanges();
-    const chips = (fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="theme-chip"]');
+    const chips = (fixture.nativeElement as HTMLElement).querySelectorAll(
+      '[data-testid="theme-chip"]',
+    );
     expect(chips.length).toBe(0);
   });
 
   it('clic sur la première puce met à jour le signal theme à "Pop 90s"', async () => {
     const { fixture } = await setup('host');
     fixture.detectChanges();
-    const chip = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('[data-testid="theme-chip"]');
+    const chip = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
+      '[data-testid="theme-chip"]',
+    );
     chip?.click();
     fixture.detectChanges();
     expect(fixture.componentInstance.theme()).toBe('Pop 90s');
@@ -462,12 +588,22 @@ describe('LobbyPageComponent — T-112 thèmes prédéfinis', () => {
 
   it('startRound utilise le thème sélectionné via puce', async () => {
     const { fixture, msgs, roomService } = await setup('host');
-    msgs.next({ event: 'room.state', data: { room_id: 'room-uuid', participants: twoParticipants } });
+    msgs.next({
+      event: 'room.state',
+      data: { room_id: 'room-uuid', participants: twoParticipants },
+    });
     fixture.detectChanges();
-    const chip = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('[data-testid="theme-chip"]');
+    const chip = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
+      '[data-testid="theme-chip"]',
+    );
     chip?.click();
     fixture.detectChanges();
     fixture.componentInstance.startRound();
-    expect(roomService.startRound).toHaveBeenCalledWith('room-uuid', 'Pop 90s', 'host-token-abc');
+    expect(roomService.startRound).toHaveBeenCalledWith(
+      'room-uuid',
+      'Pop 90s',
+      'host-token-abc',
+      'both',
+    );
   });
 });

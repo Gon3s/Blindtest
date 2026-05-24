@@ -50,13 +50,13 @@ describe('WebSocketService', () => {
   it('should emit messages from the WebSocket', async () => {
     service.connect('my-room-id');
 
-    const messagePromise = new Promise<WsEvent>(resolve => {
+    const messagePromise = new Promise<WsEvent>((resolve) => {
       service.messages$.subscribe(resolve);
     });
 
-    sockets[0].onmessage!(
-      { data: JSON.stringify({ event: 'room.state', data: {} }) } as MessageEvent,
-    );
+    sockets[0].onmessage!({
+      data: JSON.stringify({ event: 'room.state', data: {} }),
+    } as MessageEvent);
 
     const event = await messagePromise;
     expect(event.event).toBe('room.state');
@@ -73,20 +73,20 @@ describe('WebSocketService', () => {
   describe('connection status', () => {
     it('starts as disconnected', () => {
       const statuses: ConnectionStatus[] = [];
-      service.connectionStatus$.subscribe(s => statuses.push(s));
+      service.connectionStatus$.subscribe((s) => statuses.push(s));
       expect(statuses[0]).toBe('disconnected');
     });
 
     it('becomes connecting on connect()', () => {
       const statuses: ConnectionStatus[] = [];
-      service.connectionStatus$.subscribe(s => statuses.push(s));
+      service.connectionStatus$.subscribe((s) => statuses.push(s));
       service.connect('room-1');
       expect(statuses).toContain('connecting');
     });
 
     it('becomes connected on onopen', () => {
       const statuses: ConnectionStatus[] = [];
-      service.connectionStatus$.subscribe(s => statuses.push(s));
+      service.connectionStatus$.subscribe((s) => statuses.push(s));
       service.connect('room-1');
       sockets[0].onopen!();
       expect(statuses[statuses.length - 1]).toBe('connected');
@@ -94,7 +94,7 @@ describe('WebSocketService', () => {
 
     it('becomes disconnected on intentional disconnect()', () => {
       const statuses: ConnectionStatus[] = [];
-      service.connectionStatus$.subscribe(s => statuses.push(s));
+      service.connectionStatus$.subscribe((s) => statuses.push(s));
       service.connect('room-1');
       sockets[0].onopen!();
       service.disconnect();
@@ -107,7 +107,7 @@ describe('WebSocketService', () => {
   describe('reconnection', () => {
     it('becomes reconnecting on unexpected close', () => {
       const statuses: ConnectionStatus[] = [];
-      service.connectionStatus$.subscribe(s => statuses.push(s));
+      service.connectionStatus$.subscribe((s) => statuses.push(s));
       service.connect('room-1');
       sockets[0].onopen!();
       sockets[0].onclose!({ wasClean: false });
@@ -139,7 +139,7 @@ describe('WebSocketService', () => {
     it('does not reconnect on clean close', () => {
       vi.useFakeTimers();
       const statuses: ConnectionStatus[] = [];
-      service.connectionStatus$.subscribe(s => statuses.push(s));
+      service.connectionStatus$.subscribe((s) => statuses.push(s));
       service.connect('room-1');
       sockets[0].onopen!();
       sockets[0].onclose!({ wasClean: true });
@@ -160,7 +160,7 @@ describe('WebSocketService', () => {
     it('becomes error after max reconnection attempts', () => {
       vi.useFakeTimers();
       const statuses: ConnectionStatus[] = [];
-      service.connectionStatus$.subscribe(s => statuses.push(s));
+      service.connectionStatus$.subscribe((s) => statuses.push(s));
       service.connect('room-1');
       for (let i = 0; i < 5; i++) {
         sockets[i].onclose!({ wasClean: false });
@@ -177,7 +177,7 @@ describe('WebSocketService', () => {
     it('ignores invalid JSON without throwing', () => {
       service.connect('room-1');
       const messages: WsEvent[] = [];
-      service.messages$.subscribe(m => messages.push(m));
+      service.messages$.subscribe((m) => messages.push(m));
       expect(() => {
         sockets[0].onmessage!({ data: 'not-valid-json{{' } as MessageEvent);
       }).not.toThrow();
@@ -187,11 +187,11 @@ describe('WebSocketService', () => {
     it('emits valid messages after invalid JSON', () => {
       service.connect('room-1');
       const messages: WsEvent[] = [];
-      service.messages$.subscribe(m => messages.push(m));
+      service.messages$.subscribe((m) => messages.push(m));
       sockets[0].onmessage!({ data: 'invalid' } as MessageEvent);
-      sockets[0].onmessage!(
-        { data: JSON.stringify({ event: 'room.state', data: {} }) } as MessageEvent,
-      );
+      sockets[0].onmessage!({
+        data: JSON.stringify({ event: 'room.state', data: {} }),
+      } as MessageEvent);
       expect(messages.length).toBe(1);
       expect(messages[0].event).toBe('room.state');
     });

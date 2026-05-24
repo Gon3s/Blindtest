@@ -346,7 +346,8 @@ def test_auto_lock_sleeps_for_delay_and_broadcasts() -> None:
     assert "song.revealed" in events
     assert "song.locked" not in events
     revealed_call = next(
-        c for c in mock_manager.broadcast_to_room.call_args_list
+        c
+        for c in mock_manager.broadcast_to_room.call_args_list
         if c.args[1]["event"] == "song.revealed"
     )
     assert revealed_call.args[0] == room_id

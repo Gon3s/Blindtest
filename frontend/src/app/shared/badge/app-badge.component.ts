@@ -8,11 +8,11 @@ export type BadgeVariant = 'success' | 'danger' | 'warning' | 'info' | 'neutral'
   template: `{{ text }}`,
   styleUrl: './app-badge.component.scss',
   host: {
-    'class': 'badge',
+    class: 'badge',
     '[class.badge--success]': "variant === 'success'",
-    '[class.badge--danger]':  "variant === 'danger'",
+    '[class.badge--danger]': "variant === 'danger'",
     '[class.badge--warning]': "variant === 'warning'",
-    '[class.badge--info]':    "variant === 'info'",
+    '[class.badge--info]': "variant === 'info'",
     '[class.badge--neutral]': "variant === 'neutral'",
   },
 })

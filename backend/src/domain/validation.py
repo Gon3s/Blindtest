@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 
-from .enums import ValidationStatus
+from .enums import AnswerMode, ValidationStatus
 from .normalization import normalize
 
 _FUZZY_THRESHOLD = 0.75
@@ -41,9 +41,17 @@ def validate_answer(
     artist: str,
     title_aliases: list[str] | None = None,
     artist_aliases: list[str] | None = None,
+    answer_mode: AnswerMode = AnswerMode.BOTH,
 ) -> ValidationResult:
     answer_norm = normalize(answer)
-    return ValidationResult(
-        title=_match(answer_norm, title, title_aliases or []),
-        artist=_match(answer_norm, artist, artist_aliases or []),
+    title_result = (
+        _match(answer_norm, title, title_aliases or [])
+        if answer_mode in (AnswerMode.BOTH, AnswerMode.TITLE_ONLY)
+        else ValidationStatus.NOT_FOUND
     )
+    artist_result = (
+        _match(answer_norm, artist, artist_aliases or [])
+        if answer_mode in (AnswerMode.BOTH, AnswerMode.ARTIST_ONLY)
+        else ValidationStatus.NOT_FOUND
+    )
+    return ValidationResult(title=title_result, artist=artist_result)

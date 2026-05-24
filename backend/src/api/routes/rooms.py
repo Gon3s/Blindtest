@@ -23,6 +23,7 @@ from src.api.schemas.rooms import (
     StartRoundResponse,
 )
 from src.application.room_service import RoomService
+from src.domain.enums import AnswerMode
 from src.domain.music_provider import MusicProvider
 from src.infrastructure.deezer_music_provider import DeezerMusicProvider
 from src.infrastructure.ws_manager import RoomConnectionManager, get_ws_manager
@@ -123,7 +124,11 @@ async def start_round(
     sleep_fn: SleepFn = Depends(get_sleep),
 ) -> StartRoundResponse:
     result = service.start_round(
-        room_id, payload.host_token, payload.theme, music_provider
+        room_id,
+        payload.host_token,
+        payload.theme,
+        music_provider,
+        AnswerMode(payload.answer_mode),
     )
     song_result = service.start_song(result["round_id"], 0)
 
@@ -137,6 +142,7 @@ async def start_round(
                 "round_id": str(result["round_id"]),
                 "theme": result["theme"],
                 "song_count": result["song_count"],
+                "answer_mode": result["answer_mode"],
             },
         },
     )
@@ -171,6 +177,7 @@ async def start_round(
         room_id=result["room_id"],
         song_count=result["song_count"],
         theme=result["theme"],
+        answer_mode=result["answer_mode"],
     )
 
 
@@ -189,7 +196,11 @@ async def restart_round(
     sleep_fn: SleepFn = Depends(get_sleep),
 ) -> StartRoundResponse:
     result = service.restart_round(
-        room_id, payload.host_token, payload.theme, music_provider
+        room_id,
+        payload.host_token,
+        payload.theme,
+        music_provider,
+        AnswerMode(payload.answer_mode),
     )
     song_result = service.start_song(result["round_id"], 0)
 
@@ -203,6 +214,7 @@ async def restart_round(
                 "round_id": str(result["round_id"]),
                 "theme": result["theme"],
                 "song_count": result["song_count"],
+                "answer_mode": result["answer_mode"],
             },
         },
     )
@@ -237,4 +249,5 @@ async def restart_round(
         room_id=result["room_id"],
         song_count=result["song_count"],
         theme=result["theme"],
+        answer_mode=result["answer_mode"],
     )

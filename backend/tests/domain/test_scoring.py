@@ -1,3 +1,4 @@
+from src.domain.enums import AnswerMode
 from src.domain.scoring import compute_song_score
 
 
@@ -101,3 +102,51 @@ class TestComputeSongScore:
             total_seconds=30.0,
         )
         assert score <= 300
+
+
+class TestComputeSongScoreWithAnswerMode:
+    def test_title_only_ignores_artist_found(self) -> None:
+        # artist_found=True mais mode=TITLE_ONLY → 0 points artiste, 0 combo
+        score = compute_song_score(True, True, answer_mode=AnswerMode.TITLE_ONLY)
+        assert score == 100
+
+    def test_title_only_no_score_when_title_not_found(self) -> None:
+        score = compute_song_score(False, True, answer_mode=AnswerMode.TITLE_ONLY)
+        assert score == 0
+
+    def test_title_only_full_speed_bonus_gives_150(self) -> None:
+        score = compute_song_score(
+            True,
+            True,
+            time_remaining_seconds=30.0,
+            total_seconds=30.0,
+            answer_mode=AnswerMode.TITLE_ONLY,
+        )
+        assert score == 150
+
+    def test_artist_only_ignores_title_found(self) -> None:
+        score = compute_song_score(True, True, answer_mode=AnswerMode.ARTIST_ONLY)
+        assert score == 100
+
+    def test_artist_only_no_score_when_artist_not_found(self) -> None:
+        score = compute_song_score(True, False, answer_mode=AnswerMode.ARTIST_ONLY)
+        assert score == 0
+
+    def test_artist_only_full_speed_bonus_gives_150(self) -> None:
+        score = compute_song_score(
+            True,
+            True,
+            time_remaining_seconds=30.0,
+            total_seconds=30.0,
+            answer_mode=AnswerMode.ARTIST_ONLY,
+        )
+        assert score == 150
+
+    def test_both_mode_behavior_unchanged(self) -> None:
+        score = compute_song_score(True, True, answer_mode=AnswerMode.BOTH)
+        assert score == 250
+
+    def test_default_mode_is_both(self) -> None:
+        assert compute_song_score(True, True) == compute_song_score(
+            True, True, answer_mode=AnswerMode.BOTH
+        )

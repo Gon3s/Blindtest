@@ -23,7 +23,12 @@ class _FakeRestartService:
         self._exc = exc
 
     def restart_round(
-        self, room_id: UUID, host_token: str, theme: str, music_provider: object
+        self,
+        room_id: UUID,
+        host_token: str,
+        theme: str,
+        music_provider: object,
+        answer_mode: object = None,
     ) -> dict:
         if self._exc is not None:
             raise self._exc
@@ -48,6 +53,7 @@ def _make_result(room_id: UUID | None = None) -> dict:
         "room_id": room_id or uuid4(),
         "song_count": 10,
         "theme": "Rock 80s",
+        "answer_mode": "both",
     }
 
 
@@ -76,18 +82,14 @@ def restart_client(restart_result: dict, mock_manager: MagicMock) -> TestClient:
 
 
 def test_restart_returns_201(restart_client: TestClient) -> None:
-    response = restart_client.post(
-        f"/rooms/{uuid4()}/restart", json=_RESTART_BODY
-    )
+    response = restart_client.post(f"/rooms/{uuid4()}/restart", json=_RESTART_BODY)
     assert response.status_code == 201
 
 
 def test_restart_returns_round_id_and_song_count(
     restart_client: TestClient, restart_result: dict
 ) -> None:
-    response = restart_client.post(
-        f"/rooms/{uuid4()}/restart", json=_RESTART_BODY
-    )
+    response = restart_client.post(f"/rooms/{uuid4()}/restart", json=_RESTART_BODY)
     data = response.json()
     assert UUID(data["round_id"]) == restart_result["round_id"]
     assert data["song_count"] == 10

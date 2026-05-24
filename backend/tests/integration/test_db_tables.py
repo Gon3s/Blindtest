@@ -78,7 +78,7 @@ def test_insert_room(migrated_engine) -> None:  # type: ignore[no-untyped-def]
             text(
                 "INSERT INTO rooms (id, code, status, host_id, host_token, config)"
                 " VALUES (:id, :code, :status, :host_id, :host_token,"
-                        " CAST(:config AS JSONB))"
+                " CAST(:config AS JSONB))"
             ),
             {
                 "id": str(room_id),
@@ -106,7 +106,7 @@ def test_insert_participant(migrated_engine) -> None:  # type: ignore[no-untyped
             text(
                 "INSERT INTO rooms (id, code, status, host_id, host_token, config)"
                 " VALUES (:id, :code, :status, :host_id, :host_token,"
-                        " CAST(:config AS JSONB))"
+                " CAST(:config AS JSONB))"
             ),
             {
                 "id": str(room_id),
@@ -145,7 +145,7 @@ def test_room_code_unique_constraint(migrated_engine) -> None:  # type: ignore[n
             text(
                 "INSERT INTO rooms (id, code, status, host_id, host_token, config)"
                 " VALUES (:id, :code, :status, :host_id, :host_token,"
-                        " CAST(:config AS JSONB))"
+                " CAST(:config AS JSONB))"
             ),
             {
                 "id": str(uuid4()),
@@ -164,7 +164,7 @@ def test_room_code_unique_constraint(migrated_engine) -> None:  # type: ignore[n
                 text(
                     "INSERT INTO rooms (id, code, status, host_id, host_token, config)"
                     " VALUES (:id, :code, :status, :host_id, :host_token,"
-                        " CAST(:config AS JSONB))"
+                    " CAST(:config AS JSONB))"
                 ),
                 {
                     "id": str(uuid4()),

@@ -4,6 +4,7 @@ import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { of } from 'rxjs';
 import { PlayPageComponent } from './play-page.component';
 import { ConnectionStatus, WebSocketService, WsEvent } from '../../services/websocket.service';
+import { SessionService } from '../../services/session.service';
 import { AudioService } from '../../services/audio.service';
 import {
   MiniLeaderboardItem,
@@ -192,7 +193,9 @@ describe('PlayPageComponent — song.started', () => {
   it('should display song number and total on init', async () => {
     await configureTestBed({ song_index: 0, total_songs: 10 });
     const fixture = mountFixture();
-    const songNum = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="song-number"]');
+    const songNum = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="song-number"]',
+    );
     expect(songNum?.textContent).toContain('1');
     expect(songNum?.textContent).toContain('10');
   });
@@ -213,7 +216,9 @@ describe('PlayPageComponent — song.started', () => {
     });
     fixture.detectChanges();
 
-    const songNum = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="song-number"]');
+    const songNum = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="song-number"]',
+    );
     expect(songNum?.textContent).toContain('3'); // index 2 → display 3
   });
 
@@ -425,7 +430,9 @@ describe('PlayPageComponent — feedback', () => {
     });
     fixture.detectChanges();
 
-    const feedback = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="feedback"]');
+    const feedback = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="feedback"]',
+    );
     expect(feedback?.getAttribute('role')).toBe('status');
   });
 
@@ -607,7 +614,10 @@ describe('PlayPageComponent — submit errors', () => {
       .querySelector<HTMLButtonElement>('[data-testid="submit-btn"]')
       ?.click();
 
-    submitSubject.error({ status: 409, error: { code: 'answer_too_late', message: 'Trop tard ! La chanson est terminée.' } });
+    submitSubject.error({
+      status: 409,
+      error: { code: 'answer_too_late', message: 'Trop tard ! La chanson est terminée.' },
+    });
     fixture.detectChanges();
 
     const errorEl = (fixture.nativeElement as HTMLElement).querySelector(
@@ -745,15 +755,13 @@ describe('PlayPageComponent — reveal (T-033)', () => {
     const el = fixture.nativeElement as HTMLElement;
     const rows = el.querySelectorAll('[data-testid="leaderboard-row"]');
     expect(rows.length).toBe(2);
-    expect(
-      rows[0].querySelector('[data-testid="leaderboard-nickname"]')?.textContent?.trim(),
-    ).toBe('Alice');
-    expect(rows[0].querySelector('[data-testid="leaderboard-points"]')?.textContent).toContain(
-      '5',
+    expect(rows[0].querySelector('[data-testid="leaderboard-nickname"]')?.textContent?.trim()).toBe(
+      'Alice',
     );
-    expect(
-      rows[1].querySelector('[data-testid="leaderboard-nickname"]')?.textContent?.trim(),
-    ).toBe('Bob');
+    expect(rows[0].querySelector('[data-testid="leaderboard-points"]')?.textContent).toContain('5');
+    expect(rows[1].querySelector('[data-testid="leaderboard-nickname"]')?.textContent?.trim()).toBe(
+      'Bob',
+    );
   });
 
   it('should show next-song CTA for host after song.revealed', async () => {
@@ -865,7 +873,9 @@ describe('PlayPageComponent — round leaderboard (T-035)', () => {
     fixture.detectChanges();
 
     expect(
-      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="round-leaderboard-section"]'),
+      (fixture.nativeElement as HTMLElement).querySelector(
+        '[data-testid="round-leaderboard-section"]',
+      ),
     ).not.toBeNull();
   });
 
@@ -1073,7 +1083,7 @@ describe('PlayPageComponent — new round (T-037)', () => {
       .querySelector<HTMLButtonElement>('[data-testid="new-round-btn"]')
       ?.click();
 
-    expect(roomService.restartRound).toHaveBeenCalledWith('room-uuid', 'Général');
+    expect(roomService.restartRound).toHaveBeenCalledWith('room-uuid', 'Général', 'both');
   });
 
   it('should reset to answer view for players after song.started from new round', async () => {
@@ -1085,7 +1095,9 @@ describe('PlayPageComponent — new round (T-037)', () => {
     fixture.detectChanges();
 
     expect(
-      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="round-leaderboard-section"]'),
+      (fixture.nativeElement as HTMLElement).querySelector(
+        '[data-testid="round-leaderboard-section"]',
+      ),
     ).not.toBeNull();
 
     msgs.next({
@@ -1101,7 +1113,9 @@ describe('PlayPageComponent — new round (T-037)', () => {
     fixture.detectChanges();
 
     expect(
-      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="round-leaderboard-section"]'),
+      (fixture.nativeElement as HTMLElement).querySelector(
+        '[data-testid="round-leaderboard-section"]',
+      ),
     ).toBeNull();
     expect(
       (fixture.nativeElement as HTMLElement).querySelector('[data-testid="answer-input"]'),
@@ -1123,7 +1137,9 @@ describe('PlayPageComponent — T-112 thèmes prédéfinis nouvelle manche', () 
     msgs.next(mockLastRevealEvent);
     msgs.next(mockRoundFinishedEvent);
     fixture.detectChanges();
-    const chips = (fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="new-round-theme-chip"]');
+    const chips = (fixture.nativeElement as HTMLElement).querySelectorAll(
+      '[data-testid="new-round-theme-chip"]',
+    );
     expect(chips.length).toBe(10);
   });
 
@@ -1133,7 +1149,9 @@ describe('PlayPageComponent — T-112 thèmes prédéfinis nouvelle manche', () 
     msgs.next(mockLastRevealEvent);
     msgs.next(mockRoundFinishedEvent);
     fixture.detectChanges();
-    const chips = (fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="new-round-theme-chip"]');
+    const chips = (fixture.nativeElement as HTMLElement).querySelectorAll(
+      '[data-testid="new-round-theme-chip"]',
+    );
     expect(chips.length).toBe(0);
   });
 
@@ -1143,7 +1161,9 @@ describe('PlayPageComponent — T-112 thèmes prédéfinis nouvelle manche', () 
     msgs.next(mockLastRevealEvent);
     msgs.next(mockRoundFinishedEvent);
     fixture.detectChanges();
-    const chip = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('[data-testid="new-round-theme-chip"]');
+    const chip = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
+      '[data-testid="new-round-theme-chip"]',
+    );
     chip?.click();
     fixture.detectChanges();
     expect(fixture.componentInstance.newRoundTheme()).toBe('Pop 90s');
@@ -1155,13 +1175,76 @@ describe('PlayPageComponent — T-112 thèmes prédéfinis nouvelle manche', () 
     msgs.next(mockLastRevealEvent);
     msgs.next(mockRoundFinishedEvent);
     fixture.detectChanges();
-    const chip = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('[data-testid="new-round-theme-chip"]');
+    const chip = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
+      '[data-testid="new-round-theme-chip"]',
+    );
     chip?.click();
     fixture.detectChanges();
     (fixture.nativeElement as HTMLElement)
       .querySelector<HTMLButtonElement>('[data-testid="new-round-btn"]')
       ?.click();
-    expect(roomService.restartRound).toHaveBeenCalledWith('room-uuid', 'Pop 90s');
+    expect(roomService.restartRound).toHaveBeenCalledWith('room-uuid', 'Pop 90s', 'both');
+  });
+});
+
+// ─── T-123 clearSession on quit ───────────────────────────────────────────────
+
+async function configureQuitTestBed() {
+  const { service: wsService } = createWsMock();
+  const sessionService = {
+    clearSession: vi.fn(),
+    loadSession: vi.fn().mockReturnValue(null),
+    saveSession: vi.fn(),
+  };
+
+  history.replaceState(
+    {
+      room_id: 'room-uuid',
+      nickname: 'Alice',
+      song_index: 0,
+      total_songs: 10,
+      ends_at: BASE_ENDS.toISOString(),
+    },
+    '',
+  );
+
+  await TestBed.configureTestingModule({
+    imports: [PlayPageComponent],
+    providers: [
+      provideRouter([]),
+      {
+        provide: ActivatedRoute,
+        useValue: { paramMap: of({ get: (k: string) => (k === 'code' ? 'ABC123' : null) }) },
+      },
+      { provide: WebSocketService, useValue: wsService },
+      { provide: RoomService, useValue: noopRoomService },
+      { provide: SessionService, useValue: sessionService },
+    ],
+  }).compileComponents();
+
+  return { sessionService };
+}
+
+describe('PlayPageComponent — T-123 clearSession on quit', () => {
+  afterEach(() => {
+    history.replaceState(null, '');
+    TestBed.resetTestingModule();
+  });
+
+  it('clears session when user clicks Quitter from play', async () => {
+    const { sessionService } = await configureQuitTestBed();
+    const fixture = mountFixture();
+    fixture.componentInstance.quit();
+    expect(sessionService.clearSession).toHaveBeenCalled();
+  });
+
+  it('navigates to / after quit from play', async () => {
+    await configureQuitTestBed();
+    const fixture = mountFixture();
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigate');
+    fixture.componentInstance.quit();
+    expect(navigateSpy).toHaveBeenCalledWith(['/']);
   });
 });
 
@@ -1346,7 +1429,9 @@ describe('PlayPageComponent — T-113 Host UX', () => {
     msgs.next({ event: 'song.locked', data: { song_id: 'song-uuid', round_id: 'round-uuid' } });
     fixture.detectChanges();
     expect(
-      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="host-correction-section"]'),
+      (fixture.nativeElement as HTMLElement).querySelector(
+        '[data-testid="host-correction-section"]',
+      ),
     ).not.toBeNull();
   });
 
@@ -1449,7 +1534,9 @@ describe('PlayPageComponent — T-113 Host UX', () => {
       ],
     });
     fixture.detectChanges();
-    const items = (fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="summary-item"]');
+    const items = (fixture.nativeElement as HTMLElement).querySelectorAll(
+      '[data-testid="summary-item"]',
+    );
     expect(items.length).toBe(2);
     expect(items[0].querySelector('.play__summary-nickname')?.textContent?.trim()).toBe('Alice');
     expect(items[1].querySelector('.play__summary-nickname')?.textContent?.trim()).toBe('Bob');

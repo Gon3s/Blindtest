@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID, uuid4
 
-from .enums import RoomStatus, RoundStatus, SongStatus, ValidationStatus
+from .enums import AnswerMode, RoomStatus, RoundStatus, SongStatus, ValidationStatus
 from .exceptions import RoomTransitionError, SongTransitionError
 
 _SONG_TRANSITIONS: dict[SongStatus, set[SongStatus]] = {
@@ -93,6 +93,7 @@ class Round:
     id: UUID = field(default_factory=uuid4)
     status: RoundStatus = RoundStatus.PENDING
     song_ids: list[UUID] = field(default_factory=list)
+    answer_mode: AnswerMode = AnswerMode.BOTH
 
 
 @dataclass

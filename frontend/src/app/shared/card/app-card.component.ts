@@ -11,7 +11,7 @@ import { Component, Input } from '@angular/core';
   `,
   styleUrl: './app-card.component.scss',
   host: {
-    'class': 'card',
+    class: 'card',
   },
 })
 export class AppCardComponent {

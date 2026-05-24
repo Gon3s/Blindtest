@@ -35,6 +35,7 @@ class _FakeHostService:
         host_token: str,
         theme: str,
         music_provider: object,
+        answer_mode: object = None,
     ) -> dict:
         if host_token != _HOST_TOKEN:
             raise InvalidHostTokenError("invalid token")
@@ -43,6 +44,7 @@ class _FakeHostService:
             "room_id": room_id,
             "song_count": 10,
             "theme": theme,
+            "answer_mode": "both",
         }
 
     def start_song(self, round_id: UUID, song_index: int) -> dict:
@@ -112,6 +114,7 @@ class _FakeHostService:
         host_token: str,
         theme: str,
         music_provider: object,
+        answer_mode: object = None,
     ) -> dict:
         if host_token != _HOST_TOKEN:
             raise InvalidHostTokenError("invalid token")
@@ -120,6 +123,7 @@ class _FakeHostService:
             "room_id": room_id,
             "song_count": 10,
             "theme": theme,
+            "answer_mode": "both",
         }
 
 

@@ -90,7 +90,12 @@ export interface WsEvent {
   data: unknown;
 }
 
-export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'reconnecting' | 'error';
+export type ConnectionStatus =
+  | 'connecting'
+  | 'connected'
+  | 'disconnected'
+  | 'reconnecting'
+  | 'error';
 
 @Injectable({ providedIn: 'root' })
 export class WebSocketService implements OnDestroy {

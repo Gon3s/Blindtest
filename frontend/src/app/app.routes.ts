@@ -7,23 +7,23 @@ export const routes: Routes = [
     path: 'create',
     loadComponent: () =>
       import('./pages/create-room/create-room-page.component').then(
-        m => m.CreateRoomPageComponent,
+        (m) => m.CreateRoomPageComponent,
       ),
   },
   {
     path: 'join',
     loadComponent: () =>
-      import('./pages/join-room/join-room-page.component').then(m => m.JoinRoomPageComponent),
+      import('./pages/join-room/join-room-page.component').then((m) => m.JoinRoomPageComponent),
   },
   {
     path: 'lobby/:code',
     loadComponent: () =>
-      import('./pages/lobby/lobby-page.component').then(m => m.LobbyPageComponent),
+      import('./pages/lobby/lobby-page.component').then((m) => m.LobbyPageComponent),
   },
   {
     path: 'play/:code',
     loadComponent: () =>
-      import('./pages/play/play-page.component').then(m => m.PlayPageComponent),
+      import('./pages/play/play-page.component').then((m) => m.PlayPageComponent),
   },
   { path: '**', redirectTo: '' },
 ];

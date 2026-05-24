@@ -32,7 +32,8 @@ const ERROR_MESSAGES: Readonly<Record<string, string>> = {
 export class ErrorService {
   readonly wsDisconnected = 'Connexion perdue. Actualise la page pour rejoindre.';
   readonly audioBlocked = "Son bloqué par le navigateur. Clique sur la page pour lancer l'audio.";
-  readonly deezerUnavailable = 'Musique temporairement indisponible. La partie continue avec des chansons de remplacement.';
+  readonly deezerUnavailable =
+    'Musique temporairement indisponible. La partie continue avec des chansons de remplacement.';
 
   fromHttpError(err: ApiError): string {
     const code = err.error?.code;

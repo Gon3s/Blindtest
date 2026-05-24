@@ -41,6 +41,7 @@ class JoinRoomResponse(BaseModel):
 class StartRoundRequest(BaseModel):
     theme: str
     host_token: str
+    answer_mode: str = "both"
 
     @field_validator("theme")
     @classmethod
@@ -49,12 +50,22 @@ class StartRoundRequest(BaseModel):
             raise ValueError("theme must not be empty")
         return v
 
+    @field_validator("answer_mode")
+    @classmethod
+    def answer_mode_valid(cls, v: str) -> str:
+        if v not in ("both", "title_only", "artist_only"):
+            raise ValueError(
+                "answer_mode must be 'both', 'title_only', or 'artist_only'"
+            )
+        return v
+
 
 class StartRoundResponse(BaseModel):
     round_id: UUID
     room_id: UUID
     song_count: int
     theme: str
+    answer_mode: str = "both"
 
 
 class ParticipantStateItem(BaseModel):

@@ -9,7 +9,13 @@ from sqlalchemy.orm import Session
 
 from src.domain.clock import Clock, UtcClock
 from src.domain.entities import Participant, Room, RoomConfig, Round
-from src.domain.enums import RoomStatus, RoundStatus, SongStatus, ValidationStatus
+from src.domain.enums import (
+    AnswerMode,
+    RoomStatus,
+    RoundStatus,
+    SongStatus,
+    ValidationStatus,
+)
 from src.domain.exceptions import (
     AnswerNotFoundError,
     InvalidHostTokenError,
@@ -86,6 +92,7 @@ class StartRoundResult(TypedDict):
     room_id: UUID
     song_count: int
     theme: str
+    answer_mode: str
 
 
 class StartSongResult(TypedDict):
@@ -196,6 +203,13 @@ class GetRoomStateResult(TypedDict):
     current_song: Optional[CurrentSongStateEntry]
 
 
+def _get_answer_mode(round_: "RoundModel") -> AnswerMode:
+    try:
+        return AnswerMode(round_.answer_mode)
+    except (ValueError, TypeError):
+        return AnswerMode.BOTH
+
+
 _JOINABLE_STATUSES: frozenset[str] = frozenset(
     {RoomStatus.CREATED.value, RoomStatus.WAITING.value}
 )
@@ -302,7 +316,12 @@ class RoomService:
         return JoinRoomResult(room_id=room.id, participant_id=participant.id)
 
     def start_round(
-        self, room_id: UUID, host_token: str, theme: str, music_provider: MusicProvider
+        self,
+        room_id: UUID,
+        host_token: str,
+        theme: str,
+        music_provider: MusicProvider,
+        answer_mode: AnswerMode = AnswerMode.BOTH,
     ) -> StartRoundResult:
         room = self._session.query(RoomModel).filter_by(id=room_id).first()
         if room is None:
@@ -332,6 +351,7 @@ class RoomService:
             index=round_index,
             theme=theme,
             status=RoundStatus.IN_PROGRESS,
+            answer_mode=answer_mode,
         )
 
         tracks = select_round_tracks(
@@ -352,6 +372,7 @@ class RoomService:
                 index=round_entity.index,
                 theme=theme,
                 status=RoundStatus.IN_PROGRESS.value,
+                answer_mode=answer_mode.value,
             )
         )
         self._session.flush()
@@ -382,6 +403,7 @@ class RoomService:
             room_id=room_id,
             song_count=len(songs),
             theme=theme,
+            answer_mode=answer_mode.value,
         )
 
     def start_song(self, round_id: UUID, song_index: int) -> StartSongResult:
@@ -478,8 +500,14 @@ class RoomService:
             )
 
         now = self._clock.now()
+        round_answer_mode = _get_answer_mode(round_)
         validation = validate_answer(
-            text, song.title, song.artist, song.aliases_title, song.aliases_artist
+            text,
+            song.title,
+            song.artist,
+            song.aliases_title,
+            song.aliases_artist,
+            answer_mode=round_answer_mode,
         )
 
         title_found = validation.title == ValidationStatus.FOUND
@@ -645,8 +673,13 @@ class RoomService:
                 0.0, (song.ends_at - answer.submitted_at).total_seconds()
             )
 
+        round_answer_mode = _get_answer_mode(round_)
         score = compute_song_score(
-            title_accepted, artist_accepted, time_remaining, total_seconds
+            title_accepted,
+            artist_accepted,
+            time_remaining,
+            total_seconds,
+            answer_mode=round_answer_mode,
         )
 
         score_entry = (
@@ -702,6 +735,7 @@ class RoomService:
         round_: "RoundModel",
     ) -> None:
         answers = self._session.query(AnswerModel).filter_by(song_id=song.id).all()
+        round_answer_mode = _get_answer_mode(round_)
         for ans in answers:
             exists = (
                 self._session.query(ScoreEntryModel)
@@ -720,7 +754,11 @@ class RoomService:
                     0.0, (song.ends_at - ans.submitted_at).total_seconds()
                 )
             score = compute_song_score(
-                ans.title_found, ans.artist_found, time_remaining, total_seconds
+                ans.title_found,
+                ans.artist_found,
+                time_remaining,
+                total_seconds,
+                answer_mode=round_answer_mode,
             )
             self._session.add(
                 ScoreEntryModel(
@@ -921,7 +959,12 @@ class RoomService:
         )
 
     def restart_round(
-        self, room_id: UUID, host_token: str, theme: str, music_provider: MusicProvider
+        self,
+        room_id: UUID,
+        host_token: str,
+        theme: str,
+        music_provider: MusicProvider,
+        answer_mode: AnswerMode = AnswerMode.BOTH,
     ) -> StartRoundResult:
         room = self._session.query(RoomModel).filter_by(id=room_id).first()
         if room is None:
@@ -934,4 +977,4 @@ class RoomService:
             raise InvalidHostTokenError(f"Invalid host token for room {room_id!r}")
         room.status = RoomStatus.WAITING.value
         self._session.flush()
-        return self.start_round(room_id, host_token, theme, music_provider)
+        return self.start_round(room_id, host_token, theme, music_provider, answer_mode)

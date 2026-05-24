@@ -1,3 +1,5 @@
+from .enums import AnswerMode
+
 _TITLE_POINTS = 100
 _ARTIST_POINTS = 100
 _COMBO_POINTS = 50
@@ -10,13 +12,23 @@ def compute_song_score(
     artist_found: bool,
     time_remaining_seconds: float = 0.0,
     total_seconds: float = 30.0,
+    answer_mode: AnswerMode = AnswerMode.BOTH,
 ) -> int:
+    effective_title = title_found and answer_mode in (
+        AnswerMode.BOTH,
+        AnswerMode.TITLE_ONLY,
+    )
+    effective_artist = artist_found and answer_mode in (
+        AnswerMode.BOTH,
+        AnswerMode.ARTIST_ONLY,
+    )
+
     base = 0
-    if title_found:
+    if effective_title:
         base += _TITLE_POINTS
-    if artist_found:
+    if effective_artist:
         base += _ARTIST_POINTS
-    if title_found and artist_found:
+    if effective_title and effective_artist:
         base += _COMBO_POINTS
 
     if base > 0 and total_seconds > 0:

@@ -15,7 +15,12 @@ import { map } from 'rxjs/operators';
 import { AudioService } from '../../services/audio.service';
 import { RoomService } from '../../services/room.service';
 import { Session, SessionService } from '../../services/session.service';
-import { ConnectionStatus, Participant, WebSocketService, WsEvent } from '../../services/websocket.service';
+import {
+  ConnectionStatus,
+  Participant,
+  WebSocketService,
+  WsEvent,
+} from '../../services/websocket.service';
 import { PREDEFINED_THEMES } from '../../shared/predefined-themes';
 
 @Component({
@@ -34,14 +39,14 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
   private readonly audioService = inject(AudioService);
   private readonly sessionService = inject(SessionService);
 
-  readonly code = toSignal(
-    this.route.paramMap.pipe(map(p => p.get('code') ?? '')),
-    { initialValue: '' },
-  );
+  readonly code = toSignal(this.route.paramMap.pipe(map((p) => p.get('code') ?? '')), {
+    initialValue: '',
+  });
   readonly participants = signal<Participant[]>([]);
   readonly isHost = signal(false);
   readonly nickname = signal('');
   readonly theme = signal('');
+  readonly answerMode = signal<'both' | 'title_only' | 'artist_only'>('both');
   readonly sessionRestoreError = signal(false);
   readonly predefinedThemes = PREDEFINED_THEMES;
   readonly connectionStatus = signal<ConnectionStatus>('disconnected');
@@ -87,13 +92,20 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
   }
 
   startRound(): void {
-    this.roomService.startRound(this.roomId, this.theme().trim(), this.hostToken).subscribe();
+    this.roomService
+      .startRound(this.roomId, this.theme().trim(), this.hostToken, this.answerMode())
+      .subscribe();
+  }
+
+  quit(): void {
+    this.sessionService.clearSession();
+    void this.router.navigate(['/']);
   }
 
   private restoreFromSession(session: Session): void {
     this.hostToken = session.hostToken ?? '';
     this.roomService.getRoomState(session.roomCode).subscribe({
-      next: roomState => {
+      next: (roomState) => {
         this.roomId = roomState.room_id;
         this.isHost.set(session.role === 'host');
         this.nickname.set(session.nickname);
@@ -130,7 +142,7 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
 
   private wsConnect(): void {
     this.wsService.connect(this.roomId);
-    this.wsStatusSubscription = this.wsService.connectionStatus$.subscribe(status => {
+    this.wsStatusSubscription = this.wsService.connectionStatus$.subscribe((status) => {
       this.connectionStatus.set(status);
     });
     this.subscription = this.wsService.messages$.subscribe((event: WsEvent) => {
@@ -139,7 +151,7 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
         this.participants.set(d.participants);
       } else if (event.event === 'participant.joined') {
         const p = event.data as Participant;
-        this.participants.update(list => [...list, p]);
+        this.participants.update((list) => [...list, p]);
       } else if (event.event === 'song.started') {
         const d = event.data as {
           song_id: string;

@@ -24,7 +24,11 @@
     @if (error()) {
       <p class="error" role="alert">{{ error() }}</p>
     }
-    <button type="submit" class="btn btn-primary" [disabled]="loading() || !code.trim() || !nickname.trim()">
+    <button
+      type="submit"
+      class="btn btn-primary"
+      [disabled]="loading() || !code.trim() || !nickname.trim()"
+    >
       {{ loading() ? 'Connexion...' : 'Rejoindre' }}
     </button>
   </form>

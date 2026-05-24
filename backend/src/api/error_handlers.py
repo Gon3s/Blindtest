@@ -25,7 +25,9 @@ from src.domain.exceptions import (
 
 _ERROR_MAP: dict[type[Exception], tuple[int, str, str]] = {
     RoomNotFoundError: (
-        404, "room_not_found", "Code de salle invalide. Vérifie le code et réessaie."
+        404,
+        "room_not_found",
+        "Code de salle invalide. Vérifie le code et réessaie.",
     ),
     RoomNotJoinableError: (
         409,
@@ -33,32 +35,48 @@ _ERROR_MAP: dict[type[Exception], tuple[int, str, str]] = {
         "La partie a déjà commencé. Tu ne peux plus rejoindre.",
     ),
     NicknameAlreadyTakenError: (
-        409, "nickname_taken", "Ce pseudo est déjà pris. Choisis-en un autre."
+        409,
+        "nickname_taken",
+        "Ce pseudo est déjà pris. Choisis-en un autre.",
     ),
     RoomNotWaitingError: (409, "room_not_waiting", "La partie a déjà commencé."),
     RoomNotFinishedRoundError: (
-        409, "round_not_finished", "La manche n'est pas encore terminée."
+        409,
+        "round_not_finished",
+        "La manche n'est pas encore terminée.",
     ),
     RoundNotFoundError: (404, "round_not_found", "Manche introuvable."),
     RoundNotInProgressError: (409, "round_not_in_progress", "Aucune manche en cours."),
     SongNotFoundError: (404, "song_not_found", "Chanson introuvable."),
     SongNotPlayableError: (
-        409, "song_not_playable", "Cette chanson ne peut pas être lancée."
+        409,
+        "song_not_playable",
+        "Cette chanson ne peut pas être lancée.",
     ),
     SongNotLockableError: (
-        409, "song_not_lockable", "Cette chanson ne peut pas être verrouillée."
+        409,
+        "song_not_lockable",
+        "Cette chanson ne peut pas être verrouillée.",
     ),
     SongNotAcceptingAnswersError: (
-        409, "answer_too_late", "Trop tard ! La chanson est terminée."
+        409,
+        "answer_too_late",
+        "Trop tard ! La chanson est terminée.",
     ),
     SongNotLockedError: (
-        409, "song_not_locked", "La chanson n'est pas encore terminée."
+        409,
+        "song_not_locked",
+        "La chanson n'est pas encore terminée.",
     ),
     SongNotCorrectableError: (
-        409, "song_not_correctable", "Les réponses ne peuvent plus être modifiées."
+        409,
+        "song_not_correctable",
+        "Les réponses ne peuvent plus être modifiées.",
     ),
     SongNotRevealableError: (
-        409, "song_not_revealable", "La chanson ne peut pas encore être révélée."
+        409,
+        "song_not_revealable",
+        "La chanson ne peut pas encore être révélée.",
     ),
     NotHostError: (403, "not_host", "Action réservée à l'hôte."),
     ParticipantNotInRoomError: (
@@ -68,10 +86,14 @@ _ERROR_MAP: dict[type[Exception], tuple[int, str, str]] = {
     ),
     AnswerNotFoundError: (404, "answer_not_found", "Réponse introuvable."),
     RoomTransitionError: (
-        409, "room_transition_error", "Transition d'état impossible pour la salle."
+        409,
+        "room_transition_error",
+        "Transition d'état impossible pour la salle.",
     ),
     SongTransitionError: (
-        409, "song_transition_error", "Transition d'état impossible pour la chanson."
+        409,
+        "song_transition_error",
+        "Transition d'état impossible pour la chanson.",
     ),
 }
 

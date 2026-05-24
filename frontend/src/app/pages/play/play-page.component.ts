@@ -23,6 +23,7 @@ import {
   SubmitAnswerResponse,
 } from '../../services/room.service';
 import { ConnectionStatus, WebSocketService, WsEvent } from '../../services/websocket.service';
+import { SessionService } from '../../services/session.service';
 import { PREDEFINED_THEMES } from '../../shared/predefined-themes';
 import { AppBadgeComponent } from '../../shared/badge/app-badge.component';
 import type { BadgeVariant } from '../../shared/badge/app-badge.component';
@@ -54,6 +55,11 @@ interface RoundFinishedData {
   round_leaderboard: RoundLeaderboardItem[];
 }
 
+interface RoundStartedData {
+  round_id: string;
+  answer_mode?: 'both' | 'title_only' | 'artist_only';
+}
+
 interface RoundLeaderboardMergedEntry extends RoundLeaderboardItem {
   total_points: number;
 }
@@ -61,7 +67,13 @@ interface RoundLeaderboardMergedEntry extends RoundLeaderboardItem {
 @Component({
   selector: 'app-play-page',
   standalone: true,
-  imports: [FormsModule, AppBadgeComponent, AppButtonComponent, AppCardComponent, AppTimerBarComponent],
+  imports: [
+    FormsModule,
+    AppBadgeComponent,
+    AppButtonComponent,
+    AppCardComponent,
+    AppTimerBarComponent,
+  ],
   templateUrl: './play-page.component.html',
   styleUrl: './play-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -74,6 +86,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly audioService = inject(AudioService);
   private readonly errorService = inject(ErrorService);
+  private readonly sessionService = inject(SessionService);
 
   readonly songIndex = signal(0);
   readonly totalSongs = signal(10);
@@ -91,6 +104,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   readonly revealData = signal<SongRevealedData | null>(null);
   readonly roundFinishedData = signal<RoundFinishedData | null>(null);
   readonly newRoundTheme = signal('Général');
+  readonly newRoundAnswerMode = signal<'both' | 'title_only' | 'artist_only'>('both');
   readonly totalDuration = signal(30);
   readonly predefinedThemes = PREDEFINED_THEMES;
 
@@ -103,31 +117,31 @@ export class PlayPageComponent implements OnInit, OnDestroy {
     const summary = this.songSummary();
     if (!summary) return [];
     return [
-      ...summary.answers.filter(a => a.validation_status === 'doubtful'),
-      ...summary.answers.filter(a => a.validation_status !== 'doubtful'),
+      ...summary.answers.filter((a) => a.validation_status === 'doubtful'),
+      ...summary.answers.filter((a) => a.validation_status !== 'doubtful'),
     ];
   });
 
   readonly myRevealResult = computed(() => {
     const reveal = this.revealData();
     if (!reveal) return null;
-    return reveal.player_results.find(r => r.participant_id === this.participantId) ?? null;
+    return reveal.player_results.find((r) => r.participant_id === this.participantId) ?? null;
   });
 
   readonly roundLeaderboardMerged = computed((): RoundLeaderboardMergedEntry[] => {
     const round = this.roundFinishedData();
     if (!round) return [];
     const miniMap = new Map<string, number>();
-    this.revealData()?.mini_leaderboard.forEach(m => miniMap.set(m.participant_id, m.total_points));
-    return round.round_leaderboard.map(e => ({
+    this.revealData()?.mini_leaderboard.forEach((m) =>
+      miniMap.set(m.participant_id, m.total_points),
+    );
+    return round.round_leaderboard.map((e) => ({
       ...e,
       total_points: miniMap.get(e.participant_id) ?? 0,
     }));
   });
 
-  readonly podiumEntries = computed(() =>
-    this.roundLeaderboardMerged().filter(e => e.rank <= 3),
-  );
+  readonly podiumEntries = computed(() => this.roundLeaderboardMerged().filter((e) => e.rank <= 3));
 
   private songId = '';
   private roundId = '';
@@ -188,12 +202,15 @@ export class PlayPageComponent implements OnInit, OnDestroy {
       this.connectionError.set(msg);
       this.cdr.markForCheck();
     });
-    this.wsStatusSubscription = this.wsService.connectionStatus$.subscribe(status => {
+    this.wsStatusSubscription = this.wsService.connectionStatus$.subscribe((status) => {
       this.connectionStatus.set(status);
       this.cdr.markForCheck();
     });
     this.subscription = this.wsService.messages$.subscribe((event: WsEvent) => {
-      if (event.event === 'song.started') {
+      if (event.event === 'round.started') {
+        const d = event.data as RoundStartedData;
+        this.newRoundAnswerMode.set(d.answer_mode ?? 'both');
+      } else if (event.event === 'song.started') {
         const d = event.data as SongStartedData;
         this.songId = d.song_id;
         this.roundId = d.round_id;
@@ -246,6 +263,11 @@ export class PlayPageComponent implements OnInit, OnDestroy {
     this.wsService.disconnect();
   }
 
+  quit(): void {
+    this.sessionService.clearSession();
+    void this.router.navigate(['/']);
+  }
+
   submitAnswer(): void {
     const text = this.answer().trim();
     if (!text) {
@@ -279,7 +301,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
   }
 
   startNewRound(): void {
-    this.roomService.restartRound(this.roomId, this.newRoundTheme()).subscribe();
+    this.roomService.restartRound(this.roomId, this.newRoundTheme(), this.newRoundAnswerMode()).subscribe();
   }
 
   nextSong(): void {
@@ -289,10 +311,14 @@ export class PlayPageComponent implements OnInit, OnDestroy {
 
   badgeVariantFor(status: string): BadgeVariant {
     switch (status) {
-      case 'found': return 'success';
-      case 'not_found': return 'danger';
-      case 'doubtful': return 'warning';
-      default: return 'neutral';
+      case 'found':
+        return 'success';
+      case 'not_found':
+        return 'danger';
+      case 'doubtful':
+        return 'warning';
+      default:
+        return 'neutral';
     }
   }
 
@@ -300,12 +326,12 @@ export class PlayPageComponent implements OnInit, OnDestroy {
     this.roomService
       .overrideAnswer(this.songId, answer.answer_id, this.hostId, true, true)
       .subscribe({
-        next: res => {
+        next: (res) => {
           const summary = this.songSummary();
           if (!summary) return;
           this.songSummary.set({
             ...summary,
-            answers: summary.answers.map(a =>
+            answers: summary.answers.map((a) =>
               a.answer_id === res.answer_id
                 ? {
                     ...a,
@@ -326,7 +352,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
     this.summaryLoading.set(true);
     this.summaryError.set(null);
     this.summarySubscription = this.roomService.getSongSummary(this.songId, this.hostId).subscribe({
-      next: res => {
+      next: (res) => {
         this.songSummary.set(res);
         this.summaryLoading.set(false);
         this.cdr.markForCheck();

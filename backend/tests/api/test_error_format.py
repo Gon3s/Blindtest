@@ -1,4 +1,5 @@
 """T-057 — Format d'erreur unifié : code + message lisible utilisateur."""
+
 from uuid import uuid4
 
 import pytest
@@ -23,6 +24,7 @@ from src.main import app
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _assert_error_structure(data: dict) -> None:
     """Vérifie que la réponse contient code et message (format unifié)."""
     assert "code" in data, f"Clé 'code' absente : {data}"
@@ -44,6 +46,7 @@ def _assert_no_stacktrace(data: dict) -> None:
 # Service fakes
 # ---------------------------------------------------------------------------
 
+
 class _RaisingService:
     """Service qui lève une exception configurable."""
 
@@ -53,6 +56,7 @@ class _RaisingService:
     def __getattr__(self, _name: str):  # type: ignore[override]
         def _raise(*_a, **_kw):  # type: ignore[misc]
             raise self._exc
+
         return _raise
 
 
@@ -67,6 +71,7 @@ def _client_raising(exc: Exception) -> TestClient:
 # ---------------------------------------------------------------------------
 # Tests — codes d'erreur connus
 # ---------------------------------------------------------------------------
+
 
 class TestRoomErrors:
     def setup_method(self):
@@ -199,11 +204,14 @@ class TestErrorMessageQuality:
     def teardown_method(self):
         app.dependency_overrides.clear()
 
-    @pytest.mark.parametrize("exc,route,method,payload", [
-        (RoomNotFoundError(), "/rooms/X/join", "post", {"nickname": "Bob"}),
-        (NicknameAlreadyTakenError(), "/rooms/X/join", "post", {"nickname": "Bob"}),
-        (RoomNotJoinableError(), "/rooms/X/join", "post", {"nickname": "Bob"}),
-    ])
+    @pytest.mark.parametrize(
+        "exc,route,method,payload",
+        [
+            (RoomNotFoundError(), "/rooms/X/join", "post", {"nickname": "Bob"}),
+            (NicknameAlreadyTakenError(), "/rooms/X/join", "post", {"nickname": "Bob"}),
+            (RoomNotJoinableError(), "/rooms/X/join", "post", {"nickname": "Bob"}),
+        ],
+    )
     def test_message_does_not_contain_exception_class_name(
         self, exc, route, method, payload
     ):
@@ -213,11 +221,14 @@ class TestErrorMessageQuality:
         if "message" in data:
             assert type(exc).__name__ not in data["message"]
 
-    @pytest.mark.parametrize("exc,route,method,payload", [
-        (RoomNotFoundError(), "/rooms/X/join", "post", {"nickname": "Bob"}),
-        (NicknameAlreadyTakenError(), "/rooms/X/join", "post", {"nickname": "Bob"}),
-        (RoomNotJoinableError(), "/rooms/X/join", "post", {"nickname": "Bob"}),
-    ])
+    @pytest.mark.parametrize(
+        "exc,route,method,payload",
+        [
+            (RoomNotFoundError(), "/rooms/X/join", "post", {"nickname": "Bob"}),
+            (NicknameAlreadyTakenError(), "/rooms/X/join", "post", {"nickname": "Bob"}),
+            (RoomNotJoinableError(), "/rooms/X/join", "post", {"nickname": "Bob"}),
+        ],
+    )
     def test_message_is_non_empty_string(self, exc, route, method, payload):
         client = _client_raising(exc)
         resp = getattr(client, method)(route, json=payload)

@@ -28,7 +28,12 @@ class _FakeRoundService:
         return {}
 
     def start_round(
-        self, room_id: UUID, host_token: str, theme: str, music_provider: object
+        self,
+        room_id: UUID,
+        host_token: str,
+        theme: str,
+        music_provider: object,
+        answer_mode: object = None,
     ) -> dict:
         if self._exc is not None:
             raise self._exc
@@ -54,6 +59,7 @@ def _make_result(room_id: UUID | None = None) -> dict:
         "room_id": rid,
         "song_count": 10,
         "theme": "Pop 90s",
+        "answer_mode": "both",
     }
 
 

@@ -1,4 +1,4 @@
-from src.domain.enums import ValidationStatus
+from src.domain.enums import AnswerMode, ValidationStatus
 from src.domain.validation import ValidationResult, validate_answer
 
 
@@ -118,3 +118,61 @@ class TestValidationResult:
         result = validate_answer("", "One More Time", "Daft Punk")
         assert result.title == ValidationStatus.NOT_FOUND
         assert result.artist == ValidationStatus.NOT_FOUND
+
+
+class TestValidateAnswerWithMode:
+    def test_title_only_mode_ignores_artist_match(self) -> None:
+        result = validate_answer(
+            "daft punk",
+            "One More Time",
+            "Daft Punk",
+            answer_mode=AnswerMode.TITLE_ONLY,
+        )
+        assert result.artist == ValidationStatus.NOT_FOUND
+
+    def test_title_only_mode_keeps_title_match(self) -> None:
+        result = validate_answer(
+            "one more time",
+            "One More Time",
+            "Daft Punk",
+            answer_mode=AnswerMode.TITLE_ONLY,
+        )
+        assert result.title == ValidationStatus.FOUND
+        assert result.artist == ValidationStatus.NOT_FOUND
+
+    def test_artist_only_mode_ignores_title_match(self) -> None:
+        result = validate_answer(
+            "one more time",
+            "One More Time",
+            "Daft Punk",
+            answer_mode=AnswerMode.ARTIST_ONLY,
+        )
+        assert result.title == ValidationStatus.NOT_FOUND
+
+    def test_artist_only_mode_keeps_artist_match(self) -> None:
+        result = validate_answer(
+            "daft punk",
+            "One More Time",
+            "Daft Punk",
+            answer_mode=AnswerMode.ARTIST_ONLY,
+        )
+        assert result.title == ValidationStatus.NOT_FOUND
+        assert result.artist == ValidationStatus.FOUND
+
+    def test_both_mode_behavior_unchanged(self) -> None:
+        result = validate_answer(
+            "one more time daft punk",
+            "One More Time",
+            "Daft Punk",
+            answer_mode=AnswerMode.BOTH,
+        )
+        assert result.title == ValidationStatus.FOUND
+        assert result.artist == ValidationStatus.FOUND
+
+    def test_default_mode_is_both(self) -> None:
+        r1 = validate_answer("one more time", "One More Time", "Daft Punk")
+        r2 = validate_answer(
+            "one more time", "One More Time", "Daft Punk", answer_mode=AnswerMode.BOTH
+        )
+        assert r1.title == r2.title
+        assert r1.artist == r2.artist

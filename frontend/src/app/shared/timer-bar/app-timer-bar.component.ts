@@ -17,7 +17,8 @@ import { Component, Input } from '@angular/core';
       [class.timer-bar__time--urgent]="progress < 0.25"
       aria-live="polite"
       aria-atomic="true"
-    >{{ timeLeft }}</span>
+      >{{ timeLeft }}</span
+    >
   `,
   styleUrl: './app-timer-bar.component.scss',
 })

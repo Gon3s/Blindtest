@@ -29,3 +29,9 @@ class ValidationStatus(str, Enum):
     NOT_FOUND = "not_found"
     FOUND = "found"
     DOUBTFUL = "doubtful"
+
+
+class AnswerMode(str, Enum):
+    TITLE_ONLY = "title_only"
+    ARTIST_ONLY = "artist_only"
+    BOTH = "both"
