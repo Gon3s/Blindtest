@@ -212,6 +212,179 @@
     color: var(--color-primary);
   }
 
+  // ── Round leaderboard (fin de manche) ────────────
+  &__round-leaderboard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-6);
+    width: 100%;
+    max-width: 480px;
+  }
+
+  &__round-leaderboard-title {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    text-align: center;
+    background: linear-gradient(135deg, #fbbf24 0%, #7c3aed 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0;
+  }
+
+  // ── Podium top 3 ──────────────────────────────────
+  &__podium {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: var(--space-3);
+    width: 100%;
+  }
+
+  &__podium-entry {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    flex: 1;
+    padding: var(--space-3) var(--space-2);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--color-border);
+    text-align: center;
+    transition: transform var(--transition-base);
+
+    &--rank-1 {
+      order: 2;
+      background: linear-gradient(160deg, rgba(251, 191, 36, 0.18) 0%, rgba(251, 191, 36, 0.06) 100%);
+      border-color: rgba(251, 191, 36, 0.4);
+      box-shadow: 0 0 20px rgba(251, 191, 36, 0.15);
+      padding-top: var(--space-6);
+    }
+
+    &--rank-2 {
+      order: 1;
+      background: linear-gradient(160deg, rgba(148, 163, 184, 0.14) 0%, rgba(148, 163, 184, 0.04) 100%);
+      border-color: rgba(148, 163, 184, 0.35);
+    }
+
+    &--rank-3 {
+      order: 3;
+      background: linear-gradient(160deg, rgba(205, 124, 58, 0.14) 0%, rgba(205, 124, 58, 0.04) 100%);
+      border-color: rgba(205, 124, 58, 0.35);
+    }
+  }
+
+  &__podium-rank {
+    font-size: var(--font-size-xl);
+
+    .play__podium-entry--rank-1 & {
+      font-size: var(--font-size-3xl);
+    }
+  }
+
+  &__podium-nickname {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    word-break: break-all;
+  }
+
+  &__podium-points {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-bold);
+
+    .play__podium-entry--rank-1 & { color: #fbbf24; }
+    .play__podium-entry--rank-2 & { color: #94a3b8; }
+    .play__podium-entry--rank-3 & { color: #cd7c3a; }
+  }
+
+  // ── Full leaderboard list ─────────────────────────
+  &__round-leaderboard-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    width: 100%;
+  }
+
+  &__round-leaderboard-row {
+    display: grid;
+    grid-template-columns: 2rem 1fr auto auto;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+  }
+
+  &__round-leaderboard-rank {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-muted);
+    text-align: center;
+  }
+
+  &__round-leaderboard-nickname {
+    font-weight: var(--font-weight-semibold);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__round-leaderboard-round-points {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-success);
+    white-space: nowrap;
+  }
+
+  &__round-leaderboard-total-points {
+    font-size: var(--font-size-xs);
+    color: var(--color-muted);
+    white-space: nowrap;
+  }
+
+  // ── Host new-round CTA ────────────────────────────
+  &__round-cta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    width: 100%;
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--color-border);
+  }
+
+  &__new-round-label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-muted);
+  }
+
+  &__new-round-theme-input {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--font-size-base);
+    font-family: var(--font-family-base);
+    color: var(--color-text);
+    background: var(--color-surface-2);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    outline: none;
+    transition: border-color var(--transition-base);
+
+    &:focus {
+      border-color: var(--color-primary);
+    }
+  }
+
+  &__new-round-btn {
+    width: 100%;
+  }
+
   // ── New round theme chips ─────────────────────────
   &__new-round-theme-presets {
     display: flex;

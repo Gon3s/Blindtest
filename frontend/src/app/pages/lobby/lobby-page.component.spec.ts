@@ -25,7 +25,10 @@ function createAudioMock() {
 }
 
 function createRoomServiceMock() {
-  return { startRound: vi.fn().mockReturnValue(of({})) };
+  return {
+    startRound: vi.fn().mockReturnValue(of({})),
+    closeRoom: vi.fn().mockReturnValue(of({})),
+  };
 }
 
 async function setup(role: 'host' | 'player', nickname = 'Alice') {

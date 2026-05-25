@@ -98,10 +98,9 @@ describe('RoomService', () => {
       expect(res).toEqual(mockResponse);
     });
 
-    const req = httpMock.expectOne(
-      `${environment.apiBaseUrl}/songs/song-uuid/summary?host_id=host-uuid`,
-    );
-    expect(req.request.method).toBe('GET');
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/songs/song-uuid/summary`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ host_token: 'host-uuid' });
     req.flush(mockResponse);
   });
 
@@ -121,7 +120,7 @@ describe('RoomService', () => {
     const req = httpMock.expectOne(`${environment.apiBaseUrl}/songs/song-uuid/answers/ans-uuid`);
     expect(req.request.method).toBe('PATCH');
     expect(req.request.body).toEqual({
-      host_id: 'host-uuid',
+      host_token: 'host-uuid',
       title_accepted: true,
       artist_accepted: true,
     });
@@ -156,7 +155,7 @@ describe('RoomService', () => {
 
     const req = httpMock.expectOne(`${environment.apiBaseUrl}/songs/song-uuid/reveal`);
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ host_id: 'host-uuid' });
+    expect(req.request.body).toEqual({ host_token: 'host-uuid' });
     req.flush(mockResponse);
   });
 

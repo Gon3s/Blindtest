@@ -342,7 +342,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
 
   acceptAnswer(answer: AnswerSummaryItem): void {
     this.roomService
-      .overrideAnswer(this.songId, answer.answer_id, this.hostId, true, true)
+      .overrideAnswer(this.songId, answer.answer_id, this.hostToken, true, true)
       .subscribe({
         next: (res) => {
           const summary = this.songSummary();
@@ -369,7 +369,7 @@ export class PlayPageComponent implements OnInit, OnDestroy {
     this.summarySubscription?.unsubscribe();
     this.summaryLoading.set(true);
     this.summaryError.set(null);
-    this.summarySubscription = this.roomService.getSongSummary(this.songId, this.hostId).subscribe({
+    this.summarySubscription = this.roomService.getSongSummary(this.songId, this.hostToken).subscribe({
       next: (res) => {
         this.songSummary.set(res);
         this.summaryLoading.set(false);

@@ -88,6 +88,30 @@ class TestDeezerTrackMapping:
         track = provider._map_track(_DEEZER_TRACK)
         assert track.cover_url is None
 
+    def test_title_short_added_as_alias_when_different(self) -> None:
+        item: dict[str, Any] = {
+            **_DEEZER_TRACK,
+            "title": "Harder, Better, Faster, Stronger (Radio Edit)",
+            "title_short": "Harder, Better, Faster, Stronger",
+        }
+        provider = DeezerMusicProvider(client=_mock_client({"data": []}))
+        track = provider._map_track(item)
+        assert "Harder, Better, Faster, Stronger" in track.aliases_title
+
+    def test_title_short_not_added_as_alias_when_identical(self) -> None:
+        item: dict[str, Any] = {
+            **_DEEZER_TRACK,
+            "title_short": "Harder, Better, Faster, Stronger",
+        }
+        provider = DeezerMusicProvider(client=_mock_client({"data": []}))
+        track = provider._map_track(item)
+        assert track.aliases_title == []
+
+    def test_aliases_title_empty_when_title_short_absent(self) -> None:
+        provider = DeezerMusicProvider(client=_mock_client({"data": []}))
+        track = provider._map_track(_DEEZER_TRACK)
+        assert track.aliases_title == []
+
 
 class TestDeezerMusicProviderSearch:
     def test_search_returns_tracks_from_deezer(self) -> None:

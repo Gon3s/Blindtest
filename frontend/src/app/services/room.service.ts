@@ -161,22 +161,22 @@ export class RoomService {
     );
   }
 
-  getSongSummary(songId: string, hostId: string): Observable<SongSummaryResponse> {
-    return this.http.get<SongSummaryResponse>(`${this.apiUrl}/songs/${songId}/summary`, {
-      params: { host_id: hostId },
+  getSongSummary(songId: string, hostToken: string): Observable<SongSummaryResponse> {
+    return this.http.post<SongSummaryResponse>(`${this.apiUrl}/songs/${songId}/summary`, {
+      host_token: hostToken,
     });
   }
 
   overrideAnswer(
     songId: string,
     answerId: string,
-    hostId: string,
+    hostToken: string,
     titleAccepted: boolean,
     artistAccepted: boolean,
   ): Observable<OverrideAnswerResponse> {
     return this.http.patch<OverrideAnswerResponse>(
       `${this.apiUrl}/songs/${songId}/answers/${answerId}`,
-      { host_id: hostId, title_accepted: titleAccepted, artist_accepted: artistAccepted },
+      { host_token: hostToken, title_accepted: titleAccepted, artist_accepted: artistAccepted },
     );
   }
 

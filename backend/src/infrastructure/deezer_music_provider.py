@@ -38,9 +38,13 @@ class DeezerMusicProvider:
         raw_preview: str = item.get("preview", "") or ""
         album: dict[str, Any] = item.get("album") or {}
         raw_cover: str = album.get("cover_medium") or ""
+        title: str = item["title"]
+        title_short: str = item.get("title_short", "") or ""
+        aliases_title = [title_short] if title_short and title_short != title else []
         return TrackInfo(
-            title=item["title"],
+            title=title,
             artist=item["artist"]["name"],
             preview_url=raw_preview if raw_preview else None,
             cover_url=raw_cover if raw_cover else None,
+            aliases_title=aliases_title,
         )
