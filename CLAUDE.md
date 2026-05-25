@@ -114,7 +114,7 @@ Dès qu'un ticket est pris en charge, mettre à jour son statut dans Notion via 
 | T-060 | Front — Champ Thème manquant dans le Lobby (P0) | 🔲 Todo |
 | T-123 | Fix — clearSession manquant sur clic Quitter (P0) | 🔲 Todo |
 | T-124 | Fix — Validation shape session localStorage (P2) | 🔲 Todo |
-| T-125 | Fix — Reconnexion phase REVEAL atterrit sur lobby (P0) | 🔲 Todo |
+| T-125 | Fix — Reconnexion phase REVEAL atterrit sur lobby (P0) | ✅ Done |
 | T-126 | Front/Back — Afficher l'image de l'album au reveal (P0) | 🔲 Todo |
 
 #### 🗄️ Archive P0 — Sprint 4

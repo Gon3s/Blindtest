@@ -35,19 +35,22 @@ def _make_participant(nickname: str, is_host: bool = False) -> MagicMock:
     return p
 
 
-def _make_round(room_id: UUID) -> MagicMock:
+def _make_round(room_id: UUID, status: str = "in_progress") -> MagicMock:
     r = MagicMock(spec=RoundModel)
     r.id = uuid4()
     r.room_id = room_id
+    r.status = status
     return r
 
 
-def _make_song(round_id: UUID, index: int = 0) -> MagicMock:
+def _make_song(
+    round_id: UUID, index: int = 0, status: str = SongStatus.PLAYING.value
+) -> MagicMock:
     s = MagicMock(spec=SongModel)
     s.id = uuid4()
     s.round_id = round_id
     s.index = index
-    s.status = SongStatus.PLAYING.value
+    s.status = status
     s.ends_at = datetime(2026, 5, 21, 20, 0, 0, tzinfo=timezone.utc)
     s.preview_url = "https://example.com/preview.mp3"
     return s
@@ -81,6 +84,9 @@ def _make_session(
                 return inner
 
             q.filter_by.side_effect = _fb
+            # For REVEAL/ROUND_FINISHED: filter().order_by().first()
+            chain = q.filter.return_value.order_by.return_value
+            chain.first.return_value = current_song
         return q
 
     mock.query.side_effect = _query
@@ -193,3 +199,58 @@ def test_get_room_state_current_song_none_when_no_active_round() -> None:
     service = RoomService(session)
     result = service.get_room_state("ABC123")
     assert result["current_song"] is None
+
+
+def test_get_room_state_returns_current_song_during_reveal() -> None:
+    room = _make_room(RoomStatus.REVEAL.value)
+    round_ = _make_round(room.id)
+    song = _make_song(round_.id, index=3, status=SongStatus.REVEALED.value)
+    session = _make_session(
+        room, participants=[], round_=round_, current_song=song, total_songs=10
+    )
+    service = RoomService(session)
+    result = service.get_room_state("ABC123")
+    assert result["current_song"] is not None
+
+
+def test_get_room_state_current_song_song_id_is_the_revealed_song() -> None:
+    room = _make_room(RoomStatus.REVEAL.value)
+    round_ = _make_round(room.id)
+    song = _make_song(round_.id, index=3, status=SongStatus.REVEALED.value)
+    session = _make_session(
+        room, participants=[], round_=round_, current_song=song, total_songs=10
+    )
+    service = RoomService(session)
+    result = service.get_room_state("ABC123")
+    cs = result["current_song"]
+    assert cs is not None
+    assert cs["song_id"] == song.id
+    assert cs["song_index"] == 3
+    assert cs["round_id"] == round_.id
+    assert cs["total_songs"] == 10
+
+
+def test_get_room_state_returns_current_song_during_round_finished() -> None:
+    room = _make_room(RoomStatus.ROUND_FINISHED.value)
+    round_ = _make_round(room.id, status="finished")
+    song = _make_song(round_.id, index=9, status=SongStatus.REVEALED.value)
+    session = _make_session(
+        room, participants=[], round_=round_, current_song=song, total_songs=10
+    )
+    service = RoomService(session)
+    result = service.get_room_state("ABC123")
+    assert result["current_song"] is not None
+    assert result["current_song"]["song_id"] == song.id
+
+
+def test_get_room_state_returns_current_song_when_song_is_scored() -> None:
+    room = _make_room(RoomStatus.ROUND_FINISHED.value)
+    round_ = _make_round(room.id, status="finished")
+    song = _make_song(round_.id, index=9, status=SongStatus.SCORED.value)
+    session = _make_session(
+        room, participants=[], round_=round_, current_song=song, total_songs=10
+    )
+    service = RoomService(session)
+    result = service.get_room_state("ABC123")
+    assert result["current_song"] is not None
+    assert result["current_song"]["song_id"] == song.id

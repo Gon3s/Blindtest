@@ -105,3 +105,45 @@ def test_get_room_state_returns_404_when_not_found():
         assert response.status_code == 404
     finally:
         app.dependency_overrides.clear()
+
+
+def test_get_room_state_returns_current_song_when_reveal():
+    song_id = uuid4()
+    round_id = uuid4()
+    current_song = {
+        "song_id": song_id,
+        "song_index": 3,
+        "round_id": round_id,
+        "ends_at": "2026-05-20T20:00:00+00:00",
+        "preview_url": None,
+        "total_songs": 10,
+    }
+    result = _room_result(status="reveal", current_song=current_song)
+    client = _client(result)
+    try:
+        data = client.get("/rooms/ABC123").json()
+        assert data["status"] == "reveal"
+        assert data["current_song"] is not None
+        assert data["current_song"]["song_index"] == 3
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_get_room_state_current_song_song_id_present_when_reveal():
+    song_id = uuid4()
+    round_id = uuid4()
+    current_song = {
+        "song_id": song_id,
+        "song_index": 3,
+        "round_id": round_id,
+        "ends_at": "2026-05-20T20:00:00+00:00",
+        "preview_url": None,
+        "total_songs": 10,
+    }
+    result = _room_result(status="reveal", current_song=current_song)
+    client = _client(result)
+    try:
+        data = client.get("/rooms/ABC123").json()
+        assert UUID(data["current_song"]["song_id"]) == song_id
+    finally:
+        app.dependency_overrides.clear()

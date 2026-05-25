@@ -49,6 +49,17 @@ from src.infrastructure.models import (
 )
 from src.infrastructure.static_fixture_provider import StaticFixtureMusicProvider
 
+_REVEAL_ROOM_STATUSES: frozenset[str] = frozenset(
+    {RoomStatus.REVEAL.value, RoomStatus.ROUND_FINISHED.value}
+)
+
+_ACTIVE_SONG_STATUSES: list[str] = [
+    SongStatus.LOCKED.value,
+    SongStatus.VALIDATION.value,
+    SongStatus.REVEALED.value,
+    SongStatus.SCORED.value,
+]
+
 _LOCKED_STATUSES: frozenset[str] = frozenset(
     {
         SongStatus.LOCKED.value,
@@ -933,6 +944,41 @@ class RoomService:
                 song = (
                     self._session.query(SongModel)
                     .filter_by(round_id=round_.id, status=SongStatus.PLAYING.value)
+                    .first()
+                )
+                if song is not None:
+                    total_songs = (
+                        self._session.query(SongModel)
+                        .filter_by(round_id=round_.id)
+                        .count()
+                    )
+                    current_song = CurrentSongStateEntry(
+                        song_id=song.id,
+                        song_index=song.index,
+                        round_id=round_.id,
+                        ends_at=song.ends_at.isoformat() if song.ends_at else None,
+                        preview_url=song.preview_url,
+                        total_songs=total_songs,
+                    )
+        elif room.status in _REVEAL_ROOM_STATUSES:
+            round_status = (
+                RoundStatus.IN_PROGRESS.value
+                if room.status == RoomStatus.REVEAL.value
+                else RoundStatus.FINISHED.value
+            )
+            round_ = (
+                self._session.query(RoundModel)
+                .filter_by(room_id=room.id, status=round_status)
+                .first()
+            )
+            if round_ is not None:
+                song = (
+                    self._session.query(SongModel)
+                    .filter(
+                        SongModel.round_id == round_.id,
+                        SongModel.status.in_(_ACTIVE_SONG_STATUSES),
+                    )
+                    .order_by(SongModel.index.desc())
                     .first()
                 )
                 if song is not None:

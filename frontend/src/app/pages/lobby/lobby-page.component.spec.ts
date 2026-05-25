@@ -393,6 +393,120 @@ describe('LobbyPageComponent — T-056 reconnection', () => {
   });
 });
 
+describe('LobbyPageComponent — T-125 reconnection during REVEAL', () => {
+  const SESSION_KEY = 'blindtest_session';
+
+  function buildSession(role: 'host' | 'player') {
+    return JSON.stringify({
+      roomCode: 'ABC123',
+      roomId: 'room-uuid',
+      role,
+      participantId: role === 'host' ? 'host-uuid' : 'player-uuid',
+      hostToken: role === 'host' ? 'host-token-abc' : undefined,
+      nickname: 'Alice',
+    });
+  }
+
+  async function setupReconnect(
+    role: 'host' | 'player',
+    roomStatus = 'waiting',
+    currentSong: object | null = null,
+  ) {
+    history.replaceState({}, '');
+    localStorage.setItem(SESSION_KEY, buildSession(role));
+
+    const { service: wsService, msgs } = createWsMock();
+    const audioService = createAudioMock();
+    const roomService = {
+      startRound: vi.fn().mockReturnValue(of({})),
+      getRoomState: vi.fn().mockReturnValue(
+        of({
+          room_id: 'room-uuid',
+          code: 'ABC123',
+          status: roomStatus,
+          participants: [],
+          current_song: currentSong,
+        }),
+      ),
+    };
+    const sessionService = {
+      loadSession: vi.fn().mockReturnValue(JSON.parse(buildSession(role))),
+      clearSession: vi.fn(),
+      saveSession: vi.fn(),
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [LobbyPageComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            paramMap: of({ get: (k: string) => (k === 'code' ? 'ABC123' : null) }),
+          },
+        },
+        { provide: WebSocketService, useValue: wsService },
+        { provide: AudioService, useValue: audioService },
+        { provide: RoomService, useValue: roomService },
+        { provide: SessionService, useValue: sessionService },
+      ],
+    }).compileComponents();
+
+    const fixture: ComponentFixture<LobbyPageComponent> =
+      TestBed.createComponent(LobbyPageComponent);
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigate');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    return { fixture, wsService, msgs, router, navigateSpy, roomService, sessionService };
+  }
+
+  afterEach(() => {
+    history.replaceState(null, '');
+    localStorage.clear();
+    TestBed.resetTestingModule();
+  });
+
+  it('redirects to /play when room status is reveal with current_song', async () => {
+    const currentSong = {
+      song_id: 'song-uuid',
+      song_index: 3,
+      round_id: 'round-uuid',
+      ends_at: '2026-05-20T21:00:00+00:00',
+      preview_url: null,
+      total_songs: 10,
+    };
+    const { navigateSpy } = await setupReconnect('player', 'reveal', currentSong);
+    expect(navigateSpy).toHaveBeenCalledWith(
+      ['/play', 'ABC123'],
+      expect.objectContaining({
+        state: expect.objectContaining({
+          room_id: 'room-uuid',
+          song_id: 'song-uuid',
+          song_index: 3,
+        }),
+      }),
+    );
+  });
+
+  it('does NOT redirect to /play when room status is round_finished', async () => {
+    const currentSong = {
+      song_id: 'song-uuid',
+      song_index: 9,
+      round_id: 'round-uuid',
+      ends_at: '2026-05-20T21:00:00+00:00',
+      preview_url: null,
+      total_songs: 10,
+    };
+    const { navigateSpy } = await setupReconnect('player', 'round_finished', currentSong);
+    expect(navigateSpy).not.toHaveBeenCalledWith(
+      ['/play', 'ABC123'],
+      expect.anything(),
+    );
+  });
+});
+
 describe('LobbyPageComponent — T-060 theme field', () => {
   const twoParticipants = [
     { participant_id: 'p1', nickname: 'Alice', is_host: true },

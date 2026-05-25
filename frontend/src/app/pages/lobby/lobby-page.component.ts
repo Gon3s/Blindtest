@@ -124,7 +124,7 @@ export class LobbyPageComponent implements OnInit, OnDestroy {
         this.nickname.set(session.nickname);
         this.participantId = session.participantId;
 
-        if (roomState.status === 'round_in_progress' && roomState.current_song) {
+        if (['round_in_progress', 'reveal'].includes(roomState.status) && roomState.current_song) {
           const cs = roomState.current_song;
           void this.router.navigate(['/play', session.roomCode], {
             state: {
